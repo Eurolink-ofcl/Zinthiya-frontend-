@@ -165,7 +165,8 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
   const [regOrgDescription, setRegOrgDescription] = useState("");
 
   // Support Needs & Documents (Step 3)
-  const [regSupportCategory, setRegSupportCategory] = useState("Emergency Food Parcel & Essentials");
+  const [supportCategories, setSupportCategories] = useState<any[]>([]);
+  const [regSupportCategory, setRegSupportCategory] = useState("");
   const [regUrgency, setRegUrgency] = useState("HIGH");
   const [regReason, setRegReason] = useState("");
   const [regAssistanceDescription, setRegAssistanceDescription] = useState("");
@@ -189,6 +190,22 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
       setPortalDisabledByAdmin(true);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const cats = await api.getSupportCategoriesAdmin();
+        const validCats = Array.isArray(cats) ? cats : [];
+        if (validCats.length > 0) {
+          setSupportCategories(validCats);
+          setRegSupportCategory(validCats[0].name);
+        }
+      } catch (err) {
+        console.error("Failed to load categories", err);
+      }
+    }
+    fetchCategories();
+  }, []);
 
   // Multiple File Upload Handler
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1566,29 +1583,14 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
                                   className="form-control-48"
                                   style={{ cursor: "pointer" }}
                                 >
-                                  {regType === "INDIVIDUAL" ? (
-                                    <>
-                                      <option value="Emergency Food Parcel &amp; Essentials">Emergency Food Parcel &amp; Essentials</option>
-                                      <option value="Emergency Heating &amp; Fuel Voucher">Emergency Heating &amp; Fuel Voucher</option>
-                                      <option value="Domestic Abuse Crisis Sanctuary Relocation">Domestic Abuse Crisis Sanctuary Relocation</option>
-                                      <option value="Winter Bedding &amp; Warm Clothing Pack">Winter Bedding &amp; Warm Clothing Pack</option>
-                                      <option value="Debt &amp; Energy Arrears Advocacy">Debt &amp; Energy Arrears Advocacy</option>
-                                      <option value="Emergency Cash Welfare Grant (£50 - £250)">Emergency Cash Welfare Grant (£50 - £250)</option>
-                                      <option value="Tenancy &amp; Housing Injunction Casework">Tenancy &amp; Housing Injunction Casework</option>
-                                      <option value="Medical &amp; Disability Hardship Relief">Medical &amp; Disability Hardship Relief</option>
-                                      <option value="Education, School Uniform &amp; Child Support">Education, School Uniform &amp; Child Support</option>
-                                      <option value="Other Crisis Relief Support">Other Crisis Relief Support</option>
-                                    </>
+                                  {supportCategories.length === 0 ? (
+                                    <option value="" disabled>Loading categories from database...</option>
                                   ) : (
-                                    <>
-                                      <option value="Community Food Distribution &amp; Pantry Stock">Community Food Distribution &amp; Pantry Stock</option>
-                                      <option value="School Breakfast Club &amp; Holiday Meals Grant">School Breakfast Club &amp; Holiday Meals Grant</option>
-                                      <option value="Warm Hub Fuel &amp; Heating Subsidy">Warm Hub Fuel &amp; Heating Subsidy</option>
-                                      <option value="Crisis Refuge Relocation Partnership">Crisis Refuge Relocation Partnership</option>
-                                      <option value="Winter Warmth Clothing &amp; Emergency Packs">Winter Warmth Clothing &amp; Emergency Packs</option>
-                                      <option value="Capacity Building &amp; Emergency Relief Fund">Capacity Building &amp; Emergency Relief Fund</option>
-                                      <option value="Other Partner Welfare Support">Other Partner Welfare Support</option>
-                                    </>
+                                    supportCategories.map((cat) => (
+                                      <option key={cat.id} value={cat.name}>
+                                        {cat.name}
+                                      </option>
+                                    ))
                                   )}
                                 </select>
                               </div>

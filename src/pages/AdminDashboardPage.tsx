@@ -775,7 +775,7 @@ export function AdminDashboardPage() {
   const [newBenCountry, setNewBenCountry] = useState("United Kingdom");
   const [newBenEmergencyContact, setNewBenEmergencyContact] = useState("");
   const [newBenHouseholdSize, setNewBenHouseholdSize] = useState<number | string>(1);
-  const [newBenSupportCategory, setNewBenSupportCategory] = useState("Emergency Food Parcel & Essentials");
+  const [newBenSupportCategory, setNewBenSupportCategory] = useState("");
   const [newBenInitialUrgency, setNewBenInitialUrgency] = useState("HIGH");
   const [newBenReasonForSupport, setNewBenReasonForSupport] = useState("");
   const [newBenAssistanceDescription, setNewBenAssistanceDescription] = useState("");
@@ -804,7 +804,7 @@ export function AdminDashboardPage() {
   const [newOrgTownCity, setNewOrgTownCity] = useState("Leicester");
   const [newOrgPostcode, setNewOrgPostcode] = useState("");
   const [newOrgCountry, setNewOrgCountry] = useState("United Kingdom");
-  const [newOrgSupportCategory, setNewOrgSupportCategory] = useState("Community Food Distribution & Pantry Stock");
+  const [newOrgSupportCategory, setNewOrgSupportCategory] = useState("");
   const [newOrgUrgency, setNewOrgUrgency] = useState("HIGH");
   const [newOrgBeneficiaryReach, setNewOrgBeneficiaryReach] = useState<number | string>(50);
   const [newOrgReasonForSupport, setNewOrgReasonForSupport] = useState("");
@@ -872,7 +872,8 @@ export function AdminDashboardPage() {
     setNewBenCountry("United Kingdom");
     setNewBenEmergencyContact("");
     setNewBenHouseholdSize(1);
-    setNewBenSupportCategory("Emergency Food Parcel & Essentials");
+    const defaultDynamicCat = supportCategoriesList.length > 0 ? supportCategoriesList[0].name : "";
+    setNewBenSupportCategory(defaultDynamicCat);
     setNewBenInitialUrgency("HIGH");
     setNewBenReasonForSupport("");
     setNewBenAssistanceDescription("");
@@ -897,7 +898,7 @@ export function AdminDashboardPage() {
     setNewOrgTownCity("Leicester");
     setNewOrgPostcode("");
     setNewOrgCountry("United Kingdom");
-    setNewOrgSupportCategory("Community Food Distribution & Pantry Stock");
+    setNewOrgSupportCategory(defaultDynamicCat);
     setNewOrgUrgency("HIGH");
     setNewOrgBeneficiaryReach(50);
     setNewOrgReasonForSupport("");
@@ -988,7 +989,7 @@ export function AdminDashboardPage() {
   const [submittingDoc, setSubmittingDoc] = useState(false);
 
   // Form states for Create Request for existing beneficiary
-  const [newReqServiceType, setNewReqServiceType] = useState("Emergency Heating & Fuel Voucher");
+  const [newReqServiceType, setNewReqServiceType] = useState("");
   const [newReqUrgency, setNewReqUrgency] = useState("HIGH");
   const [newReqHouseholdSize, setNewReqHouseholdSize] = useState<number | string>(1);
   const [newReqNotes, setNewReqNotes] = useState("");
@@ -1898,11 +1899,16 @@ export function AdminDashboardPage() {
       if (data.financialSummary) {
         setAllocationsFinancialSummary(data.financialSummary);
       }
-      if (data.categories) {
+      if (data.categories && Array.isArray(data.categories)) {
         setSupportCategoriesList(data.categories);
-        if (!allocCategoryId && data.categories.length > 0) {
-          setAllocCategoryId(data.categories[0].id);
-          setAllocAssistanceType(data.categories[0].name);
+        if (data.categories.length > 0) {
+          if (!allocCategoryId) {
+            setAllocCategoryId(data.categories[0].id);
+            setAllocAssistanceType(data.categories[0].name);
+          }
+          setNewBenSupportCategory((prev) => (prev && data.categories.some((c: any) => c.name === prev) ? prev : data.categories[0].name));
+          setNewOrgSupportCategory((prev) => (prev && data.categories.some((c: any) => c.name === prev) ? prev : data.categories[0].name));
+          setNewReqServiceType((prev) => (prev && data.categories.some((c: any) => c.name === prev) ? prev : data.categories[0].name));
         }
       }
     } catch (err: any) {
@@ -1920,7 +1926,13 @@ export function AdminDashboardPage() {
     setCategoriesLoading(true);
     try {
       const cats = await api.getSupportCategoriesAdmin();
-      setSupportCategoriesList(cats || []);
+      const validCats = Array.isArray(cats) ? cats : [];
+      setSupportCategoriesList(validCats);
+      if (validCats.length > 0) {
+        setNewBenSupportCategory((prev) => (prev && validCats.some((c) => c.name === prev) ? prev : validCats[0].name));
+        setNewOrgSupportCategory((prev) => (prev && validCats.some((c) => c.name === prev) ? prev : validCats[0].name));
+        setNewReqServiceType((prev) => (prev && validCats.some((c) => c.name === prev) ? prev : validCats[0].name));
+      }
     } catch (err: any) {
       console.error("Failed to load categories", err);
     } finally {
@@ -2740,6 +2752,7 @@ export function AdminDashboardPage() {
 
     setCurrentUser(user);
     loadDashboardData();
+    loadSupportCategoriesData();
     // Stagger secondary tab queries to avoid connection spike on mount
     setTimeout(() => {
       loadBeneficiariesData();
@@ -5160,6 +5173,9 @@ export function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (supportCategoriesList.length === 0) {
+                        loadSupportCategoriesData();
+                      }
                       resetAddBeneficiaryForm();
                       setShowAddBeneficiaryModal(true);
                     }}
@@ -5576,6 +5592,9 @@ export function AdminDashboardPage() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (supportCategoriesList.length === 0) {
+                          loadSupportCategoriesData();
+                        }
                         resetAddBeneficiaryForm();
                         setShowAddBeneficiaryModal(true);
                       }}
@@ -15143,29 +15162,14 @@ export function AdminDashboardPage() {
                             cursor: "pointer",
                           }}
                         >
-                          {addBenType === "INDIVIDUAL" ? (
-                            <>
-                              <option value="Emergency Food Parcel &amp; Essentials">Emergency Food Parcel &amp; Essentials</option>
-                              <option value="Emergency Heating &amp; Fuel Voucher">Emergency Heating &amp; Fuel Voucher</option>
-                              <option value="Domestic Abuse Crisis Sanctuary Relocation">Domestic Abuse Crisis Sanctuary Relocation</option>
-                              <option value="Winter Bedding &amp; Warm Clothing Pack">Winter Bedding &amp; Warm Clothing Pack</option>
-                              <option value="Debt &amp; Energy Arrears Advocacy">Debt &amp; Energy Arrears Advocacy</option>
-                              <option value="Emergency Cash Welfare Grant (£50 - £250)">Emergency Cash Welfare Grant (£50 - £250)</option>
-                              <option value="Tenancy &amp; Housing Injunction Casework">Tenancy &amp; Housing Injunction Casework</option>
-                              <option value="Medical &amp; Disability Hardship Relief">Medical &amp; Disability Hardship Relief</option>
-                              <option value="Education, School Uniform &amp; Child Support">Education, School Uniform &amp; Child Support</option>
-                              <option value="Other Crisis Relief Support">Other Crisis Relief Support</option>
-                            </>
+                          {supportCategoriesList.length === 0 ? (
+                            <option value="" disabled>Loading categories from database...</option>
                           ) : (
-                            <>
-                              <option value="Community Food Distribution &amp; Pantry Stock">Community Food Distribution &amp; Pantry Stock</option>
-                              <option value="School Breakfast Club &amp; Holiday Meals Grant">School Breakfast Club &amp; Holiday Meals Grant</option>
-                              <option value="Warm Hub Fuel &amp; Heating Subsidy">Warm Hub Fuel &amp; Heating Subsidy</option>
-                              <option value="Crisis Refuge Relocation Partnership">Crisis Refuge Relocation Partnership</option>
-                              <option value="Winter Warmth Clothing &amp; Emergency Packs">Winter Warmth Clothing &amp; Emergency Packs</option>
-                              <option value="Capacity Building &amp; Emergency Relief Fund">Capacity Building &amp; Emergency Relief Fund</option>
-                              <option value="Other Partner Welfare Support">Other Partner Welfare Support</option>
-                            </>
+                            supportCategoriesList.map((cat) => (
+                              <option key={cat.id} value={cat.name}>
+                                {cat.name}
+                              </option>
+                            ))
                           )}
                         </select>
                       </div>
@@ -17176,13 +17180,15 @@ export function AdminDashboardPage() {
   boxSizing: "border-box",
 }}
                 >
-                  <option value="Emergency Food Parcel &amp; Essentials">Emergency Food Parcel &amp; Essentials</option>
-                  <option value="Emergency Heating &amp; Fuel Voucher">Emergency Heating &amp; Fuel Voucher</option>
-                  <option value="Domestic Abuse Crisis Sanctuary Relocation">Domestic Abuse Crisis Sanctuary Relocation</option>
-                  <option value="Winter Bedding &amp; Warm Clothing Pack">Winter Bedding &amp; Warm Clothing Pack</option>
-                  <option value="Debt &amp; Energy Arrears Advocacy">Debt &amp; Energy Arrears Advocacy</option>
-                  <option value="Emergency Cash Welfare Grant (£50 - £250)">Emergency Cash Welfare Grant (£50 - £250)</option>
-                  <option value="Tenancy &amp; Housing Injunction Casework">Tenancy &amp; Housing Injunction Casework</option>
+                  {supportCategoriesList.length === 0 ? (
+                    <option value="" disabled>Loading categories from database...</option>
+                  ) : (
+                    supportCategoriesList.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
