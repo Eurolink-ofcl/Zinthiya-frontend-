@@ -191,7 +191,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     emergencyContactPhone: cachedBen?.phoneNumber || "",
     preferredContactMethod: "SMS & Email",
     contactHours: "Weekdays 09:00 - 16:30",
-    caseWorker: cachedBen?.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)",
+    caseWorker: cachedBen?.assignedAdvocate || "Assigned Caseworker",
     secondaryWorker: "Duty Welfare Advocate",
     caseStatus: cachedBen?.active !== false ? "Active Support" : "Pending Review",
     supportType: "Crisis Relief & Community Advocacy",
@@ -210,7 +210,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   // ADVOCATE COMMUNICATION & MULTILINGUAL MESSAGING STATE
   // =========================================================================
   const assignedAdvocate = {
-    name: beneficiaryUser.caseWorker || "Sarah Davies (Senior Crisis Caseworker)",
+    name: beneficiaryUser.caseWorker || "Duty Caseworker",
     title: "Senior Family Welfare & Crisis Caseworker",
     credentials: "BA (Hons), DipSW, Certified UK Welfare Rights Practitioner",
     status: "Online • Duty Caseworker",
@@ -464,7 +464,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
             emergencyContactPhone: u.phoneNumber || "",
             preferredContactMethod: "SMS & Email",
             contactHours: "Weekdays 09:00 - 16:30",
-            caseWorker: u.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)",
+            caseWorker: u.assignedAdvocate || "Duty Welfare Advocate",
             secondaryWorker: "Duty Welfare Advocate",
             caseStatus: u.active !== false ? "Active Support" : "Pending Review",
             supportType: "Crisis Relief & Community Advocacy",
@@ -1173,7 +1173,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 }}
               >
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#10B981" }} />
-                <span>Caseworker: {beneficiaryUser.caseWorker || "Sarah Davies (Senior Crisis Caseworker)"}</span>
+                <span>Caseworker: {beneficiaryUser.caseWorker || "Duty Caseworker"}</span>
               </div>
 
               <button

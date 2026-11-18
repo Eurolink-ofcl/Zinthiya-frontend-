@@ -978,7 +978,7 @@ export function AdminDashboardPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
 
   // Form states for Assign Advocate
-  const [selectedAdvocateValue, setSelectedAdvocateValue] = useState("Sarah Davies (Senior Crisis Caseworker)");
+  const [selectedAdvocateValue, setSelectedAdvocateValue] = useState("");
   const [submittingAssignAdvocate, setSubmittingAssignAdvocate] = useState(false);
 
 
@@ -1157,7 +1157,7 @@ export function AdminDashboardPage() {
     setEditBenTownCity(b.townCity || "Leicester");
     setEditBenPostcode(b.postcode || "");
     setEditBenEmergencyContact(b.emergencyContact || "");
-    setEditBenAssignedAdvocate(b.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)");
+    setEditBenAssignedAdvocate(b.assignedAdvocate || "");
     setEditBenActive(b.active);
   }
 
@@ -1216,15 +1216,30 @@ export function AdminDashboardPage() {
     e.preventDefault();
     if (!assigningAdvocateBeneficiary) return;
 
+    let advocateToAssign = selectedAdvocateValue;
+    const isUnassigned = advocateToAssign === "UNASSIGNED" || advocateToAssign === "Unassigned" || !advocateToAssign;
+    if (!isUnassigned) {
+      const exists = activeAdvocatesList.some((adv) => adv.display === advocateToAssign);
+      if (!exists && activeAdvocatesList.length > 0) {
+        advocateToAssign = activeAdvocatesList[0].display;
+      }
+    }
+
+    const finalAdvocateVal = isUnassigned ? "" : advocateToAssign;
+
     setSubmittingAssignAdvocate(true);
     try {
-      await api.assignBeneficiaryAdvocateAdmin(assigningAdvocateBeneficiary.id, selectedAdvocateValue);
-      setActionSuccessMsg(`Advocate ${selectedAdvocateValue} assigned to ${assigningAdvocateBeneficiary.fullName}!`);
+      await api.assignBeneficiaryAdvocateAdmin(assigningAdvocateBeneficiary.id, finalAdvocateVal);
+      setActionSuccessMsg(
+        finalAdvocateVal
+          ? `Advocate ${finalAdvocateVal} assigned to ${assigningAdvocateBeneficiary.fullName}!`
+          : `Advocate unassigned for ${assigningAdvocateBeneficiary.fullName}.`
+      );
       setAssigningAdvocateBeneficiary(null);
       await loadBeneficiariesData();
       await loadDashboardData();
       if (viewingBeneficiary && viewingBeneficiary.id === assigningAdvocateBeneficiary.id) {
-        setViewingBeneficiary({ ...viewingBeneficiary, assignedAdvocate: selectedAdvocateValue });
+        setViewingBeneficiary({ ...viewingBeneficiary, assignedAdvocate: finalAdvocateVal });
       }
       setTimeout(() => setActionSuccessMsg(""), 4000);
     } catch (err: any) {
@@ -1594,7 +1609,7 @@ export function AdminDashboardPage() {
   const [allocDescription, setAllocDescription] = useState<string>("");
   const [allocImmediateDisburse, setAllocImmediateDisburse] = useState<boolean>(false);
   const [allocPaymentMethod, setAllocPaymentMethod] = useState<string>("Prepayment Voucher");
-  const [allocDisbursedBy, setAllocDisbursedBy] = useState<string>("Sarah Davies (Senior Crisis Caseworker)");
+  const [allocDisbursedBy, setAllocDisbursedBy] = useState<string>("");
   const [allocReceiptRef, setAllocReceiptRef] = useState<string>("");
   const [allocDisbursementNotes, setAllocDisbursementNotes] = useState<string>("");
   const [submittingCreateAllocation, setSubmittingCreateAllocation] = useState<boolean>(false);
@@ -1603,7 +1618,7 @@ export function AdminDashboardPage() {
   const [distributeAmount, setDistributeAmount] = useState<number | string>(0);
   const [distributeDate, setDistributeDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [distributePaymentMethod, setDistributePaymentMethod] = useState<string>("Prepayment Voucher");
-  const [distributeDisbursedBy, setDistributeDisbursedBy] = useState<string>("Sarah Davies (Senior Crisis Caseworker)");
+  const [distributeDisbursedBy, setDistributeDisbursedBy] = useState<string>("");
   const [distributeReceiptRef, setDistributeReceiptRef] = useState<string>("");
   const [distributeNotes, setDistributeNotes] = useState<string>("");
   const [submittingDistribution, setSubmittingDistribution] = useState<boolean>(false);
@@ -1693,11 +1708,7 @@ export function AdminDashboardPage() {
   const activeAdvocatesList = useMemo(() => {
     const activeStaff = (staffList || []).filter((s) => s.active !== false);
     if (activeStaff.length === 0) {
-      return [
-        { id: "default-1", fullName: "Sarah Davies", jobTitle: "Senior Crisis Caseworker", department: "Crisis & Domestic Abuse Support", display: "Sarah Davies (Senior Crisis Caseworker)" },
-        { id: "default-2", fullName: "Zinthiya Ganeshpanchan", jobTitle: "Lead Advocate", department: "Executive & Governance", display: "Zinthiya Ganeshpanchan (Lead Advocate)" },
-        { id: "default-3", fullName: "Priya Patel", jobTitle: "Energy Advice Specialist", department: "Energy & Utility Relief", display: "Priya Patel (Energy Advice Specialist)" },
-      ];
+      return [];
     }
     // Sort caseworkers and advocates first, then alphabetical
     const sorted = [...activeStaff].sort((a, b) => {
@@ -2168,7 +2179,7 @@ export function AdminDashboardPage() {
     setDistributeAmount(Number(allocation.allocatedAmount));
     setDistributeDate(new Date().toISOString().slice(0, 10));
     setDistributePaymentMethod(allocation.paymentMethod || "Prepayment Voucher");
-    setDistributeDisbursedBy(allocation.disbursedBy || "Sarah Davies (Senior Crisis Caseworker)");
+    setDistributeDisbursedBy(allocation.disbursedBy || (activeAdvocatesList[0]?.display || ""));
     setDistributeReceiptRef(allocation.receiptReference || `RCP-${Date.now().toString(36).toUpperCase()}`);
     setDistributeNotes(allocation.disbursementNotes || "");
   }
@@ -5873,7 +5884,10 @@ export function AdminDashboardPage() {
                                     type="button"
                                     onClick={() => {
                                       setAssigningAdvocateBeneficiary(b);
-                                      setSelectedAdvocateValue(b.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)");
+                                      const matched = activeAdvocatesList.find(
+                                        (a) => a.display === b.assignedAdvocate || a.fullName === b.assignedAdvocate || (b.assignedAdvocate && b.assignedAdvocate.includes(a.fullName))
+                                      );
+                                      setSelectedAdvocateValue(matched ? matched.display : (activeAdvocatesList[0]?.display || ""));
                                     }}
                                     style={{
                                       padding: "5px",
@@ -9631,8 +9645,13 @@ export function AdminDashboardPage() {
                       </p>
                       <div className="pt-2 border-t border-gray-100 text-[11px] text-gray-600 space-y-1">
                         <div className="font-bold text-slate-800">Assigned Team Members:</div>
-                        <div>• Sarah Davies (Senior Crisis Caseworker)</div>
-                        <div>• Priya Patel (Energy Advice Specialist)</div>
+                        {activeAdvocatesList.length > 0 ? (
+                          activeAdvocatesList.slice(0, 3).map((adv) => (
+                            <div key={adv.id}>• {adv.display}</div>
+                          ))
+                        ) : (
+                          <div className="italic text-gray-400">Manageable in Staff Management</div>
+                        )}
                       </div>
                     </div>
 
@@ -16119,7 +16138,10 @@ export function AdminDashboardPage() {
                       type="button"
                       onClick={() => {
                         setAssigningAdvocateBeneficiary(viewingBeneficiary);
-                        setSelectedAdvocateValue(viewingBeneficiary.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)");
+                        const matched = activeAdvocatesList.find(
+                          (a) => a.display === viewingBeneficiary.assignedAdvocate || a.fullName === viewingBeneficiary.assignedAdvocate || (viewingBeneficiary.assignedAdvocate && viewingBeneficiary.assignedAdvocate.includes(a.fullName))
+                        );
+                        setSelectedAdvocateValue(matched ? matched.display : (activeAdvocatesList[0]?.display || ""));
                       }}
                       className="mt-2 text-xs font-bold text-magenta hover:underline"
                     >
@@ -17066,7 +17088,13 @@ export function AdminDashboardPage() {
                   Select Zinthiya Trust Specialist
                 </label>
                 <select
-                  value={selectedAdvocateValue}
+                  value={
+                    selectedAdvocateValue === "UNASSIGNED"
+                      ? "UNASSIGNED"
+                      : activeAdvocatesList.some((adv) => adv.display === selectedAdvocateValue)
+                      ? selectedAdvocateValue
+                      : (activeAdvocatesList[0]?.display || "")
+                  }
                   onChange={(e) => setSelectedAdvocateValue(e.target.value)}
                   style={{
                     width: "100%",
@@ -17083,11 +17111,18 @@ export function AdminDashboardPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {activeAdvocatesList.map((adv) => (
-                    <option key={adv.id} value={adv.display}>
-                      {adv.display} • {adv.department}
-                    </option>
-                  ))}
+                  {activeAdvocatesList.length === 0 ? (
+                    <option value="">No active staff members found — add staff in Staff Management</option>
+                  ) : (
+                    <>
+                      {activeAdvocatesList.map((adv) => (
+                        <option key={adv.id} value={adv.display}>
+                          {adv.display} • {adv.department}
+                        </option>
+                      ))}
+                      <option value="UNASSIGNED">-- Unassign / General Casework --</option>
+                    </>
+                  )}
                 </select>
               </div>
 
@@ -18610,7 +18645,7 @@ export function AdminDashboardPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Authorizing Caseworker:</span>
-                <span className="text-slate-900">{viewingVoucherAllocation.disbursedBy || "Sarah Davies"}</span>
+                <span className="text-slate-900">{viewingVoucherAllocation.disbursedBy || "Authorized Caseworker"}</span>
               </div>
               {viewingVoucherAllocation.receiptReference && (
                 <div className="flex justify-between">
