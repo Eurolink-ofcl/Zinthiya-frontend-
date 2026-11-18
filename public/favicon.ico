@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="100%" height="100%">
+  <defs>
+    <style>
+      .logo-text { font-family: 'Baloo 2', 'Fredoka', cursive, sans-serif; font-weight: 700; fill: #E6127E; }
+      .sub-text { font-family: 'Nunito Sans', sans-serif; font-weight: 600; fill: #E6127E; letter-spacing: 1px; }
+    </style>
+  </defs>
+
+  <g transform="translate(10, 20)">
+    <!-- "Zinth" -->
+    <text x="0" y="90" font-family="'Baloo 2', cursive, sans-serif" font-weight="700" font-size="96" fill="#E6127E" letter-spacing="-2">Zinth</text>
+    
+    <!-- Leaping Dancer Silhouette integrated as the "i" dot / central dancer icon -->
+    <g transform="translate(245, 10) scale(1.2)">
+      <!-- Head -->
+      <circle cx="28" cy="18" r="6.5" fill="#E6127E" />
+      <!-- Arms raised high in leap -->
+      <path d="M 28 24 C 20 16, 8 10, 0 12 C 10 16, 20 22, 26 28 Z" fill="#E6127E" />
+      <path d="M 28 24 C 36 16, 48 10, 56 12 C 46 16, 36 22, 30 28 Z" fill="#E6127E" />
+      <!-- Torso & Swirling Dress -->
+      <path d="M 28 28 C 22 36, 16 46, 6 56 C 18 54, 28 48, 30 42 C 34 50, 42 62, 50 68 C 42 58, 36 46, 32 36 Z" fill="#E6127E" />
+      <!-- Leaping Legs -->
+      <path d="M 30 42 C 26 55, 20 72, 14 85 C 20 75, 26 62, 28 50 Z" fill="#E6127E" />
+    </g>
+
+    <!-- "ya" -->
+    <text x="325" y="90" font-family="'Baloo 2', cursive, sans-serif" font-weight="700" font-size="96" fill="#E6127E" letter-spacing="-2">ya</text>
+
+    <!-- Subtitle: "Ganeshpanchan       Trust" -->
+    <text x="65" y="125" font-family="'Nunito Sans', sans-serif" font-weight="600" font-size="28" fill="#E6127E" letter-spacing="1">Ganeshpanchan</text>
+    <text x="350" y="125" font-family="'Nunito Sans', sans-serif" font-weight="600" font-size="28" fill="#E6127E" letter-spacing="2">Trust</text>
+  </g>
+</svg>
