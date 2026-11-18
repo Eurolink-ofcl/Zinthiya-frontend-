@@ -14,6 +14,11 @@ export interface DonorUser {
   fullName: string;
   phoneNumber?: string;
   address?: string;
+  townCity?: string;
+  postcode?: string;
+  country?: string;
+  emailNewsletter?: boolean;
+  smsAlerts?: boolean;
   role: "DONOR" | "BENEFICIARY" | "STAFF" | "ADMIN";
   generalConsent: boolean;
   donationTier: string;
@@ -402,6 +407,8 @@ export interface AuditLogRecord {
   actorEmail: string;
   actorRole: string;
   actorId?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
   diff?: any;
   createdAt: string;
 }
@@ -415,6 +422,25 @@ export interface AuditLogsResponse {
 export interface RolesPermissionsResponse {
   roles: any[];
   permissions: any[];
+}
+
+export interface ReportFilters {
+  period?: string;
+  startDate?: string;
+  endDate?: string;
+  campaignId?: string;
+  donationType?: string;
+}
+
+export interface ReportsData {
+  summary?: any;
+  timeline?: any[];
+  campaigns?: any[];
+  topDonors?: any[];
+  donationTypeSplit?: any;
+  beneficiarySupport?: any;
+  fundDistribution?: any;
+  [key: string]: any;
 }
 
 class ApiService {
@@ -662,9 +688,14 @@ class ApiService {
     description: string;
     targetAmount: number | string;
     imageUrl?: string;
+    campaignType?: string;
+    corporateSponsor?: string;
+    fundraisingPageId?: string;
+    campaignCode?: string;
     startDate?: string;
     endDate?: string;
     active?: boolean;
+    [key: string]: any;
   }): Promise<CampaignRecord> {
     return this.request<CampaignRecord>("/admin/campaigns", {
       method: "POST",

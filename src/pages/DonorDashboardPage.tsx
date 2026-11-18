@@ -262,7 +262,7 @@ export function DonorDashboardPage() {
     navigate("/login");
   }
 
-  function openDonateModal(campaignId?: string) {
+  function _openDonateModal(campaignId?: string) {
     if (campaignId) setSelectedCampaignId(campaignId);
     setDonationSuccessMsg("");
     setShowDonateModal(true);
@@ -1924,13 +1924,16 @@ export function DonorDashboardPage() {
                             const recObj: DonationRecord = {
                               id: paymentReceipt.id || paymentReceipt.reference,
                               amount: paymentReceipt.amount,
+                              currency: "GBP",
+                              status: "COMPLETED",
                               type: paymentReceipt.type,
                               giftAid: paymentReceipt.giftAid,
                               paymentMethod: paymentReceipt.paymentMethod,
                               reference: paymentReceipt.reference,
                               createdAt: new Date().toISOString(),
                               campaign: {
-                                title: paymentReceipt.campaignTitle
+                                id: paymentReceipt.campaignId || "general",
+                                title: paymentReceipt.campaignTitle || "General Support Fund"
                               }
                             };
                             handleDownloadReceipt(recObj);

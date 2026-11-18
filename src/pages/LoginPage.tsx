@@ -10,8 +10,7 @@ import {
   ArrowLeft,
   ShieldCheck,
   Sparkles,
-  Check,
-  Heart
+  Check
 } from "../components/Icons";
 
 function ZinthiyaLogo() {
