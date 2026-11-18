@@ -903,6 +903,7 @@ class ApiService {
     type?: string;
     size?: string;
     status?: string;
+    dataUrl?: string;
   }): Promise<BeneficiaryRecord> {
     return this.request<BeneficiaryRecord>(`/admin/beneficiaries/${id}/documents`, {
       method: "POST",

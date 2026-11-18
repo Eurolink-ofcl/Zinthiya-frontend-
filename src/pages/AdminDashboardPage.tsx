@@ -753,6 +753,7 @@ export function AdminDashboardPage() {
   const [addingDocBeneficiary, setAddingDocBeneficiary] = useState<BeneficiaryRecord | null>(null);
   const [creatingReqBeneficiary, setCreatingReqBeneficiary] = useState<BeneficiaryRecord | null>(null);
   const [deletingBeneficiary, setDeletingBeneficiary] = useState<BeneficiaryRecord | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
 
   // =========================================================================
   // ADD BENEFICIARY WORKFLOW: Individual & Organisation Registration
@@ -986,6 +987,8 @@ export function AdminDashboardPage() {
   const [docNameValue, setDocNameValue] = useState("");
   const [docTypeValue, setDocTypeValue] = useState("Proof of Address");
   const [docStatusValue, setDocStatusValue] = useState("VERIFIED");
+  const [docSizeValue, setDocSizeValue] = useState("120 KB");
+  const [docDataUrl, setDocDataUrl] = useState("");
   const [submittingDoc, setSubmittingDoc] = useState(false);
 
   // Form states for Create Request for existing beneficiary
@@ -1271,11 +1274,15 @@ export function AdminDashboardPage() {
         name: docNameValue.trim(),
         type: docTypeValue,
         status: docStatusValue,
+        size: docSizeValue || "120 KB",
+        dataUrl: docDataUrl || undefined,
       });
 
       setActionSuccessMsg(`Document "${docNameValue}" recorded for ${addingDocBeneficiary.fullName}!`);
       setAddingDocBeneficiary(null);
       setDocNameValue("");
+      setDocDataUrl("");
+      setDocSizeValue("120 KB");
 
       await loadBeneficiariesData();
       if (viewingBeneficiary && viewingBeneficiary.id === addingDocBeneficiary.id) {
@@ -1301,6 +1308,38 @@ export function AdminDashboardPage() {
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to remove document.");
     }
+  }
+
+  function handleViewDocument(doc: any) {
+    if (!doc) return;
+    const url = doc.dataUrl || doc.url || doc.metadata?.dataUrl || doc.metadata?.url;
+    if (url && typeof url === "string") {
+      if (url.startsWith("data:")) {
+        try {
+          const parts = url.split(";base64,");
+          const contentType = parts[0].replace("data:", "") || "application/octet-stream";
+          const byteCharacters = atob(parts[1] || "");
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: contentType });
+          const blobUrl = URL.createObjectURL(blob);
+          const win = window.open(blobUrl, "_blank");
+          if (!win) {
+            setPreviewDoc({ ...doc, blobUrl });
+          }
+          return;
+        } catch (e) {
+          console.warn("Base64 direct preview failed, opening in-app viewer", e);
+        }
+      } else {
+        window.open(url, "_blank");
+        return;
+      }
+    }
+    setPreviewDoc(doc);
   }
 
 
@@ -16044,7 +16083,7 @@ export function AdminDashboardPage() {
               >
                 <span>Case Documents</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 text-slate-700 font-black">
-                  {viewingBeneficiary.documents?.length || 0}
+                  {(viewingBeneficiary.documents || []).filter((d: any) => !d?.name?.startsWith("Casework Intake") && !d?.name?.startsWith("Partner Dossier") && !d?.id?.startsWith("doc-intake")).length}
                 </span>
               </button>
 
@@ -16245,13 +16284,20 @@ export function AdminDashboardPage() {
                   </button>
                 </div>
 
-                {(!viewingBeneficiary.documents || viewingBeneficiary.documents.length === 0) ? (
-                  <div className="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-200 rounded-2xl">
-                    No case documents recorded yet.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {viewingBeneficiary.documents.map((doc) => (
+                {(() => {
+                  const storedDocs = (viewingBeneficiary.documents || []).filter(
+                    (doc: any) => !doc?.name?.startsWith("Casework Intake") && !doc?.name?.startsWith("Partner Dossier") && !doc?.id?.startsWith("doc-intake")
+                  );
+                  if (storedDocs.length === 0) {
+                    return (
+                      <div className="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-200 rounded-2xl">
+                        No case documents recorded yet.
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      {storedDocs.map((doc) => (
                       <div
                         key={doc.id}
                         className="p-3 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-3 hover:border-pink-200 transition-colors"
@@ -16271,7 +16317,16 @@ export function AdminDashboardPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <button
+                            type="button"
+                            onClick={() => handleViewDocument(doc)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-pink-50 hover:text-magenta hover:border-pink-300 border border-slate-200 transition-all cursor-pointer shadow-sm"
+                            title="View or preview document"
+                          >
+                            <Eye size={13} className="text-magenta" />
+                            <span>View</span>
+                          </button>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                             {doc.status}
                           </span>
                           <button
@@ -16286,7 +16341,8 @@ export function AdminDashboardPage() {
                       </div>
                     ))}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 
@@ -17394,6 +17450,31 @@ export function AdminDashboardPage() {
             <form onSubmit={handleAddDocumentSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  Upload File from Computer (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setDocNameValue(file.name);
+                    const formattedSize = file.size > 1024 * 1024
+                      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                      : `${Math.round(file.size / 1024)} KB`;
+                    setDocSizeValue(formattedSize);
+                    const reader = new FileReader();
+                    reader.onload = (loadEvent) => {
+                      setDocDataUrl(loadEvent.target?.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                  className="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-pink-50 file:text-magenta hover:file:bg-pink-100 cursor-pointer p-2 border border-dashed border-slate-300 rounded-xl bg-slate-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                   Document File Name *
                 </label>
                 <input
@@ -17529,6 +17610,151 @@ export function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* BENEFICIARY MODAL: VIEW / PREVIEW CASE DOCUMENT                           */}
+      {/* ========================================================================= */}
+      {previewDoc && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backgroundColor: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(6px)",
+          }}
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "24px",
+              maxWidth: "720px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 24px 48px rgba(15, 23, 42, 0.25)",
+              padding: "24px 28px",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "42px", height: "42px", borderRadius: "14px", backgroundColor: "#FCE8F3", color: "#B80C64", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                    {previewDoc.name}
+                  </h3>
+                  <div style={{ fontSize: "11px", color: "#64748B", marginTop: "2px" }}>
+                    {previewDoc.type} &bull; {previewDoc.size} &bull; Uploaded {new Date(previewDoc.uploadedAt).toLocaleDateString("en-GB")}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewDoc(null)}
+                style={{ background: "none", border: "none", color: "#8E7287", cursor: "pointer", padding: "4px" }}
+                title="Close viewer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Document Viewer Frame */}
+            <div style={{ margin: "16px 0", borderRadius: "16px", border: "1px solid #E2E8F0", overflow: "hidden", backgroundColor: "#F8FAFC" }}>
+              {(previewDoc.blobUrl || previewDoc.dataUrl) ? (
+                previewDoc.name?.toLowerCase().endsWith(".pdf") || previewDoc.dataUrl?.startsWith("data:application/pdf") ? (
+                  <iframe
+                    src={previewDoc.blobUrl || previewDoc.dataUrl}
+                    title={previewDoc.name}
+                    style={{ width: "100%", height: "460px", border: "none" }}
+                  />
+                ) : previewDoc.dataUrl?.startsWith("data:image/") || /\.(png|jpg|jpeg|webp|gif)$/i.test(previewDoc.name || "") ? (
+                  <div style={{ padding: "16px", textAlign: "center" }}>
+                    <img
+                      src={previewDoc.blobUrl || previewDoc.dataUrl}
+                      alt={previewDoc.name}
+                      style={{ maxHeight: "420px", maxWidth: "100%", objectFit: "contain", margin: "0 auto", borderRadius: "8px" }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: "36px 20px", textAlign: "center" }}>
+                    <FileText size={48} style={{ color: "#E6127E", margin: "0 auto 12px auto" }} />
+                    <div style={{ fontSize: "14px", fontWeight: 800, color: "#0F172A" }}>{previewDoc.name}</div>
+                    <div style={{ fontSize: "12px", color: "#64748B", marginTop: "4px" }}>Verification document file ready for inspection</div>
+                  </div>
+                )
+              ) : (
+                <div style={{ padding: "36px 20px", textAlign: "center" }}>
+                  <FileText size={48} style={{ color: "#E6127E", margin: "0 auto 12px auto" }} />
+                  <div style={{ fontSize: "14px", fontWeight: 800, color: "#0F172A" }}>{previewDoc.name}</div>
+                  <div style={{ fontSize: "12px", color: "#64748B", marginTop: "4px" }}>
+                    Verified case file record ({previewDoc.type}). Physical record filed under caseworker reference.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Bar */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #F1F5F9", paddingTop: "16px" }}>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Verification Status: {previewDoc.status}
+              </span>
+              <div style={{ display: "flex", gap: "10px" }}>
+                {(previewDoc.blobUrl || previewDoc.dataUrl || previewDoc.url) && (
+                  <a
+                    href={previewDoc.blobUrl || previewDoc.dataUrl || previewDoc.url}
+                    download={previewDoc.name}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      height: "38px",
+                      padding: "0 18px",
+                      borderRadius: "10px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      backgroundColor: "#E6127E",
+                      color: "#ffffff",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      textDecoration: "none",
+                      boxShadow: "0 2px 8px rgba(230, 18, 126, 0.25)",
+                    }}
+                  >
+                    <Download size={14} />
+                    <span>Download File</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  style={{
+                    height: "38px",
+                    padding: "0 18px",
+                    borderRadius: "10px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    backgroundColor: "#F1F5F9",
+                    color: "#475569",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
