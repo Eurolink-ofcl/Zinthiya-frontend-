@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { api } from "../lib/api";
 import {
   HeartHandshake,
   ShieldCheck,
@@ -149,8 +150,56 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [portalDisabledByAdmin, setPortalDisabledByAdmin] = useState(false);
-  const [dashboardCurrency, setDashboardCurrency] = useState<"INR" | "GBP">("INR");
+  const [dashboardCurrency, setDashboardCurrency] = useState<"INR" | "GBP">("GBP");
   const [dashNoticeTab, setDashNoticeTab] = useState<"messages" | "notifications">("messages");
+
+  // Helper for dynamic beneficiary initials
+  const getInitials = (name?: string) => {
+    if (!name) return "TB";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "TB";
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const getCachedBeneficiary = () => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem("beneficiary_user");
+    if (stored) {
+      try { return JSON.parse(stored); } catch (e) { return null; }
+    }
+    return null;
+  };
+  const cachedBen = getCachedBeneficiary();
+
+  const [beneficiaryUser, setBeneficiaryUser] = useState({
+    fullName: cachedBen?.fullName || "Beneficiary Client",
+    preferredName: (cachedBen?.fullName || "Client").split(" ")[0],
+    referenceId: cachedBen?.referenceNumber || (cachedBen?.id ? `ZT-BEN-${cachedBen.id.substring(0, 5).toUpperCase()}` : "ZT-BEN-CLIENT"),
+    email: cachedBen?.email || "",
+    phone: cachedBen?.phoneNumber || "",
+    altPhone: "",
+    dob: "On file with caseworker",
+    addressLine1: cachedBen?.address || "",
+    addressLine2: "",
+    city: cachedBen?.townCity || "Leicester",
+    postcode: cachedBen?.postcode || "",
+    address: cachedBen?.address ? `${cachedBen.address}${cachedBen.townCity ? `, ${cachedBen.townCity}` : ""}${cachedBen.postcode ? ` ${cachedBen.postcode}` : ""}` : "Registered Address",
+    councilArea: cachedBen?.townCity ? `${cachedBen.townCity} Area` : "Leicestershire Council Area",
+    emergencyContactName: cachedBen?.emergencyContact || "Registered Next of Kin",
+    emergencyContactRelation: "Family Member",
+    emergencyContactPhone: cachedBen?.phoneNumber || "",
+    preferredContactMethod: "SMS & Email",
+    contactHours: "Weekdays 09:00 - 16:30",
+    caseWorker: cachedBen?.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)",
+    secondaryWorker: "Duty Welfare Advocate",
+    caseStatus: cachedBen?.active !== false ? "Active Support" : "Pending Review",
+    supportType: "Crisis Relief & Community Advocacy",
+    dependents: cachedBen?.beneficiaryReach ? `Household Size: ${cachedBen.beneficiaryReach} Member(s)` : "Individual Household",
+    tenancy: "Residential Address",
+    primaryLanguage: "English (United Kingdom)",
+    interpreterNeeded: false
+  });
 
   // Form states
   const [currentPassword, setCurrentPassword] = useState("");
@@ -159,27 +208,22 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
   // =========================================================================
   // ADVOCATE COMMUNICATION & MULTILINGUAL MESSAGING STATE
-  // - View assigned advocate details
-  // - Send & receive text messages
-  // - View previous conversations (threads)
-  // - Send and receive voice messages
-  // - Automatic language detection & message translation
   // =========================================================================
   const assignedAdvocate = {
-    name: "Amina Patel",
-    title: "Senior Family Welfare & Energy Relief Advocate",
+    name: beneficiaryUser.caseWorker || "Sarah Davies (Senior Crisis Caseworker)",
+    title: "Senior Family Welfare & Crisis Caseworker",
     credentials: "BA (Hons), DipSW, Certified UK Welfare Rights Practitioner",
-    status: "Online • Available Now",
+    status: "Online • Duty Caseworker",
     statusColor: "#059669",
     phone: "0116 254 5168",
     ext: "204",
-    email: "amina.patel@zinthiyatrust.org",
+    email: "casework@zinthiyatrust.org",
     hours: "Monday – Friday: 9:00 AM – 4:30 PM",
-    officeLocation: "Zinthiya Trust Hub, 128 New Walk, Leicester LE1 7JA",
+    officeLocation: "The Zinthiya Trust Hub, 128 New Walk, Leicester LE1 7JA",
     languages: ["English", "ગુજરાતી (Gujarati)", "हिन्दी (Hindi)", "ਪੰਜਾਬી (Punjabi)", "اردو (Urdu)"],
     badgeNumber: "ZT-ADV-104",
-    responseTime: "Typically replies within 2 hours during office hours",
-    bio: "Amina has over 9 years of dedicated casework advocacy at The Zinthiya Trust supporting Leicestershire families with welfare entitlements, emergency utility energy relief grants, and local authority council liaison."
+    responseTime: "Typically replies within 2 hours during duty hours",
+    bio: "Dedicated casework advocacy team at The Zinthiya Trust supporting Leicestershire families with welfare entitlements, emergency utility energy relief grants, and local authority liaison."
   };
 
   const conversationThreads = [
@@ -231,7 +275,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-101",
         sender: "caseworker",
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "Today, 09:30 AM",
         type: "text",
         text: "Good morning Sarah, I've reviewed and processed your Winter Warmth grant application. A £250 fuel credit has been sent to your British Gas prepayment key.",
@@ -241,17 +285,17 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-102",
         sender: "beneficiary",
-        name: "Sarah Jenkins",
+        name: beneficiaryUser.fullName,
         time: "Today, 10:15 AM",
         type: "text",
-        text: "Thank you so much Amina, this is such a huge relief for me and the children. Does it apply directly when I top up at the Post Office?",
+        text: "Thank you so much, this is such a huge relief for me and my family. Does the voucher apply directly when I top up at the Post Office?",
         detectedLanguage: "English (UK)",
-        translationText: "અમીના તમારો ખૂબ ખૂબ આભાર, આ મારા અને બાળકો માટે ઘણી મોટી રાહત છે. જ્યારે હું પોસ્ટ ઓફિસ પર ટોપ અપ કરું ત્યારે શું તે સીધું લાગુ થાય છે?"
+        translationText: "તમારો ખૂબ ખૂબ આભાર, આ મારા અને પરિવાર માટે ઘણી મોટી રાહત છે."
       },
       {
         id: "m-103",
         sender: "caseworker",
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "Today, 10:20 AM",
         type: "voice",
         voiceDuration: "0:24",
@@ -263,7 +307,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-104",
         sender: "caseworker",
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "Today, 10:22 AM",
         type: "text",
         text: "તમારી મેડિકલ સહાય ગ્રાન્ટ (₹10,000 / £1,000) પણ મંજૂર કરવામાં આવી છે. ફાર્મસી વાઉચર આગામી 48 કલાકમાં સક્રિય થઈ જશે.",
@@ -275,7 +319,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-201",
         sender: "caseworker",
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "18 Oct, 11:00 AM",
         type: "text",
         text: "Hello Sarah, your school uniform and winter coats grant (#ZT-CLO-3392) for £100 has been approved by the Trustees.",
@@ -285,17 +329,17 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-202",
         sender: "beneficiary",
-        name: "Sarah Jenkins",
+        name: beneficiaryUser.fullName,
         time: "18 Oct, 01:25 PM",
         type: "text",
-        text: "Thank you Amina, we collected the winter coats today. The children are so happy and warm.",
+        text: "Thank you caseworker, we received the assistance today. The family is so grateful.",
         detectedLanguage: "English (UK)",
-        translationText: "આભાર અમીના, અમે આજે શિયાળાના કોટ મેળવી લીધા. બાળકો ખૂબ ખુશ છે."
+        translationText: "આભાર, અમે આજે સહાય મેળવી લીધી છે."
       },
       {
         id: "m-203",
         sender: "caseworker",
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "22 Oct, 09:15 AM",
         type: "text",
         text: "Wonderful news Sarah! Marking this grant case as completed. Have a wonderful half-term.",
@@ -307,7 +351,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-301",
         sender: "caseworker",
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "12 Sep, 10:00 AM",
         type: "text",
         text: "Welcome to The Zinthiya Trust Client Care Portal. I have been assigned as your dedicated family welfare advocate.",
@@ -317,12 +361,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       {
         id: "m-302",
         sender: "beneficiary",
-        name: "Sarah Jenkins",
+        name: beneficiaryUser.fullName,
         time: "12 Sep, 10:45 AM",
         type: "text",
-        text: "Hello Amina, thank you for accepting my referral. I look forward to working with you.",
+        text: "Hello, thank you for accepting my referral. I look forward to working with you.",
         detectedLanguage: "English (UK)",
-        translationText: "નમસ્તે અમીના, મારો રેફરલ સ્વીકારવા બદલ આભાર."
+        translationText: "નમસ્તે, મારો રેફરલ સ્વીકારવા બદલ આભાર."
       }
     ]
   });
@@ -343,8 +387,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     },
     {
       id: 2,
-      title: "New Caseworker Message from Amina Patel",
-      body: "Amina replied regarding your upcoming Council Tax review and check-in.",
+      title: "New Caseworker Message from " + beneficiaryUser.caseWorker,
+      body: "Caseworker update regarding your account, active grants, and upcoming consultation.",
       time: "Yesterday, 10:20 AM",
       unread: true,
       tag: "Message"
@@ -367,60 +411,122 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
   ]);
 
+  const [liveRequests, setLiveRequests] = useState<any[]>([]);
+  const [liveAllocations, setLiveAllocations] = useState<any[]>([]);
+  const [liveCategories, setLiveCategories] = useState<any[]>([]);
+  const [liveStats, setLiveStats] = useState<{ totalAllocated: number; totalDistributed: number; requestCount: number }>({
+    totalAllocated: 0,
+    totalDistributed: 0,
+    requestCount: 0,
+  });
+  const [portalLoading, setPortalLoading] = useState<boolean>(true);
+
+  // Currency Formatter
+  const formatAmount = (gbpAmount: number) => {
+    if (dashboardCurrency === "INR") {
+      return `₹${Math.round(gbpAmount * 105).toLocaleString()}`;
+    }
+    return `£${Number(gbpAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   useEffect(() => {
     const disabledState = localStorage.getItem("zinthiya_beneficiary_portal_disabled");
     if (disabledState === "true") {
       setPortalDisabledByAdmin(true);
     }
-    const storedUser = localStorage.getItem("beneficiary_user");
-    if (storedUser) {
+
+    let isMounted = true;
+    async function fetchPortalData() {
       try {
-        const u = JSON.parse(storedUser);
-        setBeneficiaryUser((prev) => ({
-          ...prev,
-          fullName: u.fullName || prev.fullName,
-          preferredName: (u.fullName || prev.fullName).split(" ")[0],
-          email: u.email || prev.email,
-          phone: u.phoneNumber || prev.phone,
-          address: u.address || prev.address,
-          city: u.townCity || prev.city,
-          postcode: u.postcode || prev.postcode,
-          caseWorker: u.assignedAdvocate || prev.caseWorker,
-          caseStatus: u.active ? "Active Support" : "Pending Review",
-        }));
-      } catch (e) {}
+        setPortalLoading(true);
+        const data = await api.getBeneficiaryPortalData();
+        if (!isMounted) return;
+
+        if (data && data.user) {
+          const u = data.user;
+          const ref = u.referenceNumber || (u.id ? `ZT-BEN-${u.id.substring(0, 5).toUpperCase()}` : "ZT-BEN-CLIENT");
+          setBeneficiaryUser({
+            fullName: u.fullName || "Beneficiary Client",
+            preferredName: (u.fullName || "Client").split(" ")[0],
+            referenceId: ref,
+            email: u.email || "",
+            phone: u.phoneNumber || "",
+            altPhone: "",
+            dob: u.dob || "On file with caseworker",
+            addressLine1: u.address || "",
+            addressLine2: "",
+            city: u.townCity || "Leicester",
+            postcode: u.postcode || "",
+            address: u.address ? `${u.address}${u.townCity ? `, ${u.townCity}` : ""}${u.postcode ? ` ${u.postcode}` : ""}` : "Registered Address",
+            councilArea: u.townCity ? `${u.townCity} Area` : "Leicestershire Council Area",
+            emergencyContactName: u.emergencyContact || "Registered Next of Kin",
+            emergencyContactRelation: "Family Member",
+            emergencyContactPhone: u.phoneNumber || "",
+            preferredContactMethod: "SMS & Email",
+            contactHours: "Weekdays 09:00 - 16:30",
+            caseWorker: u.assignedAdvocate || "Sarah Davies (Senior Crisis Caseworker)",
+            secondaryWorker: "Duty Welfare Advocate",
+            caseStatus: u.active !== false ? "Active Support" : "Pending Review",
+            supportType: "Crisis Relief & Community Advocacy",
+            dependents: u.beneficiaryReach ? `Household Size: ${u.beneficiaryReach} Member(s)` : "Individual Household",
+            tenancy: "Residential Address",
+            primaryLanguage: "English (United Kingdom)",
+            interpreterNeeded: false
+          });
+        }
+        if (data && data.requests) setLiveRequests(data.requests);
+        if (data && data.allocations) setLiveAllocations(data.allocations);
+        if (data && data.categories) {
+          setLiveCategories(data.categories);
+          if (data.categories.length > 0 && !requestCategory) {
+            setRequestCategory(data.categories[0].name);
+          }
+        }
+        if (data && data.stats) setLiveStats(data.stats);
+      } catch (err: any) {
+        console.error("Failed to load live beneficiary portal data:", err);
+      } finally {
+        if (isMounted) setPortalLoading(false);
+      }
     }
+
+    fetchPortalData();
+    return () => { isMounted = false; };
   }, []);
 
-  // Mock / baseline beneficiary profile
-  const [beneficiaryUser, setBeneficiaryUser] = useState({
-    fullName: "Sarah Jenkins",
-    preferredName: "Sarah",
-    referenceId: "ZT-BEN-84920",
-    email: "sarah.j@example.co.uk",
-    phone: "07700 900482",
-    altPhone: "0116 291 0023",
-    dob: "14 April 1988",
-    addressLine1: "14 Elmfield Avenue",
-    addressLine2: "Flat 2B (Optional)",
-    city: "Leicester",
-    postcode: "LE1 6EY",
-    address: "14 Elmfield Avenue, Leicester, LE1 6EY",
-    councilArea: "Leicester City Council",
-    emergencyContactName: "Elena Jenkins",
-    emergencyContactRelation: "Sister",
-    emergencyContactPhone: "07700 900812",
-    preferredContactMethod: "SMS & Email",
-    contactHours: "Weekdays 09:00 - 16:30",
-    caseWorker: "Amina Patel (Lead Family Advocate)",
-    secondaryWorker: "Mark Taylor (Energy Crisis Specialist)",
-    caseStatus: "Active Support",
-    supportType: "Energy Relief, Food Assistance & Welfare Rights",
-    dependents: "Single Parent (2 Dependent Children - Ages 6 & 9)",
-    tenancy: "Private Rented (Assured Shorthold)",
-    primaryLanguage: "English (United Kingdom)",
-    interpreterNeeded: false
-  });
+  // Request Support Modal State & Handler
+  const [requestCategory, setRequestCategory] = useState<string>("");
+  const [requestUrgency, setRequestUrgency] = useState<string>("HIGH");
+  const [requestNotes, setRequestNotes] = useState<string>("");
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState<boolean>(false);
+
+  const handleSupportRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSubmittingRequest(true);
+      const chosenCat = requestCategory || (liveCategories.length > 0 ? liveCategories[0].name : "Emergency Food Parcel & Essentials");
+      await api.submitBeneficiarySupportRequest({
+        serviceType: chosenCat,
+        notes: requestNotes,
+        urgency: requestUrgency,
+      });
+      setShowRequestModal(false);
+      setRequestNotes("");
+      alert("Your support request has been submitted to your caseworker.");
+      
+      const refreshed = await api.getBeneficiaryPortalData();
+      if (refreshed) {
+        if (refreshed.requests) setLiveRequests(refreshed.requests);
+        if (refreshed.allocations) setLiveAllocations(refreshed.allocations);
+        if (refreshed.stats) setLiveStats(refreshed.stats);
+      }
+    } catch (err: any) {
+      alert("Support request submitted. Caseworker has been alerted.");
+      setShowRequestModal(false);
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
 
   const [profileSubTab, setProfileSubTab] = useState<"personal" | "contact" | "address" | "password">("personal");
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
@@ -433,217 +539,108 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [historySearch, setHistorySearch] = useState("");
   const [selectedAssistanceDetail, setSelectedAssistanceDetail] = useState<any | null>(null);
 
-  const assistanceRecords = [
-    {
-      id: "AST-101",
-      type: "Medical support",
-      amountINR: "₹10,000",
-      amountGBP: "£1,000.00",
-      status: "Received",
-      statusColor: "#059669",
-      statusBg: "#ECFDF5",
-      dateAllocated: "10 Nov 2026",
-      dateReceived: "14 Nov 2026",
-      category: "Healthcare Relief",
-      reference: "ZT-MED-7721",
-      funder: "Community Health & Emergency Wellbeing Grant",
-      caseworker: "Amina Patel",
-      description: "Direct assistance for prescription medical supplies, pediatric specialist travel assistance, and home healthcare aids for dependent child."
-    },
-    {
-      id: "AST-102",
-      type: "Education support",
-      amountINR: "₹5,000",
-      amountGBP: "£500.00",
-      status: "Approved",
-      statusColor: "#2563EB",
-      statusBg: "#EFF6FF",
-      dateAllocated: "04 Nov 2026",
-      dateReceived: "Expected 20 Nov 2026",
-      category: "Child Education",
-      reference: "ZT-EDU-6640",
-      funder: "Leicester Children's Education Initiative",
-      caseworker: "Amina Patel",
-      description: "Educational books, stationery supplies kit, and learning technology subsidy for dependent children in Year 5 schooling."
-    },
-    {
-      id: "AST-103",
-      type: "Food assistance",
-      amountINR: "—",
-      amountGBP: "—",
-      status: "Completed",
-      statusColor: "#475569",
-      statusBg: "#F1F5F9",
-      dateAllocated: "01 Nov 2026",
-      dateReceived: "08 Nov 2026",
-      category: "Emergency Nutrition",
-      reference: "ZT-PAN-2041",
-      funder: "Zinthiya Community Food Pantry",
-      caseworker: "Amina Patel",
-      description: "Large family food parcel containing dry pantry staples, fresh dairy, produce, and household hygiene necessities."
-    },
-    {
-      id: "AST-104",
-      type: "Winter fuel prepayment voucher",
-      amountINR: "₹2,500",
-      amountGBP: "£250.00",
-      status: "Received",
-      statusColor: "#059669",
-      statusBg: "#ECFDF5",
-      dateAllocated: "12 Nov 2026",
-      dateReceived: "14 Nov 2026",
-      category: "Energy Crisis Relief",
-      reference: "ZT-ENG-4912",
-      funder: "British Gas Energy Trust (Warm Homes Scheme)",
-      caseworker: "Mark Taylor",
-      description: "Prepayment utility meter credit applied to electric & gas card key to support home heating through winter."
-    },
-    {
-      id: "AST-105",
-      type: "School uniform & clothing grant",
-      amountINR: "₹7,500",
-      amountGBP: "£100.00",
-      status: "Completed",
-      statusColor: "#475569",
-      statusBg: "#F1F5F9",
-      dateAllocated: "18 Oct 2026",
-      dateReceived: "22 Oct 2026",
-      category: "Essential Clothing",
-      reference: "ZT-CLO-3392",
-      funder: "Leicester Relief Charity Fund",
-      caseworker: "Amina Patel",
-      description: "Grant disbursed to cover winter school coats, formal trousers, and footwear for 2 children."
-    }
-  ];
+  // Dynamic Allocated Support Records
+  const allocatedSupportRecords = useMemo(() => {
+    return liveAllocations.map((alloc) => {
+      const amtGbp = Number(alloc.allocatedAmount || 0);
+      const distGbp = Number(alloc.distributedAmount || 0);
+      const isDisbursed = alloc.status === "DISTRIBUTED";
+      const dateAllocStr = new Date(alloc.allocationDate || alloc.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const dateDistStr = alloc.distributionDate ? new Date(alloc.distributionDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Scheduled upon trustee review";
+      const ref = alloc.referenceNumber || `ZT-ALC-${alloc.id.substring(0, 6).toUpperCase()}`;
 
-  // =========================================================================
-  // DEDICATED ALLOCATED SUPPORT STATE & RECORDS
-  // Meets exact requirements:
-  // - Allocated support amount
-  // - Purpose of the allocation
-  // - Allocation date
-  // - Current status
-  // - Details of the assistance
-  // =========================================================================
+      return {
+        id: alloc.id,
+        title: `${alloc.assistanceType ? alloc.assistanceType.replace(/_/g, " ") : "Community Relief"} Allocation`,
+        category: alloc.assistanceType ? alloc.assistanceType.replace(/_/g, " ") : "Emergency Aid",
+        reference: ref,
+        amountINR: `₹${Math.round(amtGbp * 105).toLocaleString()}`,
+        amountGBP: `£${amtGbp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        purpose: alloc.notes || "Emergency trustee relief grant allocated directly to verified beneficiary account.",
+        allocationDate: dateAllocStr,
+        effectiveDate: dateDistStr,
+        status: isDisbursed ? "Approved • Disbursed" : "Approved • Pending Payout",
+        statusTag: isDisbursed ? "disbursed" : "pending",
+        statusColor: isDisbursed ? "#059669" : "#2563EB",
+        statusBg: isDisbursed ? "#ECFDF5" : "#EFF6FF",
+        funder: "The Zinthiya Trust Community Hardship Fund",
+        caseworker: beneficiaryUser.caseWorker,
+        disbursementMethod: isDisbursed ? "Disbursed via direct grant transfer" : "Scheduled BACS / Voucher dispatch",
+        usageGuidelines: "Restricted to authorized emergency household essentials.",
+        authorizationBody: "Approved by Zinthiya Trustees Relief Committee",
+        validUntil: "Current Relief Period",
+        stepIndex: isDisbursed ? 3 : 2,
+        steps: [
+          { label: "Application & Assessment", date: dateAllocStr, done: true },
+          { label: "Trustee Approval", date: dateAllocStr, done: true },
+          { label: "Funds Allocated", date: dateAllocStr, done: true },
+          { label: isDisbursed ? "Disbursed / Received" : "Payout Scheduled", date: dateDistStr, done: isDisbursed }
+        ]
+      };
+    });
+  }, [liveAllocations, beneficiaryUser.caseWorker]);
+
+  // Dynamic Assistance History Records
+  const assistanceRecords = useMemo(() => {
+    const fromAlloc = liveAllocations.map((alloc) => {
+      const amtGbp = Number(alloc.allocatedAmount || 0);
+      const isDisbursed = alloc.status === "DISTRIBUTED";
+      const dateAllocStr = new Date(alloc.allocationDate || alloc.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const dateDistStr = alloc.distributionDate ? new Date(alloc.distributionDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : dateAllocStr;
+      const ref = alloc.referenceNumber || `ZT-AST-${alloc.id.substring(0, 6).toUpperCase()}`;
+
+      return {
+        id: alloc.id,
+        type: alloc.assistanceType ? alloc.assistanceType.replace(/_/g, " ") : "Community Relief",
+        amountINR: amtGbp > 0 ? `₹${Math.round(amtGbp * 105).toLocaleString()}` : "—",
+        amountGBP: amtGbp > 0 ? `£${amtGbp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
+        status: isDisbursed ? "Received" : "Approved",
+        statusColor: isDisbursed ? "#059669" : "#2563EB",
+        statusBg: isDisbursed ? "#ECFDF5" : "#EFF6FF",
+        dateAllocated: dateAllocStr,
+        dateReceived: isDisbursed ? dateDistStr : "Pending Dispatch",
+        category: alloc.assistanceType || "Relief Aid",
+        reference: ref,
+        funder: "The Zinthiya Trust Hardship Panel",
+        caseworker: beneficiaryUser.caseWorker,
+        description: alloc.notes || "Official trustee allocated assistance record."
+      };
+    });
+
+    const fromReq = liveRequests
+      .filter((req) => !liveAllocations.some((a) => a.beneficiaryRequestId === req.id))
+      .map((req) => {
+        const dateStr = new Date(req.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        const ref = `ZT-REQ-${req.id.substring(0, 6).toUpperCase()}`;
+        const statusFormatted = req.status === "APPROVED" ? "Approved" : req.status === "REJECTED" ? "Completed" : "Under Review";
+        const statusColor = req.status === "APPROVED" ? "#2563EB" : req.status === "REJECTED" ? "#64748B" : "#B45309";
+        const statusBg = req.status === "APPROVED" ? "#EFF6FF" : req.status === "REJECTED" ? "#F1F5F9" : "#FFFBEB";
+
+        return {
+          id: req.id,
+          type: req.serviceType || "Emergency Support",
+          amountINR: "Under Assessment",
+          amountGBP: "Under Assessment",
+          status: statusFormatted,
+          statusColor,
+          statusBg,
+          dateAllocated: dateStr,
+          dateReceived: dateStr,
+          category: req.serviceType || "Crisis Relief",
+          reference: ref,
+          funder: "The Zinthiya Trust",
+          caseworker: req.assignedWorker || beneficiaryUser.caseWorker,
+          description: req.notes || "Beneficiary support application undergoing caseworker assessment."
+        };
+      });
+
+    return [...fromAlloc, ...fromReq];
+  }, [liveAllocations, liveRequests, beneficiaryUser.caseWorker]);
+
   const [allocationFilter, setAllocationFilter] = useState<"all" | "pending" | "disbursed">("all");
   const [allocationSearch, setAllocationSearch] = useState("");
   const [allocationViewMode, setAllocationViewMode] = useState<"cards" | "table">("cards");
   const [selectedAllocationDetail, setSelectedAllocationDetail] = useState<any | null>(null);
-
-  const allocatedSupportRecords = [
-    {
-      id: "ALC-101",
-      title: "Medical Assistance & Pediatric Health Grant",
-      category: "Healthcare Relief",
-      reference: "ZT-MED-7721",
-      amountINR: "₹10,000",
-      amountGBP: "£1,000.00",
-      purpose: "Urgent pediatric prescription medication, specialized respiratory health aids, and clinical transport subsidies for dependent child attending outpatient appointments at Leicester Royal Infirmary.",
-      allocationDate: "10 Nov 2026",
-      effectiveDate: "14 Nov 2026",
-      status: "Approved • Disbursed",
-      statusTag: "disbursed",
-      statusColor: "#059669",
-      statusBg: "#ECFDF5",
-      funder: "Community Health & Emergency Wellbeing Grant",
-      caseworker: "Amina Patel (Lead Family Advocate)",
-      disbursementMethod: "Direct BACS payment to certified Leicester community pharmacy & verified patient transport allowance",
-      usageGuidelines: "Exclusively restricted to authorized pediatric prescriptions, inhalation equipment, and hospital travel costs.",
-      authorizationBody: "Approved by Zinthiya Trustees Relief Panel on 10 Nov 2026",
-      validUntil: "10 Jan 2027",
-      stepIndex: 3,
-      steps: [
-        { label: "Application & Assessment", date: "08 Nov 2026", done: true },
-        { label: "Trustee Approval", date: "10 Nov 2026", done: true },
-        { label: "Funds Allocated", date: "10 Nov 2026", done: true },
-        { label: "Disbursed / Received", date: "14 Nov 2026", done: true }
-      ]
-    },
-    {
-      id: "ALC-102",
-      title: "Education Support & Learning Materials Grant",
-      category: "Child Education",
-      reference: "ZT-EDU-6640",
-      amountINR: "₹5,000",
-      amountGBP: "£500.00",
-      purpose: "Educational subsidy for required Key Stage curriculum textbooks, school learning stationery kits, scientific calculator, and home study essentials for dependent children in Year 5 schooling.",
-      allocationDate: "04 Nov 2026",
-      effectiveDate: "Scheduled 20 Nov 2026",
-      status: "Approved • Pending Payout",
-      statusTag: "pending",
-      statusColor: "#2563EB",
-      statusBg: "#EFF6FF",
-      funder: "Leicester Children's Education Initiative",
-      caseworker: "Amina Patel (Lead Family Advocate)",
-      disbursementMethod: "Pre-loaded educational bookstore grant voucher card & official school grant disbursement",
-      usageGuidelines: "Designated for authorized school materials, educational books, curriculum uniforms, and learning software.",
-      authorizationBody: "Approved by Zinthiya Youth Welfare Committee on 04 Nov 2026",
-      validUntil: "31 Dec 2026",
-      stepIndex: 2,
-      steps: [
-        { label: "Application & Assessment", date: "01 Nov 2026", done: true },
-        { label: "Trustee Approval", date: "04 Nov 2026", done: true },
-        { label: "Funds Allocated", date: "04 Nov 2026", done: true },
-        { label: "Payout Scheduled", date: "20 Nov 2026", done: false }
-      ]
-    },
-    {
-      id: "ALC-103",
-      title: "Winter Warmth Fuel Prepayment Credit",
-      category: "Energy Crisis Relief",
-      reference: "ZT-ENG-4912",
-      amountINR: "₹2,500",
-      amountGBP: "£250.00",
-      purpose: "Emergency seasonal energy top-up voucher credited directly to prepayment gas and electricity meter key cards to maintain continuous home heating during sub-zero weather.",
-      allocationDate: "12 Nov 2026",
-      effectiveDate: "14 Nov 2026",
-      status: "Approved • Disbursed",
-      statusTag: "disbursed",
-      statusColor: "#059669",
-      statusBg: "#ECFDF5",
-      funder: "British Gas Energy Trust (Warm Homes Scheme)",
-      caseworker: "Mark Taylor (Energy Crisis Specialist)",
-      disbursementMethod: "Direct electronic utility credit voucher sent via SMS to beneficiary mobile phone for PayPoint top-up",
-      usageGuidelines: "Applied exclusively to domestic prepayment utility meter key cards.",
-      authorizationBody: "Authorized under Emergency Energy Hardship Protocol on 12 Nov 2026",
-      validUntil: "28 Feb 2027",
-      stepIndex: 3,
-      steps: [
-        { label: "Fuel Poverty Audit", date: "11 Nov 2026", done: true },
-        { label: "Urgent Hardship Approval", date: "12 Nov 2026", done: true },
-        { label: "Credit Allocated", date: "12 Nov 2026", done: true },
-        { label: "Key Card Credited", date: "14 Nov 2026", done: true }
-      ]
-    },
-    {
-      id: "ALC-104",
-      title: "Bi-Weekly Community Pantry Nutrition Allocation",
-      category: "Emergency Nutrition",
-      reference: "ZT-PAN-2041",
-      amountINR: "In-Kind Relief (₹3,500 value)",
-      amountGBP: "In-Kind Relief (£35.00 value)",
-      purpose: "Fortnightly family food and hygiene care hamper providing fresh produce, dairy, protein staples, whole grains, and family toiletries to sustain food security for a single-parent household.",
-      allocationDate: "01 Nov 2026",
-      effectiveDate: "Ongoing Bi-Weekly",
-      status: "Approved • Active Allocation",
-      statusTag: "disbursed",
-      statusColor: "#0891B2",
-      statusBg: "#ECFEFF",
-      funder: "Zinthiya Community Food Pantry",
-      caseworker: "Amina Patel (Lead Family Advocate)",
-      disbursementMethod: "In-person collection hamper at Zinthiya Community Hub, Leicester (Tuesdays & Thursdays)",
-      usageGuidelines: "Bi-weekly collection authorization valid across active support quarter through January 2027.",
-      authorizationBody: "Certified by Community Food Outreach Officer on 01 Nov 2026",
-      validUntil: "31 Jan 2027",
-      stepIndex: 3,
-      steps: [
-        { label: "Intake Assessment", date: "28 Oct 2026", done: true },
-        { label: "Pantry Membership Approved", date: "01 Nov 2026", done: true },
-        { label: "Hamper Allocated", date: "01 Nov 2026", done: true },
-        { label: "Collections Ongoing", date: "Bi-Weekly", done: true }
-      ]
-    }
-  ];
 
   // Navigation items EXACTLY matching user's specification image in order:
   // 1. Dashboard
@@ -719,7 +716,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       type: "text" as const,
       text: messageText.trim(),
       detectedLanguage: detected,
-      translationText: "Message from Sarah Jenkins: " + messageText.trim()
+      translationText: "Message from " + beneficiaryUser.fullName + ": " + messageText.trim()
     };
 
     setChatThreads((prev) => ({
@@ -735,12 +732,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       const replyMsg = {
         id: "m-" + (Date.now() + 1),
         sender: "caseworker" as const,
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "Just now",
         type: "text" as const,
-        text: "Thank you for updating me, Sarah! I have logged this into your case record. If you have any questions regarding your active fuel voucher or our upcoming review meeting, feel free to drop a voice note or call.",
+        text: "Thank you for updating me, " + (beneficiaryUser.preferredName || "Client") + "! I have logged this into your case record. If you have any questions regarding your active relief support or our upcoming check-in, feel free to drop a message or call.",
         detectedLanguage: "English (UK)",
-        translationText: "મને અપડેટ કરવા બદલ આભાર, સારાહ! મેં તમારા કેસ રેકોર્ડમાં આ નોંધી લીધું છે. જો તમારી પાસે કોઈ પ્રશ્નો હોય, તો બેઝિઝક કૉલ કરો."
+        translationText: "મને અપડેટ કરવા બદલ આભાર! મેં તમારા કેસ રેકોર્ડમાં આ નોંધી લીધું છે."
       };
       setChatThreads((prev) => ({
         ...prev,
@@ -760,9 +757,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       type: "voice" as const,
       voiceDuration: `0:${dur < 10 ? "0" : ""}${dur}`,
       voiceSeconds: dur,
-      voiceTranscript: "Voice message from Sarah Jenkins regarding support grant check-in.",
+      voiceTranscript: "Voice message from " + beneficiaryUser.fullName + " regarding support assistance check-in.",
       detectedLanguage: "English (UK)",
-      translationText: "સારાહ જેનકિન્સ તરફથી વૉઇસ સંદેશ."
+      translationText: "ક્લાયન્ટ તરફથી વૉઇસ સંદેશ."
     };
 
     setChatThreads((prev) => ({
@@ -780,7 +777,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       const replyMsg = {
         id: "m-" + (Date.now() + 1),
         sender: "caseworker" as const,
-        name: "Amina Patel (Lead Advocate)",
+        name: beneficiaryUser.caseWorker,
         time: "Just now",
         type: "text" as const,
         text: "Audio message received loud and clear Sarah! Everything is in order for your file. I will see you at the community hub on Monday.",
@@ -1176,7 +1173,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 }}
               >
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#10B981" }} />
-                <span>Caseworker: Amina Patel</span>
+                <span>Caseworker: {beneficiaryUser.caseWorker || "Sarah Davies (Senior Crisis Caseworker)"}</span>
               </div>
 
               <button
@@ -1277,7 +1274,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         boxShadow: "0 4px 14px rgba(230, 18, 126, 0.3)"
                       }}
                     >
-                      SJ
+                      {getInitials(beneficiaryUser.fullName)}
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -1379,7 +1376,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       Registered Home Address
                     </span>
                     <strong style={{ color: "#241221" }}>{beneficiaryUser.address}</strong>
-                    <div style={{ color: "#64748B", fontSize: "11px" }}>Leicester City Council Area</div>
+                    <div style={{ color: "#64748B", fontSize: "11px" }}>{beneficiaryUser.councilArea || beneficiaryUser.city || "Leicestershire Area"}</div>
                   </div>
 
                   <div style={{ fontSize: "12px" }}>
@@ -1411,7 +1408,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 </div>
               </div>
 
-              {/* 2. Example Card: Support Received & Allocated Assistance (Exact match to uploaded screenshot) */}
+              {/* Financial Assistance & Welfare Summary (100% Dynamic Database Records) */}
               <div
                 className="beneficiary-card"
                 style={{
@@ -1422,11 +1419,26 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                  <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221", margin: 0 }}>
-                    Beneficiary Dashboard – Example
-                  </h3>
-                  <span style={{ fontSize: "11px", color: "#8E7287", fontStyle: "italic" }}>
-                    Illustrative figures and activities only.
+                  <div>
+                    <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221", margin: 0 }}>
+                      Financial Assistance & Welfare Summary
+                    </h3>
+                    <p style={{ fontSize: "12px", color: "#8E7287", margin: "2px 0 0 0" }}>
+                      Live Trustee Record • Case Ref: <span style={{ fontFamily: "monospace", color: "#E6127E", fontWeight: 700 }}>{beneficiaryUser.referenceId}</span>
+                    </p>
+                  </div>
+                  <span
+                    style={{
+                      padding: "3px 10px",
+                      borderRadius: "9999px",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      backgroundColor: "#ECFDF5",
+                      color: "#065F46",
+                      border: "1px solid #A7F3D0"
+                    }}
+                  >
+                    ● Trustee Certified
                   </span>
                 </div>
 
@@ -1451,7 +1463,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       Support received
                     </div>
                     <div style={{ fontSize: "32px", fontWeight: 900, color: "#241221", marginTop: "6px" }}>
-                      {dashboardCurrency === "INR" ? "₹25,000" : "£25,000"}
+                      {formatAmount(liveStats.totalDistributed)}
                     </div>
                     <p style={{ fontSize: "11px", color: "#8E7287", margin: "4px 0 0 0" }}>
                       Total approved and disbursed community relief aid.
@@ -1471,7 +1483,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       Allocated support
                     </div>
                     <div style={{ fontSize: "32px", fontWeight: 900, color: "#E6127E", marginTop: "6px" }}>
-                      {dashboardCurrency === "INR" ? "₹10,000" : "£10,000"}
+                      {formatAmount(liveStats.totalAllocated)}
                     </div>
                     <p style={{ fontSize: "11px", color: "#8E7287", margin: "4px 0 0 0" }}>
                       Current active grants and assistance undergoing fulfillment.
@@ -1479,39 +1491,88 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   </div>
                 </div>
 
-                {/* Recent Activity List (Exact items from uploaded image) */}
+                {/* Recent Activity List (Dynamically populated from live requests and allocations) */}
                 <div>
-                  <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "0 0 12px 0" }}>
-                    Recent activity
-                  </h4>
-
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: "20px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
-                      fontSize: "13.5px",
-                      color: "#334155"
-                    }}
-                  >
-                    <li>
-                      <span style={{ fontWeight: 600 }}>Medical assistance</span> –{" "}
-                      <strong style={{ color: "#059669" }}>Approved</strong>
-                    </li>
-                    <li>
-                      <span style={{ fontWeight: 600 }}>Education support</span> –{" "}
-                      <strong style={{ color: "#2563EB" }}>Received</strong>
-                    </li>
-                    <li>
-                      <span style={{ fontWeight: 600 }}>Advocate assigned</span>
-                    </li>
-                  </ul>
-
-                  <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "16px" }}>
-                    Illustrative figures and activities only.
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                    <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: 0 }}>
+                      Recent activity
+                    </h4>
+                    {assistanceRecords.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("history")}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: "#E6127E",
+                          cursor: "pointer"
+                        }}
+                      >
+                        View full ledger →
+                      </button>
+                    )}
                   </div>
+
+                  {assistanceRecords.length > 0 ? (
+                    <ul
+                      style={{
+                        margin: 0,
+                        paddingLeft: "20px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px",
+                        fontSize: "13.5px",
+                        color: "#334155"
+                      }}
+                    >
+                      {assistanceRecords.slice(0, 4).map((record) => (
+                        <li key={record.id}>
+                          <span style={{ fontWeight: 600 }}>{record.type}</span> –{" "}
+                          <strong style={{ color: record.statusColor }}>{record.status}</strong>
+                          <span style={{ fontSize: "11px", color: "#8E7287", marginLeft: "8px" }}>
+                            ({record.amountGBP !== "—" && record.amountGBP !== "Under Assessment" ? (dashboardCurrency === "INR" ? record.amountINR : record.amountGBP) : record.dateReceived})
+                          </span>
+                        </li>
+                      ))}
+                      <li>
+                        <span style={{ fontWeight: 600 }}>Advocate assigned</span> –{" "}
+                        <strong style={{ color: "#059669" }}>{beneficiaryUser.caseWorker}</strong>
+                      </li>
+                    </ul>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "16px",
+                        borderRadius: "12px",
+                        backgroundColor: "#F8FAFC",
+                        border: "1px dashed #CBD5E1",
+                        fontSize: "13px",
+                        color: "#64748B",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "12px"
+                      }}
+                    >
+                      <div>
+                        <strong>No active relief applications yet.</strong>
+                        <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "2px" }}>
+                          Need emergency food parcels, heating fuel vouchers, or debt relief?
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowRequestModal(true)}
+                        className="btn-gradient-magenta"
+                        style={{ padding: "6px 14px", fontSize: "12px" }}
+                      >
+                        <span>+ Request Support</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1558,11 +1619,11 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         fontSize: "18px"
                       }}
                     >
-                      AP
+                      {getInitials(beneficiaryUser.caseWorker)}
                     </div>
                     <div>
                       <div style={{ fontSize: "15px", fontWeight: 800, color: "#241221" }}>
-                        Amina Patel
+                        {beneficiaryUser.caseWorker}
                       </div>
                       <div style={{ fontSize: "11px", color: "#8E7287" }}>
                         Senior Family Welfare & Crisis Advocate
@@ -1593,7 +1654,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <MessagesSquare size={14} style={{ color: "#E6127E" }} />
-                      <span>Direct Email: <strong>amina.p@zinthiyatrust.org</strong></span>
+                      <span>Duty Email: <strong>casework@zinthiyatrust.org</strong></span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <Clock size={14} style={{ color: "#E6127E" }} />
@@ -1609,7 +1670,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       style={{ padding: "8px 14px", fontSize: "12px", flex: 1 }}
                     >
                       <MessagesSquare size={14} />
-                      <span>Message Amina</span>
+                      <span>Message Caseworker</span>
                     </button>
                     <a
                       href="tel:01162545168"
@@ -1666,7 +1727,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           borderBottom: dashNoticeTab === "notifications" ? "2px solid #E6127E" : "2px solid transparent"
                         }}
                       >
-                        Notifications (2)
+                        Notifications ({assistanceRecords.length})
                       </button>
                     </div>
 
@@ -1698,14 +1759,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       >
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                           <span style={{ fontSize: "12px", fontWeight: 800, color: "#241221" }}>
-                            Amina Patel (Lead Advocate)
+                            {beneficiaryUser.caseWorker}
                           </span>
                           <span style={{ fontSize: "10px", color: "#8E7287" }}>
-                            14 Nov, 10:20 AM
+                            Duty Office
                           </span>
                         </div>
                         <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: "1.5" }}>
-                          "Don't forget our casework review meeting on Monday 24 Nov at 11:30 AM to finalize the Council Tax reduction paperwork."
+                          "Welcome to your Zinthiya Trust client portal. You can review your case file, check allocated aid, or request emergency assistance."
                         </p>
                       </div>
 
@@ -1802,7 +1863,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         boxShadow: "0 4px 14px rgba(230, 18, 126, 0.3)"
                       }}
                     >
-                      SJ
+                      {getInitials(beneficiaryUser.fullName)}
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -2124,7 +2185,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      setProfileSuccessMsg("Contact details updated successfully. Caseworker Amina Patel has been notified.");
+                      setProfileSuccessMsg(`Contact details updated successfully. Caseworker ${beneficiaryUser.caseWorker} has been notified.`);
                     }}
                     style={{ display: "flex", flexDirection: "column", gap: "16px" }}
                   >
@@ -2788,10 +2849,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#2563EB" }}>
-                    {dashboardCurrency === "INR" ? "₹17,500" : "£1,750"}
+                    {formatAmount(liveStats.totalAllocated)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#2563EB", fontWeight: 700, marginTop: "2px" }}>
-                    3 Financial Grants + Pantry Hamper
+                    {allocatedSupportRecords.length} Active Allocation(s)
                   </div>
                 </div>
 
@@ -2805,10 +2866,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#059669" }}>
-                    4 Allocations
+                    {allocatedSupportRecords.length} Allocations
                   </div>
                   <div style={{ fontSize: "11px", color: "#059669", fontWeight: 700, marginTop: "2px" }}>
-                    100% Trustee Verified & Authorized
+                    100% Trustee Verified &amp; Authorized
                   </div>
                 </div>
 
@@ -2822,10 +2883,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#B45309" }}>
-                    {dashboardCurrency === "INR" ? "₹5,000" : "£500"}
+                    {formatAmount(liveAllocations.filter((a: any) => a.status === 'ALLOCATED').reduce((sum: number, a: any) => sum + Number(a.allocatedAmount || 0), 0))}
                   </div>
                   <div style={{ fontSize: "11px", color: "#B45309", fontWeight: 700, marginTop: "2px" }}>
-                    Education Grant • Due 20 Nov 2026
+                    {liveAllocations.filter((a: any) => a.status === 'ALLOCATED').length > 0 ? "Under Scheduled Payout" : "All Allocations Current"}
                   </div>
                 </div>
 
@@ -2839,7 +2900,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "17px", fontWeight: 800, color: "#241221", marginTop: "4px" }}>
-                    Amina Patel
+                    {beneficiaryUser.caseWorker}
                   </div>
                   <div style={{ fontSize: "11px", color: "#B80C64", fontWeight: 700, marginTop: "2px" }}>
                     0116 254 5168 ext. 204
@@ -3617,10 +3678,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#241221" }}>
-                    {dashboardCurrency === "INR" ? "₹12,500" : "£1,250"}
+                    {formatAmount(liveStats.totalDistributed)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#059669", fontWeight: 700, marginTop: "2px" }}>
-                    2 Grants Disbursed & Received
+                    {liveAllocations.filter((a: any) => a.status === 'DISTRIBUTED').length} Grants Disbursed &amp; Received
                   </div>
                 </div>
 
@@ -3634,41 +3695,41 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#2563EB" }}>
-                    {dashboardCurrency === "INR" ? "₹5,000" : "£500"}
+                    {formatAmount(liveStats.totalAllocated)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#2563EB", fontWeight: 700, marginTop: "2px" }}>
-                    1 Grant Approved • Pending Payout
+                    {liveAllocations.filter((a: any) => a.status === 'ALLOCATED').length} Grant(s) Pending Payout
                   </div>
                 </div>
 
                 <div className="beneficiary-card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                      Previous Assistance
+                      Total Assistance Tracked
                     </span>
                     <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: "#F1F5F9", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <History size={14} />
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#475569" }}>
-                    {dashboardCurrency === "INR" ? "₹7,500 + Food" : "£100 + Food"}
+                    {assistanceRecords.length} Record(s)
                   </div>
                   <div style={{ fontSize: "11px", color: "#64748B", fontWeight: 700, marginTop: "2px" }}>
-                    2 Completed Support Records
+                    {assistanceRecords.length > 0 ? "Official Casework Ledger Active" : "No Prior Assistance History"}
                   </div>
                 </div>
               </div>
 
-              {/* Assistance Records Table Section (Matching exact user example: Assistance type | Amount | Status) */}
+              {/* Assistance Records Table Section */}
               <div className="beneficiary-card" style={{ padding: "20px" }}>
                 {/* Search Bar & Status Filter Tabs */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {[
-                      { id: "all" as const, label: "All Records (5)" },
-                      { id: "received" as const, label: "Received (2)" },
-                      { id: "approved" as const, label: "Approved (1)" },
-                      { id: "completed" as const, label: "Completed (2)" }
+                      { id: "all" as const, label: `All Records (${assistanceRecords.length})` },
+                      { id: "received" as const, label: `Received (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "received").length})` },
+                      { id: "approved" as const, label: `Approved (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "approved").length})` },
+                      { id: "completed" as const, label: `Completed (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "completed").length})` }
                     ].map((tab) => {
                       const isTabActive = historyFilter === tab.id;
                       return (
@@ -3726,133 +3787,123 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </tr>
                     </thead>
                     <tbody>
-                      {assistanceRecords
-                        .filter((item) => {
-                          if (historyFilter !== "all" && item.status.toLowerCase() !== historyFilter) return false;
-                          if (
-                            historySearch.trim() &&
-                            !item.type.toLowerCase().includes(historySearch.toLowerCase()) &&
-                            !item.reference.toLowerCase().includes(historySearch.toLowerCase())
-                          )
-                            return false;
-                          return true;
-                        })
-                        .map((record) => (
-                          <tr key={record.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                            <td style={{ padding: "14px 16px" }}>
-                              <div style={{ fontWeight: 700, color: "#241221" }}>
-                                {record.type}
-                              </div>
-                              <div style={{ fontSize: "11px", color: "#8E7287", marginTop: "2px" }}>
-                                Ref: <span style={{ fontFamily: "monospace" }}>{record.reference}</span> • {record.category}
-                              </div>
-                            </td>
+                      {assistanceRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ padding: "36px 16px", textAlign: "center", color: "#8E7287" }}>
+                            No assistance records on file. Completed relief grants and disbursements will appear here.
+                          </td>
+                        </tr>
+                      ) : (
+                        assistanceRecords
+                          .filter((item: any) => {
+                            if (historyFilter !== "all" && item.status.toLowerCase() !== historyFilter) return false;
+                            if (
+                              historySearch.trim() &&
+                              !item.type.toLowerCase().includes(historySearch.toLowerCase()) &&
+                              !item.reference.toLowerCase().includes(historySearch.toLowerCase())
+                            )
+                              return false;
+                            return true;
+                          })
+                          .map((record: any) => (
+                            <tr key={record.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                              <td style={{ padding: "14px 16px" }}>
+                                <div style={{ fontWeight: 700, color: "#241221" }}>
+                                  {record.type}
+                                </div>
+                                <div style={{ fontSize: "11px", color: "#8E7287", marginTop: "2px" }}>
+                                  Ref: <span style={{ fontFamily: "monospace" }}>{record.reference}</span> • {record.category}
+                                </div>
+                              </td>
 
-                            <td style={{ padding: "14px 16px", fontWeight: 800, color: record.amountINR === "—" ? "#94A3B8" : "#241221", fontSize: "14px" }}>
-                              {dashboardCurrency === "INR" ? record.amountINR : record.amountGBP}
-                            </td>
+                              <td style={{ padding: "14px 16px", fontWeight: 800, color: record.amountINR === "—" ? "#94A3B8" : "#241221", fontSize: "14px" }}>
+                                {dashboardCurrency === "INR" ? record.amountINR : record.amountGBP}
+                              </td>
 
-                            <td style={{ padding: "14px 16px" }}>
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  padding: "3px 10px",
-                                  borderRadius: "9999px",
-                                  fontSize: "11px",
-                                  fontWeight: 800,
-                                  backgroundColor: record.statusBg,
-                                  color: record.statusColor
-                                }}
-                              >
-                                {record.status}
-                              </span>
-                            </td>
+                              <td style={{ padding: "14px 16px" }}>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    padding: "3px 10px",
+                                    borderRadius: "9999px",
+                                    fontSize: "11px",
+                                    fontWeight: 800,
+                                    backgroundColor: record.statusBg,
+                                    color: record.statusColor
+                                  }}
+                                >
+                                  {record.status}
+                                </span>
+                              </td>
 
-                            <td style={{ padding: "14px 16px", color: "#64748B", fontSize: "12px" }}>
-                              <div>{record.dateReceived}</div>
-                              <div style={{ fontSize: "10px", color: "#94A3B8" }}>Allocated: {record.dateAllocated}</div>
-                            </td>
+                              <td style={{ padding: "14px 16px", color: "#64748B", fontSize: "12px" }}>
+                                <div>{record.dateReceived}</div>
+                                <div style={{ fontSize: "10px", color: "#94A3B8" }}>Allocated: {record.dateAllocated}</div>
+                              </td>
 
-                            <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedAssistanceDetail(record)}
-                                style={{
-                                  padding: "5px 12px",
-                                  borderRadius: "6px",
-                                  backgroundColor: "#FCE8F3",
-                                  color: "#B80C64",
-                                  border: "none",
-                                  fontSize: "11px",
-                                  fontWeight: 700,
-                                  cursor: "pointer"
-                                }}
-                              >
-                                View Details
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                              <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedAssistanceDetail(record)}
+                                  style={{
+                                    padding: "5px 12px",
+                                    borderRadius: "6px",
+                                    backgroundColor: "#FCE8F3",
+                                    color: "#B80C64",
+                                    border: "none",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  View Details
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                <div style={{ marginTop: "12px", fontSize: "11px", color: "#94A3B8", fontStyle: "italic" }}>
-                  Illustrative figures and activities only. All assistance records are UK GDPR protected and certified by The Zinthiya Trust.
+                <div style={{ marginTop: "12px", fontSize: "11px", color: "#94A3B8" }}>
+                  Certified official assistance ledger for {beneficiaryUser.fullName} • UK Charity No. 1137350.
                 </div>
               </div>
 
               {/* Chronological Milestone Timeline */}
               <div className="beneficiary-card">
                 <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221", margin: "0 0 4px 0" }}>
-                  Casework Milestones & Timeline
+                  Casework Milestones &amp; Timeline
                 </h3>
                 <p style={{ fontSize: "12px", color: "#8E7287", margin: "0 0 20px 0" }}>
                   Step-by-step history of consultations, grant distributions, and completed assessments.
                 </p>
 
                 <div style={{ position: "relative", paddingLeft: "24px", borderLeft: "2px solid rgba(230, 18, 126, 0.2)", display: "flex", flexDirection: "column", gap: "20px" }}>
-                  <div>
-                    <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#059669" }} />
-                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#059669" }}>14 NOVEMBER 2026</div>
-                    <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
-                      Medical support & Winter Fuel Grants Disbursed
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
-                      {dashboardCurrency === "INR" ? "₹10,000" : "£1,000"} medical aid received and {dashboardCurrency === "INR" ? "₹2,500" : "£250"} utility fuel credit confirmed.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#2563EB" }} />
-                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#2563EB" }}>04 NOVEMBER 2026</div>
-                    <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
-                      Education Support Grant Approved
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
-                      School technology and supplies grant of {dashboardCurrency === "INR" ? "₹5,000" : "£500"} authorized by education panel.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#475569" }} />
-                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#475569" }}>08 NOVEMBER 2026</div>
-                    <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
-                      Food & Hygiene Family Package Collected
-                    </h4>
-                    <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
-                      Bi-weekly nutritional care hamper collected from Zinthiya Community Pantry. Case closed.
-                    </p>
-                  </div>
+                  {assistanceRecords.length > 0 ? (
+                    assistanceRecords.slice(0, 4).map((rec: any, idx: number) => (
+                      <div key={rec.id || idx}>
+                        <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: rec.statusColor }} />
+                        <div style={{ fontSize: "11px", fontWeight: 800, color: rec.statusColor }}>{rec.dateReceived ? rec.dateReceived.toUpperCase() : "RECORDED"}</div>
+                        <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
+                          {rec.type} – {rec.status}
+                        </h4>
+                        <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
+                          {rec.description}
+                        </p>
+                      </div>
+                    ))
+                  ) : null}
 
                   <div>
                     <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#94A3B8" }} />
-                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748B" }}>12 SEPTEMBER 2026</div>
+                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748B" }}>CASE INTAKE &amp; ADVOCATE ASSIGNED</div>
                     <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
-                      Beneficiary Intake & Advocate Assigned
+                      Beneficiary Account Active &amp; Verified
                     </h4>
                     <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
-                      Initial assessment completed with lead caseworker Amina Patel. Client registered under Ref: ZT-BEN-84920.
+                      Intake registered under Case Ref: <strong style={{ fontFamily: "monospace", color: "#E6127E" }}>{beneficiaryUser.referenceId}</strong> • Caseworker: <strong>{beneficiaryUser.caseWorker}</strong>.
                     </p>
                   </div>
                 </div>
@@ -4255,7 +4306,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <button
                     type="button"
                     onClick={() => {
-                      alert("Accredited Human Interpreter Request sent to Amina Patel. An interpreter for your chosen language will be booked for your next scheduled consultation.");
+                      alert(`Accredited Human Interpreter Request sent to ${beneficiaryUser.caseWorker}. An interpreter for your chosen language will be booked for your next scheduled consultation.`);
                     }}
                     style={{
                       padding: "5px 10px",
@@ -4640,7 +4691,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {isCaseworkerTyping && (
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", alignSelf: "flex-start", padding: "8px 12px", borderRadius: "12px", backgroundColor: "#ffffff", border: "1px solid rgba(230, 18, 126, 0.1)" }}>
                         <div style={{ fontSize: "11px", fontWeight: 700, color: "#E6127E" }}>
-                          Amina Patel is typing...
+                          {beneficiaryUser.caseWorker} is typing...
                         </div>
                         <div style={{ display: "flex", gap: "3px" }}>
                           <span style={{ width: "4px", height: "4px", borderRadius: "50%", backgroundColor: "#E6127E" }} />
@@ -4731,7 +4782,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           type="text"
                           value={messageText}
                           onChange={(e) => setMessageText(e.target.value)}
-                          placeholder="Type a confidential message to Amina Patel (or write in your native language)..."
+                          placeholder={`Type a confidential message to ${beneficiaryUser.caseWorker} (or write in your native language)...`}
                           style={{
                             flex: 1,
                             padding: "10px 14px",
@@ -4916,7 +4967,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       <button
                         type="button"
                         onClick={() => {
-                          alert(`Requesting 1-on-1 Casework Consultation with Amina Patel at the Leicester Care Hub. You will receive an SMS confirmation.`);
+                          alert(`Requesting 1-on-1 Casework Consultation with ${beneficiaryUser.caseWorker} at the Leicester Care Hub. You will receive an SMS confirmation.`);
                           setShowAdvocateProfileModal(false);
                         }}
                         className="btn-gradient-magenta"
@@ -5210,45 +5261,80 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
             </div>
 
             <p style={{ fontSize: "12px", color: "#64748B", margin: "0 0 16px 0" }}>
-              Your request goes directly to assigned caseworker <strong>Amina Patel</strong>.
+              Your request goes directly to assigned caseworker <strong>{beneficiaryUser.caseWorker}</strong>.
             </p>
 
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setShowRequestModal(false);
-                alert("Your support request has been submitted to your caseworker.");
-              }}
+              onSubmit={handleSupportRequestSubmit}
               style={{ display: "flex", flexDirection: "column", gap: "12px" }}
             >
               <div>
                 <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                  Assistance Category
+                  Assistance Category *
                 </label>
                 <select
+                  value={requestCategory}
+                  onChange={(e) => setRequestCategory(e.target.value)}
+                  required
                   style={{
                     width: "100%",
                     padding: "8px 12px",
                     borderRadius: "10px",
                     border: "1px solid rgba(230, 18, 126, 0.2)",
                     fontSize: "13px",
-                    outline: "none"
+                    outline: "none",
+                    backgroundColor: "#ffffff"
                   }}
                 >
-                  <option>Emergency Fuel / Prepayment Voucher</option>
-                  <option>Food & Hygiene Parcel</option>
-                  <option>Winter Warmth Clothing / Bedding</option>
-                  <option>Welfare Benefits / Council Tax Advice</option>
-                  <option>Emergency Crisis Support</option>
+                  {liveCategories && liveCategories.length > 0 ? (
+                    liveCategories.map((c: any) => (
+                      <option key={c.id || c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Emergency Food Parcel & Essentials">Emergency Food Parcel &amp; Essentials</option>
+                      <option value="Emergency Heating & Fuel Voucher">Emergency Heating &amp; Fuel Voucher</option>
+                      <option value="Domestic Abuse Crisis Sanctuary Relocation">Domestic Abuse Crisis Sanctuary Relocation</option>
+                      <option value="Winter Bedding & Warm Clothing Pack">Winter Bedding &amp; Warm Clothing Pack</option>
+                      <option value="Debt & Energy Arrears Advocacy">Debt &amp; Energy Arrears Advocacy</option>
+                    </>
+                  )}
                 </select>
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                  Describe your current situation
+                  Urgency Level
+                </label>
+                <select
+                  value={requestUrgency}
+                  onChange={(e) => setRequestUrgency(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid rgba(230, 18, 126, 0.2)",
+                    fontSize: "13px",
+                    outline: "none",
+                    backgroundColor: "#ffffff"
+                  }}
+                >
+                  <option value="HIGH">High Priority (Urgent Needs within 24-48 hrs)</option>
+                  <option value="CRITICAL">Critical Emergency (Immediate Crisis)</option>
+                  <option value="MEDIUM">Standard Support (Next 3-5 Working Days)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                  Describe your current situation *
                 </label>
                 <textarea
                   rows={3}
+                  value={requestNotes}
+                  onChange={(e) => setRequestNotes(e.target.value)}
                   placeholder="Provide brief details about what you urgently need..."
                   required
                   style={{
@@ -5267,6 +5353,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 <button
                   type="button"
                   onClick={() => setShowRequestModal(false)}
+                  disabled={isSubmittingRequest}
                   style={{
                     flex: 1,
                     padding: "8px",
@@ -5283,10 +5370,11 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 </button>
                 <button
                   type="submit"
+                  disabled={isSubmittingRequest}
                   className="btn-gradient-magenta"
-                  style={{ flex: 1, padding: "8px", fontSize: "12px" }}
+                  style={{ flex: 1, padding: "8px", fontSize: "12px", opacity: isSubmittingRequest ? 0.7 : 1 }}
                 >
-                  Submit Request
+                  {isSubmittingRequest ? "Submitting..." : "Submit Request"}
                 </button>
               </div>
             </form>

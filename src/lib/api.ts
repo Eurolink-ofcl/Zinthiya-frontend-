@@ -551,6 +551,46 @@ class ApiService {
     });
   }
 
+  async getBeneficiaryPortalData(): Promise<{
+    user: any;
+    requests: any[];
+    allocations: any[];
+    categories?: any[];
+    stats: {
+      totalAllocated: number;
+      totalDistributed: number;
+      requestCount: number;
+    };
+  }> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beneficiary_token") : null;
+    const res = await this.request<any>("/auth/beneficiary/portal-data", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    return res.data;
+  }
+
+  async submitBeneficiarySupportRequest(payload: {
+    serviceType: string;
+    notes?: string;
+    urgency?: string;
+  }): Promise<any> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("beneficiary_token") : null;
+    return this.request<any>("/auth/beneficiary/request", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+  }
+
   async checkEmail(email: string): Promise<{ available: boolean; email: string }> {
     return this.request<{ available: boolean; email: string }>(
       `/auth/check-email?email=${encodeURIComponent(email)}`,
