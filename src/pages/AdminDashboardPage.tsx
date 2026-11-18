@@ -190,6 +190,89 @@ function DonorTierBadge({ tier }: { tier: string }) {
   }
 }
 
+// Granular Capability Modules for Staff Permissions Matrix
+export const PERMISSION_MODULES = [
+  {
+    module: "Beneficiary Management",
+    id: "beneficiaries",
+    icon: HeartHandshake,
+    items: [
+      { key: "beneficiaries:read", label: "View Beneficiaries & Documents", desc: "Read client directories, uploaded documents & assessment files" },
+      { key: "beneficiaries:write", label: "Create, Edit & Assign Casework", desc: "Register beneficiaries, assign advocates, review requests & manage files" },
+    ],
+  },
+  {
+    module: "Fund Allocation & Distribution",
+    id: "allocations",
+    icon: Landmark,
+    items: [
+      { key: "allocations:read", label: "View Fund Allocations", desc: "Inspect charitable grants, budget sources & distribution history" },
+      { key: "allocations:write", label: "Commit Funds & Disburse Vouchers", desc: "Allocate new assistance funding and dispatch vouchers / cash" },
+    ],
+  },
+  {
+    module: "Donor Management (CRM)",
+    id: "donors",
+    icon: Users,
+    items: [
+      { key: "donors:read", label: "View Donor Profiles", desc: "Browse donor directory, engagement history & giving tiers" },
+      { key: "donors:write", label: "Create & Edit Donors", desc: "Add new donors, update contact details & casework engagement notes" },
+    ],
+  },
+  {
+    module: "Campaign Management",
+    id: "campaigns",
+    icon: Megaphone,
+    items: [
+      { key: "campaigns:read", label: "View Appeals & Progress", desc: "Monitor live campaigns, community stories & target completion" },
+      { key: "campaigns:write", label: "Create & Manage Appeals", desc: "Publish appeals, edit fundraising targets & upload campaign media" },
+    ],
+  },
+  {
+    module: "Donation Management",
+    id: "donations",
+    icon: CreditCard,
+    items: [
+      { key: "donations:read", label: "View Transactions & Gift Aid", desc: "Review giving ledger, tax reclaim eligibility & payment status" },
+      { key: "donations:write", label: "Record Offline Donations", desc: "Enter manual bank transfers, cash gifts & generate official receipts" },
+    ],
+  },
+  {
+    module: "Newsletter Management",
+    id: "newsletter",
+    icon: Mail,
+    items: [
+      { key: "newsletter:read", label: "View Subscriber Directory", desc: "Inspect newsletter recipients & communication preferences" },
+      { key: "newsletter:write", label: "Author & Send Dispatches", desc: "Draft and dispatch community email broadcasts" },
+    ],
+  },
+  {
+    module: "Reports & Analytics",
+    id: "reports",
+    icon: TrendingUp,
+    items: [
+      { key: "reports:view", label: "View Charity Analytics & Exports", desc: "Access Charity Commission compliance reports and export CSV summaries" },
+    ],
+  },
+  {
+    module: "Staff & Activity Logs",
+    id: "staff",
+    icon: History,
+    items: [
+      { key: "staff:read", label: "View Staff & Security Logs", desc: "Inspect officer directory and platform audit logs" },
+      { key: "staff:write", label: "Provision Staff & Edit Permissions", desc: "Create staff accounts, toggle status & configure access permissions" },
+    ],
+  },
+  {
+    module: "System Settings",
+    id: "settings",
+    icon: Settings,
+    items: [
+      { key: "settings:manage", label: "Governance & Platform Settings", desc: "Configure Trust details, session timeouts & security parameters" },
+    ],
+  },
+];
+
 export function AdminDashboardPage() {
   const navigate = useNavigate();
 
@@ -1758,6 +1841,214 @@ export function AdminDashboardPage() {
     }
   }
 
+  function renderPermissionsChecklist(
+    currentPermissions: string[],
+    setPermissions: (newPerms: string[]) => void
+  ) {
+    const allKeys = PERMISSION_MODULES.flatMap((m) => m.items.map((i) => i.key));
+
+    function handlePreset(type: "ALL" | "CLEAR" | "CASEWORKER" | "FINANCE" | "CAMPAIGN") {
+      switch (type) {
+        case "ALL":
+          setPermissions([...allKeys]);
+          break;
+        case "CLEAR":
+          setPermissions([]);
+          break;
+        case "CASEWORKER":
+          setPermissions([
+            "beneficiaries:read",
+            "beneficiaries:write",
+            "allocations:read",
+            "allocations:write",
+            "reports:view",
+          ]);
+          break;
+        case "FINANCE":
+          setPermissions([
+            "donations:read",
+            "donations:write",
+            "allocations:read",
+            "allocations:write",
+            "reports:view",
+          ]);
+          break;
+        case "CAMPAIGN":
+          setPermissions([
+            "campaigns:read",
+            "campaigns:write",
+            "donors:read",
+            "donors:write",
+            "newsletter:read",
+            "newsletter:write",
+          ]);
+          break;
+      }
+    }
+
+    function togglePermission(key: string) {
+      if (currentPermissions.includes(key)) {
+        setPermissions(currentPermissions.filter((p) => p !== key));
+      } else {
+        setPermissions([...currentPermissions, key]);
+      }
+    }
+
+    function toggleModule(moduleItems: { key: string }[]) {
+      const moduleKeys = moduleItems.map((i) => i.key);
+      const hasAll = moduleKeys.every((k) => currentPermissions.includes(k));
+      if (hasAll) {
+        setPermissions(currentPermissions.filter((p) => !moduleKeys.includes(p)));
+      } else {
+        const merged = Array.from(new Set([...currentPermissions, ...moduleKeys]));
+        setPermissions(merged);
+      }
+    }
+
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-100">
+          <div>
+            <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700">
+              Staff Module Permissions &amp; Capabilities
+            </label>
+            <span className="text-[11px] text-slate-500">
+              Select the modules this officer can see and execute when signed into the Admin Gateway.
+            </span>
+          </div>
+          <div className="text-xs font-bold text-magenta bg-pink-50 px-2.5 py-1 rounded-full border border-pink-200 shrink-0">
+            {currentPermissions.length} / {allKeys.length} Capabilities Granted
+          </div>
+        </div>
+
+        {/* Quick Presets Bar */}
+        <div className="flex items-center gap-1.5 flex-wrap p-2 bg-slate-50 border border-slate-200/80 rounded-xl">
+          <span className="text-[10px] font-extrabold uppercase text-slate-500 px-1">Quick Presets:</span>
+          <button
+            type="button"
+            onClick={() => handlePreset("ALL")}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+          >
+            ✓ Select All
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePreset("CLEAR")}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-red-50 text-red-600 border border-slate-200 transition-colors cursor-pointer"
+          >
+            ✗ Clear All
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePreset("CASEWORKER")}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-pink-50 text-purple-700 border border-purple-200 transition-colors cursor-pointer"
+          >
+            ♥ Caseworker
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePreset("FINANCE")}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 transition-colors cursor-pointer"
+          >
+            £ Finance Officer
+          </button>
+          <button
+            type="button"
+            onClick={() => handlePreset("CAMPAIGN")}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 transition-colors cursor-pointer"
+          >
+            📢 Outreach Lead
+          </button>
+        </div>
+
+        {/* Module Cards Grid */}
+        <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 admin-sidebar-scroll">
+          {PERMISSION_MODULES.map((mod) => {
+            const ModIcon = mod.icon;
+            const activeCount = mod.items.filter((i) => currentPermissions.includes(i.key)).length;
+            const isFullyActive = activeCount === mod.items.length;
+
+            return (
+              <div
+                key={mod.id}
+                className={`p-3 rounded-2xl border transition-all ${
+                  activeCount > 0
+                    ? "bg-white border-pink-200 shadow-xs"
+                    : "bg-slate-50/60 border-slate-200/60 opacity-80"
+                }`}
+              >
+                {/* Module Header with Toggle All */}
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                        activeCount > 0 ? "bg-magenta text-white" : "bg-slate-200 text-slate-500"
+                      }`}
+                    >
+                      <ModIcon size={14} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-900 block">{mod.module}</span>
+                      <span className="text-[10px] text-slate-500">
+                        {activeCount === 0
+                          ? "Hidden from Staff Navigation & Operations"
+                          : `${activeCount}/${mod.items.length} capabilities granted`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(mod.items)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                      isFullyActive
+                        ? "bg-pink-100 text-magenta hover:bg-pink-200"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {isFullyActive ? "Deselect Module" : "Select Module"}
+                  </button>
+                </div>
+
+                {/* Checkboxes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {mod.items.map((item) => {
+                    const isChecked = currentPermissions.includes(item.key);
+                    return (
+                      <label
+                        key={item.key}
+                        className={`flex items-start gap-2.5 p-2 rounded-xl cursor-pointer border transition-all ${
+                          isChecked
+                            ? "bg-pink-50/60 border-pink-200/90 text-slate-900"
+                            : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => togglePermission(item.key)}
+                          className="w-4 h-4 mt-0.5 text-magenta rounded focus:ring-magenta cursor-pointer accent-[#E6127E]"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className={`text-xs block ${isChecked ? "font-bold text-slate-900" : "font-medium"}`}>
+                            {item.label}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">
+                            {item.desc}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   async function handleCreateStaffSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newStaffName.trim() || !newStaffEmail.trim()) {
@@ -1789,6 +2080,17 @@ export function AdminDashboardPage() {
     } finally {
       setSubmittingAddStaff(false);
     }
+  }
+
+  function startEditingStaff(staff: StaffMember) {
+    setEditingStaff(staff);
+    setEditStaffName(staff.fullName);
+    setEditStaffPhone(staff.phoneNumber || "");
+    setEditStaffRole(staff.staffRole || (staff.role === "ADMIN" ? "SUPER_ADMIN" : "CASEWORKER"));
+    setEditStaffDept(staff.department || "");
+    setEditStaffJobTitle(staff.jobTitle || "");
+    setEditStaffActive(staff.active);
+    setEditStaffPermissions(Array.isArray(staff.permissions) ? staff.permissions : []);
   }
 
   async function handleEditStaffSubmit(e: React.FormEvent) {
@@ -2407,6 +2709,37 @@ export function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboardPayload | null>(null);
   const [currentUser, setCurrentUser] = useState<DonorUser | null>(null);
 
+  // Super Admin Check (Role === ADMIN has full unconstrained platform permissions)
+  const isSuperAdmin = currentUser?.role === "ADMIN" || currentUser?.staffRole === "SUPER_ADMIN";
+
+  // Granular Permission Evaluation Helper for Staff
+  function hasPerm(permKey: string): boolean {
+    if (!currentUser) return false;
+    if (isSuperAdmin) return true;
+
+    const perms: string[] = Array.isArray(currentUser.permissions) ? currentUser.permissions : [];
+    if (perms.includes(permKey)) return true;
+
+    const prefix = permKey.split(":")[0];
+    if (perms.includes(`${prefix}:*`) || perms.includes(`${prefix}:manage`)) return true;
+    if (perms.includes("*")) return true;
+
+    // View capability if write is held
+    if (permKey.endsWith(":read") && perms.includes(`${prefix}:write`)) return true;
+
+    return false;
+  }
+
+  // Operation execution permissions
+  const canWriteBeneficiaries = isSuperAdmin || hasPerm("beneficiaries:write");
+  const canWriteAllocations = isSuperAdmin || hasPerm("allocations:write");
+  const canWriteDonors = isSuperAdmin || hasPerm("donors:write");
+  const canWriteCampaigns = isSuperAdmin || hasPerm("campaigns:write") || hasPerm("campaigns:manage");
+  const canWriteDonations = isSuperAdmin || hasPerm("donations:write");
+  const canWriteNewsletter = isSuperAdmin || hasPerm("newsletter:write");
+  const canManageStaff = isSuperAdmin || hasPerm("staff:write");
+  const canManageSettings = isSuperAdmin || hasPerm("settings:manage");
+
   // Status updating state for beneficiary requests
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string>("");
@@ -2801,6 +3134,14 @@ export function AdminDashboardPage() {
     }
 
     setCurrentUser(user);
+
+    // Refresh live profile and granular permissions from server
+    api.getMe().then((res) => {
+      if (res?.data?.user) {
+        setCurrentUser(res.data.user);
+        api.setSession(res.data.user, token);
+      }
+    }).catch(() => {});
     loadDashboardData();
     loadSupportCategoriesData();
     // Stagger secondary tab queries to avoid connection spike on mount
@@ -3134,6 +3475,48 @@ export function AdminDashboardPage() {
     { id: "settings", label: "Settings", icon: Settings },
     { id: "profile", label: "My Profile", icon: User },
   ];
+
+  // Filter sidebar tabs based strictly on staff permissions
+  const visibleSidebarNav = useMemo(() => {
+    return sidebarNav.filter((tab) => {
+      if (tab.id === "profile") return true; // Profile is always accessible
+      if (isSuperAdmin) return true; // Super Admin sees all modules
+
+      switch (tab.id) {
+        case "dashboard":
+          return hasPerm("dashboard:view") || (Array.isArray(currentUser?.permissions) && currentUser.permissions.length > 0);
+        case "donors":
+          return hasPerm("donors:read") || hasPerm("donors:write");
+        case "campaigns":
+          return hasPerm("campaigns:read") || hasPerm("campaigns:write") || hasPerm("campaigns:manage");
+        case "donations":
+          return hasPerm("donations:read") || hasPerm("donations:write");
+        case "beneficiaries":
+          return hasPerm("beneficiaries:read") || hasPerm("beneficiaries:write");
+        case "allocations":
+          return hasPerm("allocations:read") || hasPerm("allocations:write");
+        case "newsletter":
+          return hasPerm("newsletter:read") || hasPerm("newsletter:write");
+        case "reports":
+          return hasPerm("reports:view");
+        case "staff":
+          return hasPerm("staff:read") || hasPerm("staff:write");
+        case "settings":
+          return hasPerm("settings:manage");
+        default:
+          return true;
+      }
+    });
+  }, [sidebarNav, currentUser, isSuperAdmin]);
+
+  // Guard activeTab so staff cannot view an unauthorized module
+  useEffect(() => {
+    if (!currentUser || isSuperAdmin || visibleSidebarNav.length === 0) return;
+    const isAllowed = visibleSidebarNav.some((tab) => tab.id === activeTab);
+    if (!isAllowed) {
+      setActiveTab(visibleSidebarNav[0].id);
+    }
+  }, [activeTab, visibleSidebarNav, currentUser, isSuperAdmin]);
 
   const metrics = data?.metrics;
   const sections = data?.sections;
@@ -4115,7 +4498,7 @@ export function AdminDashboardPage() {
 
           {/* Sidebar Navigation Items */}
           <nav className="space-y-1.5 overflow-y-auto flex-1 pr-1 admin-sidebar-scroll">
-            {sidebarNav.map((item) => {
+            {visibleSidebarNav.map((item) => {
               const IconComponent = item.icon;
               const isActive = activeTab === item.id;
               return (
@@ -4853,20 +5236,22 @@ export function AdminDashboardPage() {
                     marginLeft: "auto"
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setShowAddDonorModal(true)}
-                    className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    <UserPlus size={15} />
-                    <span>Add New Donor</span>
-                  </button>
+                  {canWriteDonors && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddDonorModal(true)}
+                      className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      <UserPlus size={15} />
+                      <span>Add New Donor</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -5138,24 +5523,28 @@ export function AdminDashboardPage() {
                                   </button>
 
                                   {/* Record Donation */}
-                                  <button
-                                    type="button"
-                                    onClick={() => openRecordDonation(donor)}
-                                    title="Record new donation (auto-updates total & tier)"
-                                    className="admin-action-btn admin-action-btn-primary"
-                                  >
-                                    <Plus size={14} />
-                                  </button>
+                                  {canWriteDonations && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openRecordDonation(donor)}
+                                      title="Record new donation (auto-updates total & tier)"
+                                      className="admin-action-btn admin-action-btn-primary"
+                                    >
+                                      <Plus size={14} />
+                                    </button>
+                                  )}
 
                                   {/* Edit Donor */}
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditDonor(donor)}
-                                    title="Edit donor details & consent"
-                                    className="admin-action-btn"
-                                  >
-                                    <Edit size={14} />
-                                  </button>
+                                  {canWriteDonors && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditDonor(donor)}
+                                      title="Edit donor details & consent"
+                                      className="admin-action-btn"
+                                    >
+                                      <Edit size={14} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -5220,29 +5609,31 @@ export function AdminDashboardPage() {
                     <span>Export CSV</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (supportCategoriesList.length === 0) {
-                        loadSupportCategoriesData();
-                      }
-                      resetAddBeneficiaryForm();
-                      setShowAddBeneficiaryModal(true);
-                    }}
-                    className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
-                    style={{
-                      backgroundColor: "#E6127E",
-                      color: "#ffffff",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      whiteSpace: "nowrap",
-                    }}
-                    title="Register a new individual or organisation beneficiary"
-                  >
-                    <Plus size={15} />
-                    <span>+ Add New Beneficiary</span>
-                  </button>
+                  {canWriteBeneficiaries && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (supportCategoriesList.length === 0) {
+                          loadSupportCategoriesData();
+                        }
+                        resetAddBeneficiaryForm();
+                        setShowAddBeneficiaryModal(true);
+                      }}
+                      className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
+                      style={{
+                        backgroundColor: "#E6127E",
+                        color: "#ffffff",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        whiteSpace: "nowrap",
+                      }}
+                      title="Register a new individual or organisation beneficiary"
+                    >
+                      <Plus size={15} />
+                      <span>+ Add New Beneficiary</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -5639,19 +6030,21 @@ export function AdminDashboardPage() {
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                       No beneficiary profiles match your current search criteria.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (supportCategoriesList.length === 0) {
-                          loadSupportCategoriesData();
-                        }
-                        resetAddBeneficiaryForm();
-                        setShowAddBeneficiaryModal(true);
-                      }}
-                      className="mt-4 px-4 py-2 rounded-xl bg-pink-50 text-magenta text-xs font-bold hover:bg-pink-100 transition-colors cursor-pointer"
-                    >
-                      + Add New Beneficiary
-                    </button>
+                    {canWriteBeneficiaries && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (supportCategoriesList.length === 0) {
+                            loadSupportCategoriesData();
+                          }
+                          resetAddBeneficiaryForm();
+                          setShowAddBeneficiaryModal(true);
+                        }}
+                        className="mt-4 px-4 py-2 rounded-xl bg-pink-50 text-magenta text-xs font-bold hover:bg-pink-100 transition-colors cursor-pointer"
+                      >
+                        + Add New Beneficiary
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div style={{ overflowX: "auto", width: "100%" }}>
@@ -5880,30 +6273,32 @@ export function AdminDashboardPage() {
                                       Unassigned
                                     </span>
                                   )}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setAssigningAdvocateBeneficiary(b);
-                                      const matched = activeAdvocatesList.find(
-                                        (a) => a.display === b.assignedAdvocate || a.fullName === b.assignedAdvocate || (b.assignedAdvocate && b.assignedAdvocate.includes(a.fullName))
-                                      );
-                                      setSelectedAdvocateValue(matched ? matched.display : (activeAdvocatesList[0]?.display || ""));
-                                    }}
-                                    style={{
-                                      padding: "5px",
-                                      borderRadius: "6px",
-                                      border: "1px solid #E2E8F0",
-                                      backgroundColor: "#FFFFFF",
-                                      color: "#64748B",
-                                      cursor: "pointer",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                    }}
-                                    title="Assign or change advocate"
-                                  >
-                                    <Edit size={12} />
-                                  </button>
+                                  {canWriteBeneficiaries && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAssigningAdvocateBeneficiary(b);
+                                        const matched = activeAdvocatesList.find(
+                                          (a) => a.display === b.assignedAdvocate || a.fullName === b.assignedAdvocate || (b.assignedAdvocate && b.assignedAdvocate.includes(a.fullName))
+                                        );
+                                        setSelectedAdvocateValue(matched ? matched.display : (activeAdvocatesList[0]?.display || ""));
+                                      }}
+                                      style={{
+                                        padding: "5px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #E2E8F0",
+                                        backgroundColor: "#FFFFFF",
+                                        color: "#64748B",
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                      title="Assign or change advocate"
+                                    >
+                                      <Edit size={12} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
 
@@ -6144,49 +6539,52 @@ export function AdminDashboardPage() {
                                     </button>
                                   )}
 
-                                  {/* Edit Info */}
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditBeneficiary(b)}
-                                    title="Edit details"
-                                    style={{
-                                      width: "30px",
-                                      height: "30px",
-                                      borderRadius: "8px",
-                                      border: "1px solid #E2E8F0",
-                                      backgroundColor: "#FFFFFF",
-                                      color: "#475569",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    <Edit size={13} />
-                                  </button>
+                                  {/* Edit Info & Delete Actions */}
+                                  {canWriteBeneficiaries && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => openEditBeneficiary(b)}
+                                        title="Edit details"
+                                        style={{
+                                          width: "30px",
+                                          height: "30px",
+                                          borderRadius: "8px",
+                                          border: "1px solid #E2E8F0",
+                                          backgroundColor: "#FFFFFF",
+                                          color: "#475569",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        <Edit size={13} />
+                                      </button>
 
-                                  {/* Delete Beneficiary */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingBeneficiary(b)}
-                                    title={`Delete ${b.fullName} permanently`}
-                                    style={{
-                                      width: "32px",
-                                      height: "32px",
-                                      borderRadius: "8px",
-                                      border: "1.5px solid #FCA5A5",
-                                      backgroundColor: "#FEF2F2",
-                                      color: "#DC2626",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      cursor: "pointer",
-                                      transition: "all 0.15s ease",
-                                    }}
-                                    className="hover:bg-red-600 hover:text-white hover:border-red-600 active:scale-95 shadow-sm"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeletingBeneficiary(b)}
+                                        title={`Delete ${b.fullName} permanently`}
+                                        style={{
+                                          width: "32px",
+                                          height: "32px",
+                                          borderRadius: "8px",
+                                          border: "1.5px solid #FCA5A5",
+                                          backgroundColor: "#FEF2F2",
+                                          color: "#DC2626",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          cursor: "pointer",
+                                          transition: "all 0.15s ease",
+                                        }}
+                                        className="hover:bg-red-600 hover:text-white hover:border-red-600 active:scale-95 shadow-sm"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -6253,59 +6651,63 @@ export function AdminDashboardPage() {
                     <span>Export CSV</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={openCreateCategoryModal}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm"
-                    style={{
-                      height: "42px",
-                      backgroundColor: "#FFFFFF",
-                      color: "#E6127E",
-                      border: "2px solid #E6127E",
-                      fontWeight: 800,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      borderRadius: "12px",
-                      padding: "0 16px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Plus size={15} />
-                    <span>+ Add Support Category</span>
-                  </button>
+                  {canWriteAllocations && (
+                    <button
+                      type="button"
+                      onClick={openCreateCategoryModal}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm"
+                      style={{
+                        height: "42px",
+                        backgroundColor: "#FFFFFF",
+                        color: "#E6127E",
+                        border: "2px solid #E6127E",
+                        fontWeight: 800,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        borderRadius: "12px",
+                        padding: "0 16px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Plus size={15} />
+                      <span>+ Add Support Category</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateAllocationModal(true);
-                      setAllocBeneficiaryMode("EXISTING");
-                      if (beneficiariesList.length > 0) {
-                        setAllocSelectedBeneficiaryId(beneficiariesList[0].id);
-                      }
-                      if (supportCategoriesList.length > 0 && !allocCategoryId) {
-                        setAllocCategoryId(supportCategoriesList[0].id);
-                        setAllocAssistanceType(supportCategoriesList[0].name);
-                      }
-                    }}
-                    className="admin-btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold cursor-pointer transition-all shadow-md"
-                    style={{
-                      height: "42px",
-                      backgroundColor: "#E6127E",
-                      color: "#FFFFFF",
-                      fontWeight: 800,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      borderRadius: "12px",
-                      padding: "0 18px",
-                      boxShadow: "0 4px 12px rgba(230, 18, 126, 0.3)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Wallet size={15} />
-                    <span>+ Allocate Funds</span>
-                  </button>
+                  {canWriteAllocations && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateAllocationModal(true);
+                        setAllocBeneficiaryMode("EXISTING");
+                        if (beneficiariesList.length > 0) {
+                          setAllocSelectedBeneficiaryId(beneficiariesList[0].id);
+                        }
+                        if (supportCategoriesList.length > 0 && !allocCategoryId) {
+                          setAllocCategoryId(supportCategoriesList[0].id);
+                          setAllocAssistanceType(supportCategoriesList[0].name);
+                        }
+                      }}
+                      className="admin-btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold cursor-pointer transition-all shadow-md"
+                      style={{
+                        height: "42px",
+                        backgroundColor: "#E6127E",
+                        color: "#FFFFFF",
+                        fontWeight: 800,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        borderRadius: "12px",
+                        padding: "0 18px",
+                        boxShadow: "0 4px 12px rgba(230, 18, 126, 0.3)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Wallet size={15} />
+                      <span>+ Allocate Funds</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -6601,24 +7003,26 @@ export function AdminDashboardPage() {
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 flex-shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditCategoryModal(cat)}
-                                    title="Edit category details and funding target"
-                                    className="w-8 h-8 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
-                                  >
-                                    <Edit size={14} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingCategory(cat)}
-                                    title="Delete category"
-                                    className="w-8 h-8 rounded-lg border border-rose-200 hover:border-rose-300 bg-rose-50/70 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
+                                {canWriteAllocations && (
+                                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditCategoryModal(cat)}
+                                      title="Edit category details and funding target"
+                                      className="w-8 h-8 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                                    >
+                                      <Edit size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingCategory(cat)}
+                                      title="Delete category"
+                                      className="w-8 h-8 rounded-lg border border-rose-200 hover:border-rose-300 bg-rose-50/70 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
 
                               <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4 min-h-[32px]">
@@ -6716,26 +7120,28 @@ export function AdminDashboardPage() {
                                 Remaining: <strong className="text-slate-800">£{remaining.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                               </span>
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAllocCategoryId(cat.id);
-                                  setAllocAssistanceType(cat.name);
-                                  setShowCreateAllocationModal(true);
-                                  setAllocBeneficiaryMode("EXISTING");
-                                  if (beneficiariesList.length > 0) {
-                                    setAllocSelectedBeneficiaryId(beneficiariesList[0].id);
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-bold shadow-sm transition-all cursor-pointer hover:shadow hover:opacity-95"
-                                style={{
-                                  backgroundColor: "#E6127E",
-                                  color: "#FFFFFF",
-                                }}
-                              >
-                                <Wallet size={13} />
-                                <span>+ Allocate Funds</span>
-                              </button>
+                              {canWriteAllocations && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAllocCategoryId(cat.id);
+                                    setAllocAssistanceType(cat.name);
+                                    setShowCreateAllocationModal(true);
+                                    setAllocBeneficiaryMode("EXISTING");
+                                    if (beneficiariesList.length > 0) {
+                                      setAllocSelectedBeneficiaryId(beneficiariesList[0].id);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-bold shadow-sm transition-all cursor-pointer hover:shadow hover:opacity-95"
+                                  style={{
+                                    backgroundColor: "#E6127E",
+                                    color: "#FFFFFF",
+                                  }}
+                                >
+                                  <Wallet size={13} />
+                                  <span>+ Allocate Funds</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
@@ -6934,13 +7340,15 @@ export function AdminDashboardPage() {
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                       No allocation records match your search criteria.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateAllocationModal(true)}
-                      className="mt-4 px-4 py-2 rounded-xl bg-pink-50 text-magenta text-xs font-bold hover:bg-pink-100 transition-colors cursor-pointer"
-                    >
-                      + Allocate Funds to Beneficiary
-                    </button>
+                    {canWriteAllocations && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateAllocationModal(true)}
+                        className="mt-4 px-4 py-2 rounded-xl bg-pink-50 text-magenta text-xs font-bold hover:bg-pink-100 transition-colors cursor-pointer"
+                      >
+                        + Allocate Funds to Beneficiary
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -7113,7 +7521,7 @@ export function AdminDashboardPage() {
                               <td className="py-3.5 px-4 text-right">
                                 <div className="inline-flex items-center gap-1.5">
                                   {/* Mark/Record Distributed */}
-                                  {isAllocated && (
+                                  {canWriteAllocations && isAllocated && (
                                     <button
                                       type="button"
                                       onClick={() => openRecordDistributionModal(a)}
@@ -7135,17 +7543,19 @@ export function AdminDashboardPage() {
                                   </button>
 
                                   {/* Edit Allocation */}
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditAllocationModal(a)}
-                                    title="Edit allocation record"
-                                    className="admin-action-btn"
-                                  >
-                                    <Edit size={14} />
-                                  </button>
+                                  {canWriteAllocations && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditAllocationModal(a)}
+                                      title="Edit allocation record"
+                                      className="admin-action-btn"
+                                    >
+                                      <Edit size={14} />
+                                    </button>
+                                  )}
 
                                   {/* Cancel Allocation */}
-                                  {isAllocated && (
+                                  {canWriteAllocations && isAllocated && (
                                     <button
                                       type="button"
                                       onClick={() => setCancellingAllocation(a)}
@@ -7157,14 +7567,16 @@ export function AdminDashboardPage() {
                                   )}
 
                                   {/* Delete Allocation */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingAllocation(a)}
-                                    title="Delete allocation record"
-                                    className="admin-action-btn hover:text-red-600 hover:border-red-200 hover:bg-red-50"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  {canWriteAllocations && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingAllocation(a)}
+                                      title="Delete allocation record"
+                                      className="admin-action-btn hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -7226,20 +7638,22 @@ export function AdminDashboardPage() {
                     marginLeft: "auto",
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={openCreateCampaignModal}
-                    className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Plus size={15} />
-                    <span>Create New Campaign</span>
-                  </button>
+                  {canWriteCampaigns && (
+                    <button
+                      type="button"
+                      onClick={openCreateCampaignModal}
+                      className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Plus size={15} />
+                      <span>Create New Campaign</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -7579,51 +7993,53 @@ export function AdminDashboardPage() {
                               </button>
 
                               {/* Right Actions */}
-                              <div className="flex items-center gap-1.5">
-                                {/* Toggle Active / Deactivate */}
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleToggleCampaignStatus(camp, e)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                                    camp.active
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                                      : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
-                                  }`}
-                                  title={camp.active ? "Click to deactivate / pause cause" : "Click to activate cause"}
-                                >
-                                  {camp.active ? "Active" : "Paused"}
-                                </button>
+                              {canWriteCampaigns && (
+                                <div className="flex items-center gap-1.5">
+                                  {/* Toggle Active / Deactivate */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleToggleCampaignStatus(camp, e)}
+                                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                                      camp.active
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                        : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                                    }`}
+                                    title={camp.active ? "Click to deactivate / pause cause" : "Click to activate cause"}
+                                  >
+                                    {camp.active ? "Active" : "Paused"}
+                                  </button>
 
-                                {/* Edit Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => openEditCampaign(camp)}
-                                  className="admin-action-btn"
-                                  title="Edit campaign details, target, and dates"
-                                >
-                                  <Edit size={14} />
-                                </button>
+                                  {/* Edit Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditCampaign(camp)}
+                                    className="admin-action-btn"
+                                    title="Edit campaign details, target, and dates"
+                                  >
+                                    <Edit size={14} />
+                                  </button>
 
-                                {/* Archive Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleArchiveCampaign(camp, !camp.archived)}
-                                  className="admin-action-btn"
-                                  title={camp.archived ? "Restore campaign from archive" : "Archive campaign"}
-                                >
-                                  <Archive size={14} />
-                                </button>
+                                  {/* Archive Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleArchiveCampaign(camp, !camp.archived)}
+                                    className="admin-action-btn"
+                                    title={camp.archived ? "Restore campaign from archive" : "Archive campaign"}
+                                  >
+                                    <Archive size={14} />
+                                  </button>
 
-                                {/* Delete Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingCampaign(camp)}
-                                  className="admin-action-btn hover:text-red-600 hover:border-red-200 hover:bg-red-50"
-                                  title="Delete campaign"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
+                                  {/* Delete Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeletingCampaign(camp)}
+                                    className="admin-action-btn hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                                    title="Delete campaign"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -7694,20 +8110,22 @@ export function AdminDashboardPage() {
                   </button>
 
                   {/* Record Offline Donation Button */}
-                  <button
-                    type="button"
-                    onClick={() => setShowRecordOfflineModal(true)}
-                    className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Plus size={15} />
-                    <span>Record Offline Donation</span>
-                  </button>
+                  {canWriteDonations && (
+                    <button
+                      type="button"
+                      onClick={() => setShowRecordOfflineModal(true)}
+                      className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-2 shadow-md cursor-pointer transition-transform hover:scale-[1.02]"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Plus size={15} />
+                      <span>Record Offline Donation</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -7993,33 +8411,37 @@ export function AdminDashboardPage() {
 
                               {/* Payment Status with Quick Change */}
                               <td className="py-3.5 px-4">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingStatusDonation(dn);
-                                    setNewStatusValue(dn.status);
-                                  }}
-                                  className="cursor-pointer"
-                                  title="Click to update payment status"
-                                >
-                                  {dn.status === "COMPLETED" ? (
-                                    <span className="admin-badge-completed">
-                                      ● Completed
-                                    </span>
+                                {canWriteDonations ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingStatusDonation(dn);
+                                      setNewStatusValue(dn.status);
+                                    }}
+                                    className="cursor-pointer"
+                                    title="Click to update payment status"
+                                  >
+                                    {dn.status === "COMPLETED" ? (
+                                      <span className="admin-badge-completed">● Completed</span>
+                                    ) : dn.status === "PENDING" ? (
+                                      <span className="admin-badge-pending">● Pending</span>
+                                    ) : dn.status === "FAILED" ? (
+                                      <span className="admin-badge-failed">● Failed</span>
+                                    ) : (
+                                      <span className="admin-badge-refunded">● Refunded</span>
+                                    )}
+                                  </button>
+                                ) : (
+                                  dn.status === "COMPLETED" ? (
+                                    <span className="admin-badge-completed">● Completed</span>
                                   ) : dn.status === "PENDING" ? (
-                                    <span className="admin-badge-pending">
-                                      ● Pending
-                                    </span>
+                                    <span className="admin-badge-pending">● Pending</span>
                                   ) : dn.status === "FAILED" ? (
-                                    <span className="admin-badge-failed">
-                                      ● Failed
-                                    </span>
+                                    <span className="admin-badge-failed">● Failed</span>
                                   ) : (
-                                    <span className="admin-badge-refunded">
-                                      ● Refunded
-                                    </span>
-                                  )}
-                                </button>
+                                    <span className="admin-badge-refunded">● Refunded</span>
+                                  )
+                                )}
                               </td>
 
                               {/* Gift Aid */}
@@ -8058,14 +8480,16 @@ export function AdminDashboardPage() {
                                   </button>
 
                                   {/* Delete Transaction */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setDeletingDonation(dn)}
-                                    title="Delete donation record"
-                                    className="admin-action-btn hover:text-red-600 hover:border-red-200 hover:bg-red-50"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  {canWriteDonations && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingDonation(dn)}
+                                      title="Delete donation record"
+                                      className="admin-action-btn hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -9257,28 +9681,30 @@ export function AdminDashboardPage() {
                     <span>Export Audit Trail (CSV)</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewStaffName("");
-                      setNewStaffEmail("");
-                      setNewStaffPhone("");
-                      setNewStaffRole("CASEWORKER");
-                      setNewStaffDept("Crisis & Domestic Abuse Support");
-                      setNewStaffJobTitle("Casework Advocate");
-                      setNewStaffPermissions([
-                        "beneficiaries:read",
-                        "beneficiaries:write",
-                        "allocations:read",
-                        "reports:view"
-                      ]);
-                      setShowAddStaffModal(true);
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-magenta text-white text-xs font-bold shadow-md hover:bg-magenta-deep transition-all"
-                  >
-                    <UserPlus size={14} />
-                    <span>+ Add New Staff Member</span>
-                  </button>
+                  {canManageStaff && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewStaffName("");
+                        setNewStaffEmail("");
+                        setNewStaffPhone("");
+                        setNewStaffRole("CASEWORKER");
+                        setNewStaffDept("Crisis & Domestic Abuse Support");
+                        setNewStaffJobTitle("Casework Advocate");
+                        setNewStaffPermissions([
+                          "beneficiaries:read",
+                          "beneficiaries:write",
+                          "allocations:read",
+                          "reports:view"
+                        ]);
+                        setShowAddStaffModal(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-magenta text-white text-xs font-bold shadow-md hover:bg-magenta-deep transition-all cursor-pointer"
+                    >
+                      <UserPlus size={14} />
+                      <span>+ Add New Staff Member</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -9540,13 +9966,14 @@ export function AdminDashboardPage() {
                                   <td className="py-3.5 px-4">
                                     <button
                                       type="button"
+                                      disabled={!canManageStaff}
                                       onClick={() => handleToggleStaffActive(staff)}
-                                      title={staff.active ? "Click to deactivate" : "Click to activate"}
+                                      title={canManageStaff ? (staff.active ? "Click to deactivate" : "Click to activate") : "Status managed by Super Admin"}
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold transition-all ${
                                         staff.active
                                           ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                           : "bg-red-50 text-red-600 hover:bg-red-100"
-                                      }`}
+                                      } ${canManageStaff ? "cursor-pointer" : "cursor-default opacity-85"}`}
                                     >
                                       <span className={`w-1.5 h-1.5 rounded-full ${staff.active ? "bg-emerald-500" : "bg-red-500"}`}></span>
                                       <span>{staff.active ? "Active" : "Inactive"}</span>
@@ -9556,32 +9983,29 @@ export function AdminDashboardPage() {
                                   {/* Actions */}
                                   <td className="py-3.5 px-4 text-right">
                                     <div className="flex items-center justify-end gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingStaff(staff);
-                                          setEditStaffName(staff.fullName);
-                                          setEditStaffPhone(staff.phoneNumber || "");
-                                          setEditStaffRole(staff.staffRole || (staff.role === "ADMIN" ? "SUPER_ADMIN" : "CASEWORKER"));
-                                          setEditStaffDept(staff.department || "");
-                                          setEditStaffJobTitle(staff.jobTitle || "");
-                                          setEditStaffActive(staff.active);
-                                          setEditStaffPermissions(Array.isArray(staff.permissions) ? staff.permissions : []);
-                                        }}
-                                        className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-magenta hover:border-magenta hover:bg-pink-50 transition-colors"
-                                        title="Edit staff details and permissions"
-                                      >
-                                        <Edit size={13} />
-                                      </button>
+                                      {canManageStaff ? (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() => startEditingStaff(staff)}
+                                            className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-magenta hover:border-magenta hover:bg-pink-50 transition-colors cursor-pointer"
+                                            title="Edit staff details and permissions"
+                                          >
+                                            <Edit size={13} />
+                                          </button>
 
-                                      <button
-                                        type="button"
-                                        onClick={() => setDeletingStaff(staff)}
-                                        className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors"
-                                        title="Remove staff member"
-                                      >
-                                        <Trash2 size={13} />
-                                      </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setDeletingStaff(staff)}
+                                            className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors cursor-pointer"
+                                            title="Remove staff member"
+                                          >
+                                            <Trash2 size={13} />
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <span className="text-[10px] text-gray-400 italic">View Only</span>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -9607,6 +10031,184 @@ export function AdminDashboardPage() {
                       <p className="text-xs text-gray-600 mt-1 leading-relaxed">
                         The exact staff roles and permissions should be finalized with the Trust board and lead caseworkers. Below is the operational baseline established for UK registered charity compliance (UK Charity #1137350), ensuring segregation of duties across donations, approvals, and fund disbursements.
                       </p>
+                    </div>
+                  </div>
+
+                  {/* Active Staff Roles & Granular Permissions Live Matrix */}
+                  <div className="bg-white rounded-3xl border border-pink-100 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-pink-50/50 via-white to-white">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-pink-100 text-magenta">
+                            Live Authorization Controller
+                          </span>
+                          <span className="text-xs font-bold text-gray-400">•</span>
+                          <span className="text-xs font-semibold text-slate-600">
+                            {staffList.length} Active Officer Accounts
+                          </span>
+                        </div>
+                        <h3 className="text-base font-extrabold text-slate-900 mt-1 flex items-center gap-2">
+                          <Sliders size={18} className="text-magenta" />
+                          <span>Staff Roles &amp; Granular Permissions Live Matrix</span>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Staff will only see authorized tabs and can only execute operations permitted by their selected checkboxes. Click <strong>Edit Permissions</strong> to modify any officer&apos;s capabilities.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pink-50 text-magenta font-bold border border-pink-200">
+                          <ShieldCheck size={12} /> Admin (All Access)
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                          ✓ Write (Full)
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                          👁 Read Only
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 text-gray-400 font-medium border border-gray-200">
+                          — Restricted
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50/80 border-b border-gray-100 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            <th className="py-3.5 px-4">Staff Member</th>
+                            <th className="py-3.5 px-3">Role &amp; Title</th>
+                            <th className="py-3.5 px-2 text-center" title="Beneficiary Management">Beneficiaries</th>
+                            <th className="py-3.5 px-2 text-center" title="Fund Allocation &amp; Vouchers">Allocations</th>
+                            <th className="py-3.5 px-2 text-center" title="Donor CRM">Donors</th>
+                            <th className="py-3.5 px-2 text-center" title="Appeals &amp; Campaigns">Campaigns</th>
+                            <th className="py-3.5 px-2 text-center" title="Donations Ledger">Donations</th>
+                            <th className="py-3.5 px-2 text-center" title="Newsletter Management">Newsletter</th>
+                            <th className="py-3.5 px-2 text-center" title="Reports &amp; Analytics">Reports</th>
+                            <th className="py-3.5 px-2 text-center" title="Staff Management">Staff</th>
+                            <th className="py-3.5 px-2 text-center" title="System Settings">Settings</th>
+                            <th className="py-3.5 px-4 text-right">Edit Checkboxes</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {staffList.length === 0 ? (
+                            <tr>
+                              <td colSpan={12} className="py-8 text-center text-gray-400">
+                                No staff accounts found in database.
+                              </td>
+                            </tr>
+                          ) : (
+                            staffList.map((st) => {
+                              const isSuper = st.role === "ADMIN" || st.staffRole === "SUPER_ADMIN";
+                              const perms = Array.isArray(st.permissions) ? st.permissions : [];
+
+                              function checkModule(modId: string) {
+                                if (isSuper) {
+                                  return (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black bg-pink-100 text-magenta border border-pink-200" title="Full Unrestricted Admin Access">
+                                      Admin
+                                    </span>
+                                  );
+                                }
+                                const hasW = perms.includes(`${modId}:write`) || perms.includes(`${modId}:manage`) || perms.includes(`${modId}:*`) || perms.includes("*");
+                                const hasR = perms.includes(`${modId}:read`) || perms.includes(`${modId}:view`) || hasW;
+
+                                if (hasW) {
+                                  return (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Read & Write Permitted">
+                                      ✓ Write
+                                    </span>
+                                  );
+                                }
+                                if (hasR) {
+                                  return (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200" title="Read Only Permitted">
+                                      👁 Read
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="inline-block px-2 py-0.5 rounded text-[10px] text-gray-300 font-mono" title="Access Restricted">
+                                    —
+                                  </span>
+                                );
+                              }
+
+                              return (
+                                <tr key={st.id} className="hover:bg-pink-50/20 transition-colors">
+                                  {/* Staff Info */}
+                                  <td className="py-3.5 px-4">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-700 text-xs flex-shrink-0">
+                                        {st.fullName.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                                          <span>{st.fullName}</span>
+                                          {!st.active && (
+                                            <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1 py-0.2 rounded">
+                                              Inactive
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-[10px] text-gray-400 truncate max-w-[140px]" title={st.email}>
+                                          {st.email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Role & Dept */}
+                                  <td className="py-3.5 px-3">
+                                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                      st.staffRole === "SUPER_ADMIN" || st.role === "ADMIN"
+                                        ? "bg-pink-100 text-magenta"
+                                        : st.staffRole === "FINANCE_OFFICER"
+                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        : st.staffRole === "CAMPAIGN_LEAD"
+                                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                        : "bg-purple-50 text-purple-700 border border-purple-200"
+                                    }`}>
+                                      {st.staffRole?.replace(/_/g, " ") || st.role}
+                                    </span>
+                                    <div className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[130px]" title={st.jobTitle || st.department}>
+                                      {st.jobTitle || st.department || "Operations"}
+                                    </div>
+                                  </td>
+
+                                  {/* Modules Status */}
+                                  <td className="py-3.5 px-2 text-center">{checkModule("beneficiaries")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("allocations")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("donors")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("campaigns")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("donations")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("newsletter")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("reports")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("staff")}</td>
+                                  <td className="py-3.5 px-2 text-center">{checkModule("settings")}</td>
+
+                                  {/* Action */}
+                                  <td className="py-3.5 px-4 text-right">
+                                    {canManageStaff ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => startEditingStaff(st)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-pink-50 text-magenta border border-pink-200 hover:bg-magenta hover:text-white transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                                        title={`Edit checkboxes & permissions for ${st.fullName}`}
+                                      >
+                                        <Sliders size={13} />
+                                        <span>Edit Permissions</span>
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-400 italic">Protected</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
@@ -9998,15 +10600,17 @@ export function AdminDashboardPage() {
                     <span>Refresh</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowComposeNewsletterModal(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer"
-                    style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
-                  >
-                    <Plus size={14} />
-                    <span>Compose Newsletter</span>
-                  </button>
+                  {canWriteNewsletter && (
+                    <button
+                      type="button"
+                      onClick={() => setShowComposeNewsletterModal(true)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer"
+                      style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
+                    >
+                      <Plus size={14} />
+                      <span>Compose Newsletter</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -10523,26 +11127,33 @@ export function AdminDashboardPage() {
                 </div>
 
                 {/* Save Button */}
-                <div className="flex items-center justify-end">
-                  <button
-                    type="submit"
-                    disabled={settingsSaving}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50"
-                    style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
-                  >
-                    {settingsSaving ? (
-                      <>
-                        <RefreshCw size={14} className="animate-spin" />
-                        <span>Saving Settings...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check size={14} />
-                        <span>Save System Settings</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                {canManageSettings ? (
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="submit"
+                      disabled={settingsSaving}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50"
+                      style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
+                    >
+                      {settingsSaving ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Saving Settings...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={14} />
+                          <span>Save System Settings</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-amber-600 flex-shrink-0" />
+                    <span>View-only mode: You do not possess administrative permissions to modify system configuration.</span>
+                  </div>
+                )}
               </form>
             </div>
           )}
@@ -15993,73 +16604,75 @@ export function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => openEditBeneficiary(viewingBeneficiary)}
-                  style={{
-                    height: "38px",
-                    padding: "0 14px",
-                    borderRadius: "10px",
-                    border: "1.5px solid #CBD5E1",
-                    backgroundColor: "#FFFFFF",
-                    color: "#334155",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <Edit size={13} />
-                  <span>Edit Details</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleBeneficiaryActive(viewingBeneficiary, !viewingBeneficiary.active)}
-                  style={{
-                    height: "38px",
-                    padding: "0 14px",
-                    borderRadius: "10px",
-                    border: viewingBeneficiary.active ? "1.5px solid #CBD5E1" : "1.5px solid #A7F3D0",
-                    backgroundColor: viewingBeneficiary.active ? "#F1F5F9" : "#ECFDF5",
-                    color: viewingBeneficiary.active ? "#475569" : "#047857",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <span>{viewingBeneficiary.active ? "Deactivate" : "Activate"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const ben = viewingBeneficiary;
-                    setDeletingBeneficiary(ben);
-                  }}
-                  style={{
-                    height: "38px",
-                    padding: "0 14px",
-                    borderRadius: "10px",
-                    border: "1.5px solid #FECACA",
-                    backgroundColor: "#FEF2F2",
-                    color: "#DC2626",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                  title="Permanently delete this beneficiary"
-                >
-                  <Trash2 size={13} />
-                  <span>Delete Beneficiary</span>
-                </button>
-              </div>
+              {canWriteBeneficiaries && (
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => openEditBeneficiary(viewingBeneficiary)}
+                    style={{
+                      height: "38px",
+                      padding: "0 14px",
+                      borderRadius: "10px",
+                      border: "1.5px solid #CBD5E1",
+                      backgroundColor: "#FFFFFF",
+                      color: "#334155",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Edit size={13} />
+                    <span>Edit Details</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleBeneficiaryActive(viewingBeneficiary, !viewingBeneficiary.active)}
+                    style={{
+                      height: "38px",
+                      padding: "0 14px",
+                      borderRadius: "10px",
+                      border: viewingBeneficiary.active ? "1.5px solid #CBD5E1" : "1.5px solid #A7F3D0",
+                      backgroundColor: viewingBeneficiary.active ? "#F1F5F9" : "#ECFDF5",
+                      color: viewingBeneficiary.active ? "#475569" : "#047857",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span>{viewingBeneficiary.active ? "Deactivate" : "Activate"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ben = viewingBeneficiary;
+                      setDeletingBeneficiary(ben);
+                    }}
+                    style={{
+                      height: "38px",
+                      padding: "0 14px",
+                      borderRadius: "10px",
+                      border: "1.5px solid #FECACA",
+                      backgroundColor: "#FEF2F2",
+                      color: "#DC2626",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                    title="Permanently delete this beneficiary"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete Beneficiary</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Modal Internal Tabs */}
@@ -16134,19 +16747,21 @@ export function AdminDashboardPage() {
                       <HeartHandshake size={16} className="text-magenta" />
                       <span>{viewingBeneficiary.assignedAdvocate || "Not yet assigned"}</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAssigningAdvocateBeneficiary(viewingBeneficiary);
-                        const matched = activeAdvocatesList.find(
-                          (a) => a.display === viewingBeneficiary.assignedAdvocate || a.fullName === viewingBeneficiary.assignedAdvocate || (viewingBeneficiary.assignedAdvocate && viewingBeneficiary.assignedAdvocate.includes(a.fullName))
-                        );
-                        setSelectedAdvocateValue(matched ? matched.display : (activeAdvocatesList[0]?.display || ""));
-                      }}
-                      className="mt-2 text-xs font-bold text-magenta hover:underline"
-                    >
-                      Change Advocate &rarr;
-                    </button>
+                    {canWriteBeneficiaries && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssigningAdvocateBeneficiary(viewingBeneficiary);
+                          const matched = activeAdvocatesList.find(
+                            (a) => a.display === viewingBeneficiary.assignedAdvocate || a.fullName === viewingBeneficiary.assignedAdvocate || (viewingBeneficiary.assignedAdvocate && viewingBeneficiary.assignedAdvocate.includes(a.fullName))
+                          );
+                          setSelectedAdvocateValue(matched ? matched.display : (activeAdvocatesList[0]?.display || ""));
+                        }}
+                        className="mt-2 text-xs font-bold text-magenta hover:underline"
+                      >
+                        Change Advocate &rarr;
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
@@ -16180,31 +16795,33 @@ export function AdminDashboardPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Assistance Applications &amp; Welfare Grants
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCreatingReqBeneficiary(viewingBeneficiary);
-                      setNewReqServiceType("Emergency Heating & Fuel Voucher");
-                      setNewReqUrgency("HIGH");
-                      setNewReqNotes("");
-                    }}
-                    className="admin-btn-primary px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      style={{
-                        height: "36px",
-                        backgroundColor: "#E6127E",
-                        color: "#FFFFFF",
-                        fontWeight: 700,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        borderRadius: "10px",
-                        padding: "0 14px",
-                        boxShadow: "0 2px 8px rgba(230, 18, 126, 0.25)",
+                  {canWriteBeneficiaries && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreatingReqBeneficiary(viewingBeneficiary);
+                        setNewReqServiceType("Emergency Heating & Fuel Voucher");
+                        setNewReqUrgency("HIGH");
+                        setNewReqNotes("");
                       }}
-                  >
-                    <Plus size={13} />
-                    <span>+ Log Assistance Request</span>
-                  </button>
+                      className="admin-btn-primary px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        style={{
+                          height: "36px",
+                          backgroundColor: "#E6127E",
+                          color: "#FFFFFF",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          borderRadius: "10px",
+                          padding: "0 14px",
+                          boxShadow: "0 2px 8px rgba(230, 18, 126, 0.25)",
+                        }}
+                    >
+                      <Plus size={13} />
+                      <span>+ Log Assistance Request</span>
+                    </button>
+                  )}
                 </div>
 
                 {(!viewingBeneficiary.beneficiaryRequests || viewingBeneficiary.beneficiaryRequests.length === 0) ? (
@@ -16291,19 +16908,21 @@ export function AdminDashboardPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Stored Verification Documents
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingDocBeneficiary(viewingBeneficiary);
-                      setDocNameValue("");
-                      setDocTypeValue("Proof of Address");
-                      setDocStatusValue("VERIFIED");
-                    }}
-                    className="admin-btn-primary px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <Plus size={13} />
-                    <span>+ Upload Document</span>
-                  </button>
+                  {canWriteBeneficiaries && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingDocBeneficiary(viewingBeneficiary);
+                        setDocNameValue("");
+                        setDocTypeValue("Proof of Address");
+                        setDocStatusValue("VERIFIED");
+                      }}
+                      className="admin-btn-primary px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <Plus size={13} />
+                      <span>+ Upload Document</span>
+                    </button>
+                  )}
                 </div>
 
                 {(() => {
@@ -16351,14 +16970,16 @@ export function AdminDashboardPage() {
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                             {doc.status}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDocument(viewingBeneficiary.id, doc.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                            title="Remove document"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {canWriteBeneficiaries && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDocument(viewingBeneficiary.id, doc.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                              title="Remove document"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -19957,45 +20578,9 @@ export function AdminDashboardPage() {
                 </span>
               </div>
 
-              {/* System Permissions Grid */}
+              {/* Dynamic Permissions Checklist */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Assigned Platform Permissions
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  {[
-                    { key: "beneficiaries:read", label: "View Beneficiaries & Case Notes" },
-                    { key: "beneficiaries:write", label: "Create & Assign Beneficiaries" },
-                    { key: "allocations:read", label: "View Grant Allocations & Targets" },
-                    { key: "allocations:write", label: "Disburse Vouchers & Emergency Relief" },
-                    { key: "reports:view", label: "Access Analytics & Impact Reports" },
-                    { key: "campaigns:manage", label: "Manage Appeals & Public Campaigns" },
-                  ].map((perm) => {
-                    const isChecked = newStaffPermissions.includes(perm.key);
-                    return (
-                      <label
-                        key={perm.key}
-                        className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer text-xs"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewStaffPermissions([...newStaffPermissions, perm.key]);
-                            } else {
-                              setNewStaffPermissions(newStaffPermissions.filter((p) => p !== perm.key));
-                            }
-                          }}
-                          className="w-4 h-4 text-magenta rounded focus:ring-magenta cursor-pointer"
-                        />
-                        <span className={isChecked ? "font-bold text-slate-900" : "text-slate-600"}>
-                          {perm.label}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+                {renderPermissionsChecklist(newStaffPermissions, setNewStaffPermissions)}
               </div>
 
               {/* Form Buttons */}
@@ -20303,45 +20888,9 @@ export function AdminDashboardPage() {
                 </button>
               </div>
 
-              {/* Permissions Checklist */}
+              {/* Dynamic Permissions Checklist */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Platform Capabilities
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  {[
-                    { key: "beneficiaries:read", label: "View Beneficiaries & Documents" },
-                    { key: "beneficiaries:write", label: "Create & Assign Beneficiaries" },
-                    { key: "allocations:read", label: "View Grant Allocations" },
-                    { key: "allocations:write", label: "Disburse Vouchers & Grants" },
-                    { key: "reports:view", label: "View Charity Reports" },
-                    { key: "campaigns:manage", label: "Fundraising Appeals" },
-                  ].map((perm) => {
-                    const isChecked = editStaffPermissions.includes(perm.key);
-                    return (
-                      <label
-                        key={perm.key}
-                        className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer text-xs"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setEditStaffPermissions([...editStaffPermissions, perm.key]);
-                            } else {
-                              setEditStaffPermissions(editStaffPermissions.filter((p) => p !== perm.key));
-                            }
-                          }}
-                          className="w-4 h-4 text-magenta rounded focus:ring-magenta cursor-pointer"
-                        />
-                        <span className={isChecked ? "font-bold text-slate-900" : "text-slate-600"}>
-                          {perm.label}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
+                {renderPermissionsChecklist(editStaffPermissions, setEditStaffPermissions)}
               </div>
 
               {/* Form Buttons */}

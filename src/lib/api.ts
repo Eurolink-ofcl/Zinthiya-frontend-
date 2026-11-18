@@ -21,6 +21,10 @@ export interface DonorUser {
   emailNewsletter?: boolean;
   smsAlerts?: boolean;
   role: "DONOR" | "BENEFICIARY" | "STAFF" | "ADMIN";
+  staffRole?: string;
+  department?: string;
+  jobTitle?: string;
+  permissions?: string[];
   generalConsent: boolean;
   donationTier: string;
   totalDonated: string | number;
