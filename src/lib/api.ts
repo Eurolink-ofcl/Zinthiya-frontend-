@@ -438,13 +438,109 @@ export interface ReportFilters {
 }
 
 export interface ReportsData {
-  summary?: any;
-  timeline?: any[];
-  campaigns?: any[];
-  topDonors?: any[];
+  filters?: {
+    period?: string;
+    startDate?: string | null;
+    endDate?: string | null;
+    campaignId?: string;
+    donationType?: string;
+  };
+  summary?: {
+    totalDonationsReceived: number;
+    donationsCount: number;
+    averageDonation: number;
+    onlineDonationsTotal?: number;
+    externalDonationsTotal?: number;
+    oneOffDonationsTotal?: number;
+    recurringDonationsTotal?: number;
+    giftAidTotal?: number;
+    totalDonorsCount: number;
+    repeatDonorsCount: number;
+    singleGiftDonorsCount: number;
+    totalCampaignsCount?: number;
+    internalCampaignsCount?: number;
+    externalCampaignsCount?: number;
+    totalAllocatedAmount: number;
+    totalDistributedAmount: number;
+    totalPendingDistribution: number;
+    totalBeneficiaryRequests: number;
+    totalHouseholdImpact: number;
+    [key: string]: any;
+  };
+  timeline?: Array<{
+    label: string;
+    date: string;
+    totalAmount: number;
+    count: number;
+    oneOffAmount: number;
+    recurringAmount: number;
+  }>;
+  campaigns?: Array<{
+    id: string;
+    title: string;
+    campaignCode?: string;
+    campaignType?: string;
+    targetAmount: number;
+    raisedAmountAllTime: number;
+    periodDonations: number;
+    donationCount: number;
+    percentOfTotalDonations: number;
+    progressPercent: number;
+    active: boolean;
+    startDate?: string | null;
+    endDate?: string | null;
+  }>;
+  topDonors?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    tier: string;
+    location: string;
+    totalContributed: number;
+    donationsCount: number;
+    lastDonationDate: string | null;
+    averageGift: number;
+    newsletterConsent: boolean;
+  }>;
+  donations?: Array<{
+    id: string;
+    reference: string;
+    amount: number;
+    type: string;
+    giftAid: boolean;
+    giftAidAmount: number;
+    createdAt: string;
+    donorName: string;
+    donorEmail: string;
+    donorPhone: string;
+    donorTier: string;
+    campaignTitle: string;
+    campaignType: string;
+    isExternal: boolean;
+    paymentMethod: string;
+  }>;
+  distributions?: Array<{
+    id: string;
+    reference: string;
+    beneficiaryName: string;
+    beneficiaryEmail: string;
+    beneficiaryPhone: string;
+    supportCategory: string;
+    campaignTitle: string;
+    allocatedAmount: number;
+    distributedAmount: number;
+    status: string;
+    allocationDate: string;
+    distributionDate?: string | null;
+    paymentMethod: string;
+    disbursedBy: string;
+    notes: string;
+  }>;
   donationTypeSplit?: any;
   beneficiarySupport?: any;
   fundDistribution?: any;
+  donorGrowth?: any[];
   [key: string]: any;
 }
 

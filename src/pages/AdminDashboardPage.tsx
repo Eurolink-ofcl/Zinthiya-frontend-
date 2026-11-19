@@ -84,7 +84,9 @@ import {
   ExternalLink,
   ChevronDown,
   Building,
-  Building2
+  Building2,
+  Award,
+  Target
 } from "../components/Icons";
 
 function ZinthiyaLogo() {
@@ -2173,8 +2175,9 @@ export function AdminDashboardPage() {
   const [reportsCampaignId, setReportsCampaignId] = useState<string>("all");
   const [reportsDonationType, setReportsDonationType] = useState<string>("all");
   const [reportsActiveSubTab, setReportsActiveSubTab] = useState<
-    "overview" | "timeline" | "campaigns" | "donors" | "one_off_recurring" | "beneficiaries" | "allocations"
-  >("overview");
+    "donations" | "campaigns" | "donors" | "distributions"
+  >("donations");
+  const [reportsSearchQuery, setReportsSearchQuery] = useState<string>("");
   const [showAuditReportModal, setShowAuditReportModal] = useState<boolean>(false);
   const [showCsvDropdown, setShowCsvDropdown] = useState<boolean>(false);
 
@@ -2191,55 +2194,350 @@ export function AdminDashboardPage() {
       setReportsData(res);
     } catch (err: any) {
       console.error("Failed to load reports data:", err);
-      setErrorMsg(err.message || "Failed to load reports and analytics .");
+      setErrorMsg(err.message || "Failed to load reports and analytics.");
     } finally {
       setReportsLoading(false);
     }
   }
 
-  function exportReportsCsv(type: "summary" | "timeline" | "campaigns" | "top_donors" | "beneficiaries" | "allocations") {
-    if (!reportsData) return;
-    let csvContent = "";
-    let filename = `zinthiya-report-${type}-${new Date().toISOString().slice(0, 10)}.csv`;
+  function escapeXml(str: string): string {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
 
-    if (type === "summary") {
-      csvContent = "Metric,Value\n" +
-        `"Total Donations Received","£${reportsData.summary.totalDonationsReceived.toFixed(2)}"\n` +
-        `"Total Gifts Recorded","${reportsData.summary.donationsCount}"\n` +
-        `"Average Donation Size","£${reportsData.summary.averageDonation.toFixed(2)}"\n` +
-        `"Total Registered Donors","${reportsData.summary.totalDonorsCount}"\n` +
-        `"Repeat Donors Count","${reportsData.summary.repeatDonorsCount}"\n` +
-        `"Total Assistance Allocated","£${reportsData.summary.totalAllocatedAmount.toFixed(2)}"\n` +
-        `"Total Assistance Actually Distributed","£${reportsData.summary.totalDistributedAmount.toFixed(2)}"\n` +
-        `"Pending Relief Payouts","£${reportsData.summary.totalPendingDistribution.toFixed(2)}"\n` +
-        `"Total Beneficiary Requests","${reportsData.summary.totalBeneficiaryRequests}"\n` +
-        `"Total Household Members Impacted","${reportsData.summary.totalHouseholdImpact}"\n`;
-    } else if (type === "timeline") {
-      csvContent = "Period,Date,Total Amount (£),Number of Gifts,One-Off Amount (£),Recurring Amount (£),Average Gift (£)\n" +
-        reportsData.timeline.map(t => `"${t.label}","${t.date}",${t.totalAmount.toFixed(2)},${t.count},${t.oneOffAmount.toFixed(2)},${t.recurringAmount.toFixed(2)},${(t.count > 0 ? t.totalAmount / t.count : 0).toFixed(2)}`).join("\n");
-    } else if (type === "campaigns") {
-      csvContent = "Campaign ID,Campaign Title,Target Goal (£),Raised All Time (£),Period Donations (£),Period Gift Count,Share of Period Total (%),Progress towards Target (%),Status\n" +
-        reportsData.campaigns.map(c => `"${c.id}","${c.title}",${c.targetAmount.toFixed(2)},${c.raisedAmountAllTime.toFixed(2)},${c.periodDonations.toFixed(2)},${c.periodDonationsCount},${c.percentOfTotalDonations.toFixed(1)}%,${c.progressPercent.toFixed(1)}%,"${c.active ? 'ACTIVE' : 'INACTIVE'}"`).join("\n");
-    } else if (type === "top_donors") {
-      csvContent = "Rank,Donor Name,Email,Giving Tier,Total Contributed (£),Donations Count,Average Gift (£),Location,Newsletter Consent\n" +
-        reportsData.topDonors.map((d, i) => `${i + 1},"${d.name}","${d.email}","${d.tier}",${d.totalContributed.toFixed(2)},${d.donationsCount},${d.averageGift.toFixed(2)},"${d.location}","${d.newsletterConsent ? 'YES' : 'NO'}"`).join("\n");
-    } else if (type === "beneficiaries") {
-      csvContent = "Service Category,Total Requests,Approved,In Progress,Pending Triage,Rejected,People Reached,Resolution Rate (%)\n" +
-        reportsData.beneficiarySupport.byService.map(s => `"${s.serviceType}",${s.total},${s.approved},${s.inProgress},${s.pending},${s.rejected},${s.peopleReached},${s.resolutionRate.toFixed(1)}%`).join("\n");
-    } else if (type === "allocations") {
-      csvContent = "Assistance Category,Allocated Amount (£),Distributed Amount (£),Pending Payout (£),Recipients Count,Completion Rate (%)\n" +
-        reportsData.fundDistribution.byType.map(a => `"${a.type}",${a.allocated.toFixed(2)},${a.distributed.toFixed(2)},${a.pending.toFixed(2)},${a.count},${a.percentDistributed.toFixed(1)}%`).join("\n");
-    }
+  function exportSpreadsheetML(filename: string, sheets: Array<{ name: string; headers: string[]; rows: (string | number)[][] }>) {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Author>The Zinthiya Ganeshpanchan Trust</Author>
+  <Company>Zinthiya Trust</Company>
+  <Created>${new Date().toISOString()}</Created>
+ </DocumentProperties>
+ <Styles>
+  <Style ss:ID="Header">
+   <Font ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#E11D48" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+  </Style>
+  <Style ss:ID="RowEven">
+   <Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="RowOdd">
+   <Interior ss:Color="#F9FAFB" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="Currency">
+   <NumberFormat ss:Format="£#,##0.00"/>
+  </Style>
+  <Style ss:ID="Bold">
+   <Font ss:Bold="1"/>
+  </Style>
+ </Styles>
+ ${sheets
+   .map(
+     (sheet) => `
+ <Worksheet ss:Name="${escapeXml(sheet.name.slice(0, 31).replace(/[\\/?*[\]]/g, ''))}">
+  <Table>
+   <Row ss:StyleID="Header">
+    ${sheet.headers.map((h) => `<Cell><Data ss:Type="String">${escapeXml(String(h))}</Data></Cell>`).join("")}
+   </Row>
+   ${sheet.rows
+     .map(
+       (row, rIdx) => `
+   <Row ss:StyleID="${rIdx % 2 === 0 ? 'RowEven' : 'RowOdd'}">
+    ${row
+      .map((cell) => {
+        const isNum = typeof cell === "number";
+        return `<Cell><Data ss:Type="${isNum ? "Number" : "String"}">${escapeXml(String(cell ?? ""))}</Data></Cell>`;
+      })
+      .join("")}
+   </Row>`
+     )
+     .join("")}
+  </Table>
+ </Worksheet>`
+   )
+   .join("")}
+</Workbook>`;
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
+    link.href = url;
+    link.download = filename.endsWith(".xls") ? filename : `${filename}.xls`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportCsvFile(filename: string, headers: string[], rows: (string | number)[][]) {
+    const escapeCsv = (field: any) => {
+      const str = String(field ?? "");
+      if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    const content =
+      "\uFEFF" +
+      [
+        headers.map(escapeCsv).join(","),
+        ...rows.map((row) => row.map(escapeCsv).join(","))
+      ].join("\r\n");
+
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  function getReportDataset(type: "donations" | "campaigns" | "donors" | "distributions") {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    if (type === "donations") {
+      const headers = [
+        "Donation Ref",
+        "Date & Time",
+        "Donor Name",
+        "Email",
+        "Phone",
+        "Giving Tier",
+        "Campaign / Allocation",
+        "Campaign Type",
+        "Giving Type",
+        "Amount (£)",
+        "Gift Aid Claim (£)",
+        "Payment Channel"
+      ];
+      const rows = (reportsData?.donations || []).map((d: any) => [
+        d.reference,
+        new Date(d.createdAt).toLocaleString("en-GB"),
+        d.donorName,
+        d.donorEmail,
+        d.donorPhone,
+        d.donorTier,
+        d.campaignTitle,
+        d.campaignType,
+        d.type === "RECURRING" ? "Monthly Recurring" : "One-Off",
+        d.amount,
+        d.giftAidAmount,
+        d.paymentMethod
+      ]);
+      return {
+        filename: `zinthiya-donation-report-${dateStr}`,
+        sheetName: "Donation Reports",
+        headers,
+        rows
+      };
+    } else if (type === "campaigns") {
+      const headers = [
+        "Campaign Code",
+        "Campaign Title",
+        "Appeal Type",
+        "Fundraising Goal (£)",
+        "Total Raised All Time (£)",
+        "Period Donations (£)",
+        "Donations Count",
+        "Target Progress (%)",
+        "Start Date",
+        "End Date",
+        "Status"
+      ];
+      const rows = (reportsData?.campaigns || []).map((c: any) => [
+        c.campaignCode || "INTERNAL-APPEAL",
+        c.title,
+        c.campaignType || "INTERNAL",
+        c.targetAmount,
+        c.raisedAmountAllTime,
+        c.periodDonations,
+        c.donationCount || c.periodDonationsCount || 0,
+        Number(c.progressPercent?.toFixed?.(1) ?? c.progressPercent ?? 0),
+        c.startDate ? new Date(c.startDate).toLocaleDateString("en-GB") : "N/A",
+        c.endDate ? new Date(c.endDate).toLocaleDateString("en-GB") : "Ongoing",
+        c.active ? "ACTIVE" : "CONCLUDED"
+      ]);
+      return {
+        filename: `zinthiya-campaign-performance-report-${dateStr}`,
+        sheetName: "Campaign Performance",
+        headers,
+        rows
+      };
+    } else if (type === "donors") {
+      const headers = [
+        "Rank",
+        "Donor Name",
+        "Email Address",
+        "Phone Number",
+        "Location",
+        "Giving Tier",
+        "Total Contributed (£)",
+        "Total Gifts Count",
+        "Average Gift (£)",
+        "Most Recent Gift Date",
+        "Communication Consent"
+      ];
+      const rows = (reportsData?.topDonors || []).map((d: any, i: number) => [
+        i + 1,
+        d.name,
+        d.email,
+        d.phone || "N/A",
+        d.location,
+        d.tier,
+        d.totalContributed,
+        d.donationsCount,
+        Number(d.averageGift?.toFixed?.(2) ?? d.averageGift ?? 0),
+        d.lastDonationDate ? new Date(d.lastDonationDate).toLocaleDateString("en-GB") : "N/A",
+        d.newsletterConsent ? "Consented" : "Opted Out"
+      ]);
+      return {
+        filename: `zinthiya-donor-reports-${dateStr}`,
+        sheetName: "Donor Reports",
+        headers,
+        rows
+      };
+    } else {
+      const headers = [
+        "Allocation Ref",
+        "Allocation Date",
+        "Beneficiary Name",
+        "Phone Number",
+        "Email Address",
+        "Support Category",
+        "Funding Source",
+        "Allocated Amount (£)",
+        "Distributed Amount (£)",
+        "Distribution Date",
+        "Disbursement Method",
+        "Disbursed By",
+        "Casework Status",
+        "Welfare Notes"
+      ];
+      const rows = (reportsData?.distributions || []).map((dist: any) => [
+        dist.reference,
+        new Date(dist.allocationDate).toLocaleDateString("en-GB"),
+        dist.beneficiaryName,
+        dist.beneficiaryPhone || "N/A",
+        dist.beneficiaryEmail || "N/A",
+        dist.supportCategory,
+        dist.campaignTitle,
+        dist.allocatedAmount,
+        dist.distributedAmount,
+        dist.distributionDate ? new Date(dist.distributionDate).toLocaleDateString("en-GB") : "Pending Payout",
+        dist.paymentMethod,
+        dist.disbursedBy,
+        dist.status,
+        dist.notes
+      ]);
+      return {
+        filename: `zinthiya-beneficiary-distribution-report-${dateStr}`,
+        sheetName: "Beneficiary Distribution",
+        headers,
+        rows
+      };
+    }
+  }
+
+  function handleExportActiveReport(format: "excel" | "csv", target?: "donations" | "campaigns" | "donors" | "distributions") {
+    if (!reportsData) return;
+    const reportType = target || reportsActiveSubTab;
+    const dataset = getReportDataset(reportType);
+    if (format === "excel") {
+      exportSpreadsheetML(dataset.filename, [{ name: dataset.sheetName, headers: dataset.headers, rows: dataset.rows }]);
+    } else {
+      exportCsvFile(dataset.filename, dataset.headers, dataset.rows);
+    }
     setShowCsvDropdown(false);
+  }
+
+  function handleExportAllReportsExcel() {
+    if (!reportsData) return;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const d1 = getReportDataset("donations");
+    const d2 = getReportDataset("campaigns");
+    const d3 = getReportDataset("donors");
+    const d4 = getReportDataset("distributions");
+    exportSpreadsheetML(`zinthiya-full-audit-reports-${dateStr}`, [
+      { name: d1.sheetName, headers: d1.headers, rows: d1.rows },
+      { name: d2.sheetName, headers: d2.headers, rows: d2.rows },
+      { name: d3.sheetName, headers: d3.headers, rows: d3.rows },
+      { name: d4.sheetName, headers: d4.headers, rows: d4.rows }
+    ]);
+    setShowCsvDropdown(false);
+  }
+
+  function applyDatePreset(preset: "all" | "today" | "30d" | "this_month" | "this_quarter" | "this_year") {
+    const now = new Date();
+    setReportsPeriod(preset);
+    let start = "";
+    let end = "";
+    if (preset === "all") {
+      start = "";
+      end = "";
+    } else if (preset === "today") {
+      start = now.toISOString().slice(0, 10);
+      end = now.toISOString().slice(0, 10);
+    } else if (preset === "30d") {
+      const past = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      start = past.toISOString().slice(0, 10);
+      end = now.toISOString().slice(0, 10);
+    } else if (preset === "this_month") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      start = s.toISOString().slice(0, 10);
+      end = e.toISOString().slice(0, 10);
+    } else if (preset === "this_quarter") {
+      const currentQuarter = Math.floor(now.getMonth() / 3);
+      const s = new Date(now.getFullYear(), currentQuarter * 3, 1);
+      const e = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0);
+      start = s.toISOString().slice(0, 10);
+      end = e.toISOString().slice(0, 10);
+    } else if (preset === "this_year") {
+      const s = new Date(now.getFullYear(), 0, 1);
+      const e = new Date(now.getFullYear(), 11, 31);
+      start = s.toISOString().slice(0, 10);
+      end = e.toISOString().slice(0, 10);
+    }
+    setReportsStartDate(start);
+    setReportsEndDate(end);
+    api
+      .getReportsAdmin({
+        period: preset,
+        startDate: start || undefined,
+        endDate: end || undefined,
+        campaignId: reportsCampaignId !== "all" ? reportsCampaignId : undefined,
+        donationType: reportsDonationType !== "all" ? reportsDonationType : undefined,
+      })
+      .then((res) => {
+        setReportsData(res);
+      })
+      .catch((err) => {
+        console.error("Failed to load preset reports:", err);
+      });
+  }
+
+  function exportReportsCsv(type: string) {
+    if (type === "campaigns") {
+      handleExportActiveReport("csv", "campaigns");
+    } else if (type === "top_donors" || type === "donors") {
+      handleExportActiveReport("csv", "donors");
+    } else if (type === "beneficiaries" || type === "allocations") {
+      handleExportActiveReport("csv", "distributions");
+    } else {
+      handleExportActiveReport("csv", "donations");
+    }
   }
 
 
@@ -8663,1129 +8961,1445 @@ export function AdminDashboardPage() {
           {/* ========================================================================= */}
           {/* TAB 7: REPORTS AND ANALYTICS                                              */}
           {/* ========================================================================= */}
-          {activeTab === "reports" && (
-            <div className="space-y-6">
-              {/* Header & Far-Right Action Buttons */}
-              <div
-                className="admin-crm-header admin-page-header flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-                style={{
-                  width: "100%",
-                  marginBottom: "2rem"
-                }}
-              >
-                <div className="flex-1 min-w-0 pr-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-pink-100 text-magenta">
-                      Audit &amp; Intelligence
-                    </span>
-                    <span className="text-xs font-bold text-gray-400">•</span>
-                    <span className="text-xs font-semibold text-emerald-600">
-                      Live System Sync
-                    </span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
-                    Reports &amp; Trust Analytics
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1 admin-subheading">
-                    Comprehensive reporting across donations, fundraising campaigns, donor growth, beneficiary casework, and fund disbursement.
-                  </p>
-                </div>
+          {activeTab === "reports" && (() => {
+            const filteredDonationsList = (reportsData?.donations || []).filter((d: any) => {
+              if (!reportsSearchQuery.trim()) return true;
+              const q = reportsSearchQuery.toLowerCase();
+              return (
+                d.reference?.toLowerCase().includes(q) ||
+                d.donorName?.toLowerCase().includes(q) ||
+                d.donorEmail?.toLowerCase().includes(q) ||
+                d.donorPhone?.toLowerCase().includes(q) ||
+                d.campaignTitle?.toLowerCase().includes(q) ||
+                d.paymentMethod?.toLowerCase().includes(q)
+              );
+            });
+            const totalFilteredDonationsAmount = filteredDonationsList.reduce(
+              (sum: number, d: any) => sum + Number(d.amount || 0),
+              0
+            );
+            const totalFilteredGiftAid = filteredDonationsList.reduce(
+              (sum: number, d: any) => sum + Number(d.giftAidAmount || 0),
+              0
+            );
 
-                {/* Far-Right Action Buttons */}
-                <div className="flex items-center gap-3 relative flex-shrink-0 self-start md:self-auto">
-                  {/* CSV Export Dropdown */}
-                  <div className="relative">
+            const filteredCampaignsList = (reportsData?.campaigns || []).filter((c: any) => {
+              if (!reportsSearchQuery.trim()) return true;
+              const q = reportsSearchQuery.toLowerCase();
+              return (
+                c.title?.toLowerCase().includes(q) ||
+                c.campaignCode?.toLowerCase().includes(q) ||
+                c.campaignType?.toLowerCase().includes(q)
+              );
+            });
+            const totalCampaignTarget = (reportsData?.campaigns || []).reduce(
+              (sum: number, c: any) => sum + Number(c.targetAmount || 0),
+              0
+            );
+            const totalCampaignRaised = (reportsData?.campaigns || []).reduce(
+              (sum: number, c: any) => sum + Number(c.raisedAmountAllTime || 0),
+              0
+            );
+
+            const filteredDonorsList = (reportsData?.topDonors || []).filter((d: any) => {
+              if (!reportsSearchQuery.trim()) return true;
+              const q = reportsSearchQuery.toLowerCase();
+              return (
+                d.name?.toLowerCase().includes(q) ||
+                d.email?.toLowerCase().includes(q) ||
+                d.phone?.toLowerCase().includes(q) ||
+                d.tier?.toLowerCase().includes(q) ||
+                d.location?.toLowerCase().includes(q)
+              );
+            });
+            const consentedDonorsCount = (reportsData?.topDonors || []).filter((d: any) => d.newsletterConsent).length;
+            const consentRate = reportsData?.topDonors?.length
+              ? Math.round((consentedDonorsCount / reportsData.topDonors.length) * 100)
+              : 0;
+
+            const filteredDistributionsList = (reportsData?.distributions || []).filter((dist: any) => {
+              if (!reportsSearchQuery.trim()) return true;
+              const q = reportsSearchQuery.toLowerCase();
+              return (
+                dist.reference?.toLowerCase().includes(q) ||
+                dist.beneficiaryName?.toLowerCase().includes(q) ||
+                dist.beneficiaryPhone?.toLowerCase().includes(q) ||
+                dist.beneficiaryEmail?.toLowerCase().includes(q) ||
+                dist.supportCategory?.toLowerCase().includes(q) ||
+                dist.campaignTitle?.toLowerCase().includes(q) ||
+                dist.disbursedBy?.toLowerCase().includes(q) ||
+                dist.status?.toLowerCase().includes(q)
+              );
+            });
+            const totalFilteredAllocated = filteredDistributionsList.reduce(
+              (sum: number, a: any) => sum + Number(a.allocatedAmount || 0),
+              0
+            );
+            const totalFilteredDistributed = filteredDistributionsList.reduce(
+              (sum: number, a: any) => sum + Number(a.distributedAmount || 0),
+              0
+            );
+
+            return (
+              <div className="space-y-6">
+                {/* Header & Far-Right Action Buttons */}
+                <div
+                  className="admin-crm-header admin-page-header flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                  style={{ width: "100%", marginBottom: "1.5rem" }}
+                >
+                  <div className="flex-1 min-w-0 pr-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-pink-100 text-magenta">
+                        Reports &amp; Analytics
+                      </span>
+                      <span className="text-xs font-bold text-gray-400">•</span>
+                      <span className="text-xs font-semibold text-emerald-600">
+                        PostgreSQL Live Platform
+                      </span>
+                    </div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+                      Reports &amp; Trust Analytics
+                    </h1>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1 admin-subheading">
+                      Replacing manual spreadsheets with verified, exportable reports across Donations, Campaigns, Donors, and Beneficiary Distributions.
+                    </p>
+                  </div>
+
+                  {/* Far-Right Export Buttons */}
+                  <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0 self-start md:self-auto">
                     <button
                       type="button"
-                      onClick={() => setShowCsvDropdown(!showCsvDropdown)}
-                      className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-slate-700 hover:bg-gray-50 shadow-sm transition-all"
+                      onClick={() => handleExportActiveReport("excel")}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm transition-all"
+                      title="Download currently selected report as Microsoft Excel (.xls)"
+                    >
+                      <Download size={14} />
+                      <span>Export Excel (.xls)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleExportActiveReport("csv")}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white text-slate-700 border border-gray-200 text-xs font-bold hover:bg-gray-50 shadow-sm transition-all"
+                      title="Download currently selected report as CSV (.csv)"
                     >
                       <Download size={14} className="text-magenta" />
-                      <span>Export CSV</span>
+                      <span>Export CSV (.csv)</span>
                     </button>
 
-                    {showCsvDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
-                          Select Report To Download
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => exportReportsCsv("summary")}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-pink-50 hover:text-magenta flex items-center justify-between"
-                        >
-                          <span>Executive Summary</span>
-                          <span className="text-[10px] text-gray-400">CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => exportReportsCsv("timeline")}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-pink-50 hover:text-magenta flex items-center justify-between"
-                        >
-                          <span>Donations by Period</span>
-                          <span className="text-[10px] text-gray-400">CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => exportReportsCsv("campaigns")}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-pink-50 hover:text-magenta flex items-center justify-between"
-                        >
-                          <span>Campaign Breakdown</span>
-                          <span className="text-[10px] text-gray-400">CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => exportReportsCsv("top_donors")}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-pink-50 hover:text-magenta flex items-center justify-between"
-                        >
-                          <span>Top Donors Leaderboard</span>
-                          <span className="text-[10px] text-gray-400">CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => exportReportsCsv("beneficiaries")}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-pink-50 hover:text-magenta flex items-center justify-between"
-                        >
-                          <span>Beneficiary Support</span>
-                          <span className="text-[10px] text-gray-400">CSV</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => exportReportsCsv("allocations")}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-pink-50 hover:text-magenta flex items-center justify-between"
-                        >
-                          <span>Fund Disbursement</span>
-                          <span className="text-[10px] text-gray-400">CSV</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                    <button
+                      type="button"
+                      onClick={handleExportAllReportsExcel}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-pink-50 text-magenta border border-pink-200 text-xs font-bold hover:bg-pink-100 transition-all"
+                      title="Export all 4 reports in a multi-sheet Excel workbook"
+                    >
+                      <Layers size={13} />
+                      <span className="hidden sm:inline">All 4 Reports</span>
+                      <span className="sm:hidden">All</span>
+                    </button>
 
-                  {/* Print / Official Audit Summary Button */}
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-slate-700 hover:bg-gray-50"
+                      title="Print or save as PDF"
+                    >
+                      <Printer size={14} />
+                      <span className="hidden sm:inline">Print</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Primary Report Type Selector Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Card 1: Donation Reports */}
                   <button
                     type="button"
-                    onClick={() => setShowAuditReportModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-magenta text-white text-xs font-bold shadow-md hover:bg-magenta-deep transition-all"
+                    onClick={() => {
+                      setReportsActiveSubTab("donations");
+                      setReportsSearchQuery("");
+                    }}
+                    className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                      reportsActiveSubTab === "donations"
+                        ? "border-magenta bg-gradient-to-br from-pink-50/80 via-white to-pink-50/30 shadow-md ring-2 ring-magenta/20"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                    }`}
                   >
-                    <Printer size={14} />
-                    <span>Print Audit Report</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          reportsActiveSubTab === "donations" ? "bg-magenta text-white" : "bg-pink-100 text-magenta"
+                        }`}
+                      >
+                        <CreditCard size={20} />
+                      </div>
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          reportsActiveSubTab === "donations" ? "bg-magenta text-white" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        Report 1
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Donation Reports</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Total donations, online vs external, one-off vs recurring &amp; Gift Aid
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-900">
+                        £{(reportsData?.summary?.totalDonationsReceived || 0).toLocaleString("en-GB", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-600">
+                        {reportsData?.summary?.donationsCount || 0} gifts
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Card 2: Campaign Performance Reports */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportsActiveSubTab("campaigns");
+                      setReportsSearchQuery("");
+                    }}
+                    className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                      reportsActiveSubTab === "campaigns"
+                        ? "border-magenta bg-gradient-to-br from-pink-50/80 via-white to-pink-50/30 shadow-md ring-2 ring-magenta/20"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          reportsActiveSubTab === "campaigns" ? "bg-magenta text-white" : "bg-purple-100 text-purple-600"
+                        }`}
+                      >
+                        <Compass size={20} />
+                      </div>
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          reportsActiveSubTab === "campaigns" ? "bg-magenta text-white" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        Report 2
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Campaign Performance</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Fundraising progress, target goals, internal &amp; external appeals
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-900">
+                        {reportsData?.campaigns?.length || 0} Campaigns
+                      </span>
+                      <span className="text-[11px] font-bold text-purple-600">
+                        Fundraising track
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Card 3: Donor Reports */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportsActiveSubTab("donors");
+                      setReportsSearchQuery("");
+                    }}
+                    className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                      reportsActiveSubTab === "donors"
+                        ? "border-magenta bg-gradient-to-br from-pink-50/80 via-white to-pink-50/30 shadow-md ring-2 ring-magenta/20"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          reportsActiveSubTab === "donors" ? "bg-magenta text-white" : "bg-blue-100 text-blue-600"
+                        }`}
+                      >
+                        <Users size={20} />
+                      </div>
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          reportsActiveSubTab === "donors" ? "bg-magenta text-white" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        Report 3
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Donor Reports</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Donor contributions, giving tiers, history &amp; communication consent
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-900">
+                        {reportsData?.summary?.totalDonorsCount || 0} Registered Donors
+                      </span>
+                      <span className="text-[11px] font-bold text-blue-600">
+                        CRM history
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Card 4: Beneficiary Distribution */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportsActiveSubTab("distributions");
+                      setReportsSearchQuery("");
+                    }}
+                    className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                      reportsActiveSubTab === "distributions"
+                        ? "border-magenta bg-gradient-to-br from-pink-50/80 via-white to-pink-50/30 shadow-md ring-2 ring-magenta/20"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                          reportsActiveSubTab === "distributions" ? "bg-magenta text-white" : "bg-emerald-100 text-emerald-600"
+                        }`}
+                      >
+                        <HeartHandshake size={20} />
+                      </div>
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          reportsActiveSubTab === "distributions" ? "bg-magenta text-white" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        Report 4
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900">Beneficiary Distribution</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Support allocated, distributed aid, relief categories &amp; casework
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className="text-sm font-black text-slate-900">
+                        £{(reportsData?.summary?.totalDistributedAmount || 0).toLocaleString("en-GB", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-600">
+                        Disbursed aid
+                      </span>
+                    </div>
                   </button>
                 </div>
-              </div>
 
-              {/* Top 4 KPI Cards (admin-kpi-grid) */}
-              <div
-                className="admin-kpi-grid"
-                style={{
-                  marginBottom: "1.75rem",
-                }}
-              >
-                {/* 1. Total Donations Received */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      Total Donations Received
-                    </span>
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <CreditCard size={16} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 tracking-tight">
-                    £{(reportsData?.summary?.totalDonationsReceived || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                    <span>✓ {reportsData?.summary?.donationsCount || 0} gifts recorded</span>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-gray-500 font-medium">Avg £{(reportsData?.summary?.averageDonation || 0).toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* 2. Assistance Allocated */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      Funds Allocated (Committed)
-                    </span>
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                      <Wallet size={16} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 tracking-tight">
-                    £{(reportsData?.summary?.totalAllocatedAmount || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[11px] text-blue-600 font-semibold mt-1">
-                    Direct grants committed to clients
-                  </div>
-                </div>
-
-                {/* 3. Actually Distributed */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      Actually Distributed Aid
-                    </span>
-                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                      <HeartHandshake size={16} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 tracking-tight">
-                    £{(reportsData?.summary?.totalDistributedAmount || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[11px] text-purple-600 font-semibold mt-1 flex items-center gap-1">
-                    <span>Disbursed</span>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-amber-600 font-medium">Pending £{(reportsData?.summary?.totalPendingDistribution || 0).toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* 4. Household Impact */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                      Community Impact Reach
-                    </span>
-                    <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
-                      <Users size={16} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 tracking-tight">
-                    {reportsData?.summary?.totalHouseholdImpact || 0} People
-                  </div>
-                  <div className="text-[11px] text-magenta font-semibold mt-1">
-                    Across {reportsData?.summary?.totalBeneficiaryRequests || 0} casework files
-                  </div>
-                </div>
-              </div>
-
-              {/* Global Filter Toolbar */}
-              <div
-                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3"
-                style={{ marginBottom: "1.75rem" }}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 size={16} className="text-magenta" />
-                    <span className="text-xs font-bold text-slate-700">Analytics Filters:</span>
-                  </div>
-
-                  {/* Reset Filters */}
-                  {(reportsPeriod !== "all" || reportsCampaignId !== "all" || reportsDonationType !== "all" || reportsStartDate || reportsEndDate) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReportsPeriod("all");
-                        setReportsStartDate("");
-                        setReportsEndDate("");
-                        setReportsCampaignId("all");
-                        setReportsDonationType("all");
-                      }}
-                      className="text-xs font-bold text-magenta hover:underline"
-                    >
-                      Reset All Filters
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Period Filter */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Time Period</label>
-                    <select
-                      value={reportsPeriod}
-                      onChange={(e) => setReportsPeriod(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                    >
-                      <option value="all">All Time (Cumulative)</option>
-                      <option value="7d">Last 7 Days</option>
-                      <option value="30d">Last 30 Days</option>
-                      <option value="this_month">This Current Month</option>
-                      <option value="this_year">This Calendar Year</option>
-                      <option value="custom">Custom Date Range...</option>
-                    </select>
-                  </div>
-
-                  {/* Campaign Filter */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Campaign Filter</label>
-                    <select
-                      value={reportsCampaignId}
-                      onChange={(e) => setReportsCampaignId(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                    >
-                      <option value="all">All Campaigns (Consolidated)</option>
-                      {campaignsList.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title}
-                        </option>
+                {/* Report Filters Toolbar */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    {/* Date Presets */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mr-2">
+                        <Calendar size={14} className="text-magenta" />
+                        Date Range Presets:
+                      </span>
+                      {[
+                        { label: "All Time", value: "all" },
+                        { label: "This Month", value: "this_month" },
+                        { label: "This Quarter", value: "this_quarter" },
+                        { label: "This Year", value: "this_year" },
+                        { label: "Last 30 Days", value: "30d" },
+                      ].map((p) => (
+                        <button
+                          key={p.value}
+                          type="button"
+                          onClick={() => applyDatePreset(p.value as any)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                            reportsPeriod === p.value
+                              ? "bg-slate-900 text-white shadow-sm"
+                              : "bg-gray-100 text-slate-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          {p.label}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+
+                    {/* Active report indicator */}
+                    <div className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+                      <span>Currently Viewing:</span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-pink-100 text-magenta font-extrabold uppercase text-[10px]">
+                        {reportsActiveSubTab === "donations"
+                          ? "Donation Reports"
+                          : reportsActiveSubTab === "campaigns"
+                          ? "Campaign Performance"
+                          : reportsActiveSubTab === "donors"
+                          ? "Donor Reports"
+                          : "Beneficiary Distribution"}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Donation Type Filter */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Donation Type</label>
-                    <select
-                      value={reportsDonationType}
-                      onChange={(e) => setReportsDonationType(e.target.value)}
-                      className="w-full px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                    >
-                      <option value="all">All Giving Modes (One-off &amp; Recurring)</option>
-                      <option value="ONE_OFF">One-Off Direct Gifts Only</option>
-                      <option value="RECURRING">Monthly Recurring Pledges Only</option>
-                    </select>
-                  </div>
-
-                  {/* Quick Refresh */}
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={() => loadReportsData()}
-                      disabled={reportsLoading}
-                      className="w-full py-2 px-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-xs font-bold text-slate-700 flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <RefreshCw size={13} className={reportsLoading ? "animate-spin text-magenta" : "text-gray-500"} />
-                      <span>{reportsLoading ? "Refreshing..." : "Apply Filters"}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Custom Date Range Picker when custom selected */}
-                {reportsPeriod === "custom" && (
-                  <div className="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex flex-wrap items-center gap-4 mt-2">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-bold text-slate-700">From:</label>
+                  {/* Date Pickers + Search Filter */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-gray-100">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 mb-1">Start Date</label>
                       <input
                         type="date"
                         value={reportsStartDate}
-                        onChange={(e) => setReportsStartDate(e.target.value)}
-                        className="px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-magenta"
+                        onChange={(e) => {
+                          setReportsStartDate(e.target.value);
+                          setReportsPeriod("custom");
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-bold text-slate-700">To:</label>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 mb-1">End Date</label>
                       <input
                         type="date"
                         value={reportsEndDate}
-                        onChange={(e) => setReportsEndDate(e.target.value)}
-                        className="px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-magenta"
+                        onChange={(e) => {
+                          setReportsEndDate(e.target.value);
+                          setReportsPeriod("custom");
+                        }}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
                       />
                     </div>
-                    <span className="text-[11px] text-gray-500 italic">
-                      Filters live audit trail within this exact custom calendar interval.
-                    </span>
-                  </div>
-                )}
-              </div>
 
-              {/* Sub-Navigation Tabs */}
-              <div className="admin-subnav-scroll flex items-center gap-2 border-b border-gray-200 pb-3 overflow-x-auto w-full max-w-full">
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("overview")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "overview"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <BarChart3 size={14} />
-                  <span>Executive Overview</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("timeline")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "timeline"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <Calendar size={14} />
-                  <span>Donations by Period</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("campaigns")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "campaigns"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <Compass size={14} />
-                  <span>Campaign Performance</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("donors")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "donors"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <Users size={14} />
-                  <span>Donor Growth &amp; Top Donors</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("one_off_recurring")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "one_off_recurring"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <TrendingUp size={14} />
-                  <span>One-Time vs Recurring</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("beneficiaries")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "beneficiaries"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <ShieldCheck size={14} />
-                  <span>Beneficiary Support</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReportsActiveSubTab("allocations")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                    reportsActiveSubTab === "allocations"
-                      ? "bg-magenta text-white shadow-sm"
-                      : "bg-white text-slate-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  <Wallet size={14} />
-                  <span>Fund Disbursement</span>
-                </button>
-              </div>
-
-              {/* Sub-Tab 1: Executive Overview */}
-              {reportsActiveSubTab === "overview" && (
-                <div className="space-y-6">
-                  {/* Visual Trends Chart Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-slate-900">
-                          Donation Trends &amp; Revenue Velocity
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          Timeline distribution of incoming gifts aggregated by period.
-                        </p>
-                      </div>
-                      <span className="text-xs font-bold text-magenta bg-pink-50 px-3 py-1 rounded-full">
-                        {reportsData?.timeline?.length || 0} Data Intervals
-                      </span>
-                    </div>
-
-                    {/* SVG Bar Chart Visualization */}
-                    {reportsData?.timeline && reportsData.timeline.length > 0 ? (
-                      <div className="pt-6 pb-2">
-                        <div className="h-48 flex items-end gap-3 sm:gap-6 border-b border-gray-100 pb-2">
-                          {reportsData.timeline.map((item, idx) => {
-                            const maxVal = Math.max(...reportsData.timeline.map(t => t.totalAmount), 1);
-                            const heightPct = Math.max(12, Math.round((item.totalAmount / maxVal) * 100));
-                            return (
-                              <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
-                                {/* Tooltip */}
-                                <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none whitespace-nowrap z-20">
-                                  £{item.totalAmount.toFixed(2)} ({item.count} gifts)
-                                </div>
-                                <div className="w-full max-w-[48px] bg-pink-100 rounded-t-xl group-hover:bg-magenta transition-colors relative overflow-hidden flex items-end justify-center" style={{ height: `${heightPct}%` }}>
-                                  <div className="w-full bg-magenta rounded-t-xl" style={{ height: item.totalAmount > 0 ? '100%' : '0%' }}></div>
-                                </div>
-                                <span className="text-[10px] font-bold text-gray-500 truncate max-w-[60px]">
-                                  {item.label}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="py-12 text-center text-xs text-gray-400">
-                        No donation timeline events recorded for this selected filter period.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Two-Column Split: One-off vs Recurring & Trust Balance Integrity */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* One-off vs Recurring Split */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                      <h3 className="text-sm font-extrabold text-slate-900 mb-1">
-                        One-Time vs. Recurring Contributions
-                      </h3>
-                      <p className="text-xs text-gray-500 mb-5">
-                        Breakdown between single gifts and sustainable recurring pledges.
-                      </p>
-
-                      <div className="space-y-4">
-                        {/* Progress Bar */}
-                        <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex">
-                          <div
-                            className="bg-magenta h-full transition-all"
-                            style={{ width: `${reportsData?.donationTypeSplit?.oneOff?.percentage || 0}%` }}
-                            title="One-Off Gifts"
-                          ></div>
-                          <div
-                            className="bg-emerald-500 h-full transition-all"
-                            style={{ width: `${reportsData?.donationTypeSplit?.recurring?.percentage || 0}%` }}
-                            title="Recurring Pledges"
-                          ></div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                          <div className="p-3.5 bg-pink-50/50 rounded-xl border border-pink-100">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-magenta mb-1">
-                              <span className="w-2.5 h-2.5 rounded-full bg-magenta"></span>
-                              <span>One-Time Direct Gifts</span>
-                            </div>
-                            <div className="text-xl font-black text-slate-900">
-                              £{(reportsData?.donationTypeSplit?.oneOff?.totalAmount || 0).toFixed(2)}
-                            </div>
-                            <div className="text-[11px] text-gray-500 mt-0.5">
-                              {reportsData?.donationTypeSplit?.oneOff?.count || 0} gifts ({Math.round(reportsData?.donationTypeSplit?.oneOff?.percentage || 0)}%)
-                            </div>
-                          </div>
-
-                          <div className="p-3.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 mb-1">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                              <span>Recurring Monthly Pledges</span>
-                            </div>
-                            <div className="text-xl font-black text-slate-900">
-                              £{(reportsData?.donationTypeSplit?.recurring?.totalAmount || 0).toFixed(2)}
-                            </div>
-                            <div className="text-[11px] text-gray-500 mt-0.5">
-                              {reportsData?.donationTypeSplit?.recurring?.count || 0} pledges ({Math.round(reportsData?.donationTypeSplit?.recurring?.percentage || 0)}%)
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Strict 3-Way Financial Balance */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                      <h3 className="text-sm font-extrabold text-slate-900 mb-1">
-                        Strict 3-Way Financial Integrity
-                      </h3>
-                      <p className="text-xs text-gray-500 mb-4">
-                        Separation between Donations Received, Assistance Allocated, and Actually Distributed.
-                      </p>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                          <span className="text-xs font-bold text-slate-700">1. Total Donations Received (Funds In)</span>
-                          <span className="text-xs font-black text-emerald-600">
-                            £{(reportsData?.summary?.totalDonationsReceived || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                          <span className="text-xs font-bold text-slate-700">2. Funds Allocated (Committed to Grants)</span>
-                          <span className="text-xs font-black text-blue-600">
-                            £{(reportsData?.summary?.totalAllocatedAmount || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                          <span className="text-xs font-bold text-slate-700">3. Actually Distributed (Disbursed Out)</span>
-                          <span className="text-xs font-black text-purple-600">
-                            £{(reportsData?.summary?.totalDistributedAmount || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-pink-50 border border-pink-100 font-bold">
-                          <span className="text-xs text-magenta">Pending Disbursement to Clients</span>
-                          <span className="text-xs text-magenta">
-                            £{(reportsData?.summary?.totalPendingDistribution || 0).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-Tab 2: Donations by Period */}
-              {reportsActiveSubTab === "timeline" && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-gray-100 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-extrabold text-slate-900">Donations Audit by Date / Period</h3>
-                      <p className="text-xs text-gray-500">Historical breakdown of funds incoming across intervals.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => exportReportsCsv("timeline")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
-                    >
-                      <Download size={13} className="text-magenta" />
-                      <span>Export Period CSV</span>
-                    </button>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                          <th className="py-3 px-4">Period / Date</th>
-                          <th className="py-3 px-4">Total Amount Received</th>
-                          <th className="py-3 px-4">Number of Gifts</th>
-                          <th className="py-3 px-4">One-Off Gifts</th>
-                          <th className="py-3 px-4">Recurring Gifts</th>
-                          <th className="py-3 px-4 text-right">Average Gift</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-xs">
-                        {reportsData?.timeline && reportsData.timeline.length > 0 ? (
-                          reportsData.timeline.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="py-3.5 px-4 font-bold text-slate-900">
-                                <div>{row.label}</div>
-                                <div className="text-[10px] text-gray-400 font-mono">{row.date}</div>
-                              </td>
-                              <td className="py-3.5 px-4 font-black text-emerald-600">
-                                £{row.totalAmount.toFixed(2)}
-                              </td>
-                              <td className="py-3.5 px-4 font-semibold text-slate-700">
-                                {row.count} gifts
-                              </td>
-                              <td className="py-3.5 px-4 font-semibold text-magenta">
-                                £{row.oneOffAmount.toFixed(2)}
-                              </td>
-                              <td className="py-3.5 px-4 font-semibold text-blue-600">
-                                £{row.recurringAmount.toFixed(2)}
-                              </td>
-                              <td className="py-3.5 px-4 text-right font-bold text-slate-700">
-                                £{(row.count > 0 ? row.totalAmount / row.count : 0).toFixed(2)}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="py-8 text-center text-gray-400">
-                              No donation records found for this period.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-Tab 3: Campaign Performance */}
-              {reportsActiveSubTab === "campaigns" && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-extrabold text-slate-900">Campaign Fundraising Matrix</h3>
-                      <p className="text-xs text-gray-500">Fund distribution across active and completed causes.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => exportReportsCsv("campaigns")}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
-                    >
-                      <Download size={13} className="text-magenta" />
-                      <span>Export Campaigns CSV</span>
-                    </button>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                          <th className="py-3 px-4">Campaign Title</th>
-                          <th className="py-3 px-4">Target Goal</th>
-                          <th className="py-3 px-4">Total Raised All-Time</th>
-                          <th className="py-3 px-4">Period Donations</th>
-                          <th className="py-3 px-4">Share of Period Total</th>
-                          <th className="py-3 px-4">Target Progress</th>
-                          <th className="py-3 px-4 text-right">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-xs">
-                        {reportsData?.campaigns && reportsData.campaigns.length > 0 ? (
-                          reportsData.campaigns.map((camp) => (
-                            <tr key={camp.id} className="hover:bg-gray-50/50 transition-colors">
-                              <td className="py-3.5 px-4 font-bold text-slate-900">
-                                <div>{camp.title}</div>
-                                <div className="text-[10px] text-gray-400 font-mono">ID: {camp.id}</div>
-                              </td>
-                              <td className="py-3.5 px-4 font-semibold text-slate-600">
-                                {camp.targetAmount > 0 ? `£${camp.targetAmount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}` : "Open Pool"}
-                              </td>
-                              <td className="py-3.5 px-4 font-black text-slate-900">
-                                £{camp.raisedAmountAllTime.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-                              </td>
-                              <td className="py-3.5 px-4 font-black text-emerald-600">
-                                £{camp.periodDonations.toFixed(2)} ({camp.periodDonationsCount} gifts)
-                              </td>
-                              <td className="py-3.5 px-4 font-bold text-magenta">
-                                {camp.percentOfTotalDonations.toFixed(1)}%
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                    <div
-                                      className="bg-magenta h-full rounded-full"
-                                      style={{ width: `${Math.min(100, camp.progressPercent)}%` }}
-                                    ></div>
-                                  </div>
-                                  <span className="text-[11px] font-bold text-slate-700">
-                                    {camp.progressPercent.toFixed(0)}%
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                    camp.active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"
-                                  }`}
-                                >
-                                  {camp.active ? "ACTIVE" : "INACTIVE"}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="py-8 text-center text-gray-400">
-                              No campaign data available.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-Tab 4: Donor Growth & Top Donors */}
-              {reportsActiveSubTab === "donors" && (
-                <div className="space-y-6">
-                  {/* Donor Growth & Retention Metrics */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        Total Registered Donors
-                      </span>
-                      <div className="text-2xl font-black text-slate-900 mt-1">
-                        {reportsData?.summary?.totalDonorsCount || 0}
-                      </div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">Live CRM supporter registry</div>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        Repeat Donors Rate
-                      </span>
-                      <div className="text-2xl font-black text-emerald-600 mt-1">
-                        {reportsData?.summary?.repeatDonorsCount || 0} supporters
-                      </div>
-                      <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">
-                        Multiple gifts given ({Math.round(((reportsData?.summary?.repeatDonorsCount || 0) / Math.max(1, reportsData?.summary?.totalDonorsCount || 1)) * 100)}% retention)
+                      <label className="block text-[11px] font-bold text-gray-500 mb-1">Search Table Records</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={reportsSearchQuery}
+                          onChange={(e) => setReportsSearchQuery(e.target.value)}
+                          placeholder="Filter rows by name, ref, category..."
+                          className="w-full pl-8 pr-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        />
+                        <Search size={13} className="absolute left-2.5 top-2.5 text-gray-400" />
                       </div>
                     </div>
 
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                        Single-Gift Donors
-                      </span>
-                      <div className="text-2xl font-black text-slate-900 mt-1">
-                        {reportsData?.summary?.singleGiftDonorsCount || 0}
-                      </div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">Prime candidates for stewardship</div>
-                    </div>
-                  </div>
-
-                  {/* Top Donors Leaderboard */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-slate-900">Top Donors Leaderboard</h3>
-                        <p className="text-xs text-gray-500">Highest lifetime and period contributors.</p>
-                      </div>
+                    <div className="flex items-end gap-2">
                       <button
                         type="button"
-                        onClick={() => exportReportsCsv("top_donors")}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
+                        onClick={() => loadReportsData()}
+                        disabled={reportsLoading}
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 flex items-center justify-center gap-1.5 transition-colors"
                       >
-                        <Download size={13} className="text-magenta" />
-                        <span>Export Top Donors CSV</span>
+                        <RefreshCw size={13} className={reportsLoading ? "animate-spin" : ""} />
+                        <span>{reportsLoading ? "Loading..." : "Apply Date Filter"}</span>
                       </button>
-                    </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                            <th className="py-3 px-4">Rank</th>
-                            <th className="py-3 px-4">Donor Name &amp; Contact</th>
-                            <th className="py-3 px-4">Giving Tier</th>
-                            <th className="py-3 px-4">Total Contributed</th>
-                            <th className="py-3 px-4">Number of Gifts</th>
-                            <th className="py-3 px-4">Average Gift</th>
-                            <th className="py-3 px-4 text-right">Consent</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 text-xs">
-                          {reportsData?.topDonors && reportsData.topDonors.length > 0 ? (
-                            reportsData.topDonors.map((donor, idx) => (
-                              <tr key={donor.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="py-3.5 px-4 font-black text-slate-400">
-                                  #{idx + 1}
-                                </td>
-                                <td className="py-3.5 px-4">
-                                  <div className="font-bold text-slate-900">{donor.name}</div>
-                                  <div className="text-[10px] text-gray-400">{donor.email} • {donor.location}</div>
-                                </td>
-                                <td className="py-3.5 px-4">
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-50 text-magenta uppercase">
-                                    ★ {donor.tier}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 font-black text-emerald-600">
-                                  £{donor.totalContributed.toFixed(2)}
-                                </td>
-                                <td className="py-3.5 px-4 font-semibold text-slate-700">
-                                  {donor.donationsCount} gifts
-                                </td>
-                                <td className="py-3.5 px-4 font-bold text-slate-700">
-                                  £{donor.averageGift.toFixed(2)}
-                                </td>
-                                <td className="py-3.5 px-4 text-right">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${donor.newsletterConsent ? "text-emerald-700 bg-emerald-50" : "text-gray-400 bg-gray-50"}`}>
-                                    {donor.newsletterConsent ? "Consented" : "Opted-out"}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={7} className="py-8 text-center text-gray-400">
-                                No donor records available for leaderboard.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-Tab 5: One-Off vs Recurring */}
-              {reportsActiveSubTab === "one_off_recurring" && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* One-off deep dive */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-pink-100 text-magenta flex items-center justify-center font-bold">
-                            1x
-                          </div>
-                          <h3 className="text-sm font-extrabold text-slate-900">One-Time Charitable Gifts</h3>
-                        </div>
-                        <span className="text-xs font-bold text-magenta bg-pink-50 px-2.5 py-1 rounded-full">
-                          {Math.round(reportsData?.donationTypeSplit?.oneOff?.percentage || 0)}% of Revenue
-                        </span>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="p-4 bg-gray-50 rounded-xl space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Total Gift Volume</span>
-                            <span className="font-bold text-slate-900">{reportsData?.donationTypeSplit?.oneOff?.count || 0} donations</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Total Revenue Generated</span>
-                            <span className="font-black text-slate-900">£{(reportsData?.donationTypeSplit?.oneOff?.totalAmount || 0).toFixed(2)}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Average Gift Value</span>
-                            <span className="font-bold text-emerald-600">£{(reportsData?.donationTypeSplit?.oneOff?.averageGift || 0).toFixed(2)}</span>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-gray-500 leading-relaxed">
-                          One-off gifts represent immediate emergency support for specific appeals. Ideal for conversion into recurring supporters.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Recurring deep dive */}
-                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-                            ∞
-                          </div>
-                          <h3 className="text-sm font-extrabold text-slate-900">Recurring Monthly Pledges</h3>
-                        </div>
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-                          {Math.round(reportsData?.donationTypeSplit?.recurring?.percentage || 0)}% of Revenue
-                        </span>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="p-4 bg-gray-50 rounded-xl space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Active Monthly Pledges</span>
-                            <span className="font-bold text-slate-900">{reportsData?.donationTypeSplit?.recurring?.count || 0} subscriptions</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Monthly Run-Rate (MRR)</span>
-                            <span className="font-black text-emerald-600">£{(reportsData?.donationTypeSplit?.recurring?.totalAmount || 0).toFixed(2)}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Average Recurring Gift</span>
-                            <span className="font-bold text-slate-900">£{(reportsData?.donationTypeSplit?.recurring?.averageGift || 0).toFixed(2)} / mo</span>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-gray-500 leading-relaxed">
-                          Recurring pledges form the financial bedrock of the Trust, funding continuous casework, utility grants, and emergency refuge shelter operations.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-Tab 6: Beneficiary Support Reports */}
-              {reportsActiveSubTab === "beneficiaries" && (
-                <div className="space-y-6">
-                  {/* Status & Urgency Counters */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">Emergency Urgency</span>
-                      <div className="text-xl font-black text-red-600 mt-1">
-                        {reportsData?.beneficiarySupport?.byUrgency?.emergency || 0}
-                      </div>
-                      <span className="text-[10px] text-gray-500">Immediate relief dispatched</span>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">High Priority</span>
-                      <div className="text-xl font-black text-amber-600 mt-1">
-                        {reportsData?.beneficiarySupport?.byUrgency?.high || 0}
-                      </div>
-                      <span className="text-[10px] text-gray-500">Expedited triage queue</span>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">Approved Cases</span>
-                      <div className="text-xl font-black text-emerald-600 mt-1">
-                        {reportsData?.beneficiarySupport?.byStatus?.approved || 0}
-                      </div>
-                      <span className="text-[10px] text-gray-500">Grants dispatches verified</span>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">In Active Casework</span>
-                      <div className="text-xl font-black text-blue-600 mt-1">
-                        {reportsData?.beneficiarySupport?.byStatus?.inProgress || 0}
-                      </div>
-                      <span className="text-[10px] text-gray-500">Advocate casework ongoing</span>
-                    </div>
-                  </div>
-
-                  {/* Service Breakdown Table */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-slate-900">Beneficiary Casework by Support Category</h3>
-                        <p className="text-xs text-gray-500">Relief requests triage across emergency services.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => exportReportsCsv("beneficiaries")}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
-                      >
-                        <Download size={13} className="text-magenta" />
-                        <span>Export Casework CSV</span>
-                      </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                            <th className="py-3 px-4">Support Service</th>
-                            <th className="py-3 px-4">Total Cases</th>
-                            <th className="py-3 px-4">Approved</th>
-                            <th className="py-3 px-4">In Progress</th>
-                            <th className="py-3 px-4">Pending</th>
-                            <th className="py-3 px-4">People Reached</th>
-                            <th className="py-3 px-4 text-right">Resolution Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 text-xs">
-                          {reportsData?.beneficiarySupport?.byService && reportsData.beneficiarySupport.byService.length > 0 ? (
-                            reportsData.beneficiarySupport.byService.map((service, idx) => (
-                              <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="py-3.5 px-4 font-bold text-slate-900">
-                                  {service.serviceType}
-                                </td>
-                                <td className="py-3.5 px-4 font-black text-slate-900">
-                                  {service.total}
-                                </td>
-                                <td className="py-3.5 px-4 font-semibold text-emerald-600">
-                                  {service.approved}
-                                </td>
-                                <td className="py-3.5 px-4 font-semibold text-blue-600">
-                                  {service.inProgress}
-                                </td>
-                                <td className="py-3.5 px-4 font-semibold text-amber-600">
-                                  {service.pending}
-                                </td>
-                                <td className="py-3.5 px-4 font-black text-magenta">
-                                  {service.peopleReached} family members
-                                </td>
-                                <td className="py-3.5 px-4 text-right font-bold text-slate-700">
-                                  {service.resolutionRate.toFixed(0)}%
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={7} className="py-8 text-center text-gray-400">
-                                No casework service data recorded.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-Tab 7: Fund Allocation & Distribution */}
-              {reportsActiveSubTab === "allocations" && (
-                <div className="space-y-6">
-                  {/* Category Breakdown Table */}
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-slate-900">Fund Allocation vs. Actual Distribution</h3>
-                        <p className="text-xs text-gray-500">Breakdown of committed grants versus disbursed funds by relief category.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => exportReportsCsv("allocations")}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
-                      >
-                        <Download size={13} className="text-magenta" />
-                        <span>Export Allocations CSV</span>
-                      </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                            <th className="py-3 px-4">Assistance Category</th>
-                            <th className="py-3 px-4">Allocated (Committed)</th>
-                            <th className="py-3 px-4">Actually Distributed</th>
-                            <th className="py-3 px-4">Pending Disbursement</th>
-                            <th className="py-3 px-4">Recipients</th>
-                            <th className="py-3 px-4 text-right">Completion Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 text-xs">
-                          {reportsData?.fundDistribution?.byType && reportsData.fundDistribution.byType.length > 0 ? (
-                            reportsData.fundDistribution.byType.map((item, idx) => (
-                              <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="py-3.5 px-4 font-bold text-slate-900">
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-50 text-magenta uppercase">
-                                    {item.type.replace(/_/g, " ")}
-                                  </span>
-                                </td>
-                                <td className="py-3.5 px-4 font-bold text-blue-600">
-                                  £{item.allocated.toFixed(2)}
-                                </td>
-                                <td className="py-3.5 px-4 font-black text-purple-600">
-                                  £{item.distributed.toFixed(2)}
-                                </td>
-                                <td className="py-3.5 px-4 font-semibold text-amber-600">
-                                  £{item.pending.toFixed(2)}
-                                </td>
-                                <td className="py-3.5 px-4 font-semibold text-slate-700">
-                                  {item.beneficiariesCount} individuals
-                                </td>
-                                <td className="py-3.5 px-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <span className="font-bold text-slate-700">{item.percentDistributed.toFixed(0)}%</span>
-                                    <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                      <div
-                                        className="bg-purple-600 h-full rounded-full"
-                                        style={{ width: `${Math.min(100, item.percentDistributed)}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={6} className="py-8 text-center text-gray-400">
-                                No fund allocation records found.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Payment Method Breakdown */}
-                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-sm font-extrabold text-slate-900 mb-1">
-                      Assistance Payment Methods Disbursed
-                    </h3>
-                    <p className="text-xs text-gray-500 mb-4">
-                      Voucher types, bank transfers, and relief provisions dispatched to beneficiaries.
-                    </p>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {reportsData?.fundDistribution?.byPaymentMethod && reportsData.fundDistribution.byPaymentMethod.length > 0 ? (
-                        reportsData.fundDistribution.byPaymentMethod.map((pm, idx) => (
-                          <div key={idx} className="p-3.5 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
-                            <div>
-                              <div className="text-xs font-bold text-slate-900">{pm.method}</div>
-                              <div className="text-[10px] text-gray-400">{pm.count} distributions</div>
-                            </div>
-                            <div className="text-sm font-black text-purple-600">
-                              £{pm.total.toFixed(2)}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="col-span-3 text-xs text-gray-400 py-3 text-center">
-                          No distributions recorded yet.
-                        </div>
+                      {(reportsStartDate || reportsEndDate || reportsSearchQuery || reportsPeriod !== "all") && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReportsPeriod("all");
+                            setReportsStartDate("");
+                            setReportsEndDate("");
+                            setReportsSearchQuery("");
+                            setReportsCampaignId("all");
+                            setReportsDonationType("all");
+                            setTimeout(() => loadReportsData(), 0);
+                          }}
+                          className="px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                          title="Reset filters"
+                        >
+                          Reset
+                        </button>
                       )}
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* ========================================================================= */}
+                {/* 1. DONATION REPORTS VIEW                                                  */}
+                {/* ========================================================================= */}
+                {reportsActiveSubTab === "donations" && (
+                  <div className="space-y-6">
+                    {/* Donation KPI Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Total Donations Received
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <CreditCard size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.totalDonationsReceived || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-emerald-600 font-semibold mt-1">
+                          ✓ {reportsData?.summary?.donationsCount || 0} gifts recorded
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Online Donations
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Wallet size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.onlineDonationsTotal ?? reportsData?.summary?.totalDonationsReceived ?? 0).toLocaleString(
+                            "en-GB",
+                            { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                          )}
+                        </div>
+                        <div className="text-[11px] text-blue-600 font-semibold mt-1">
+                          Direct web checkout &amp; online portal
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            External Campaigns
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <Compass size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.externalDonationsTotal || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-purple-600 font-semibold mt-1">
+                          External appeals &amp; partner drives
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Gift Aid Claimable (+25%)
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
+                            <Award size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.giftAidTotal || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-magenta font-semibold mt-1">
+                          HMRC UK tax reclaim eligible
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Giving Mode Breakdown (One-Off vs Recurring) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            One-Time vs. Monthly Recurring Giving
+                          </h3>
+                          <span className="text-xs font-bold text-magenta bg-pink-50 px-2.5 py-0.5 rounded-full">
+                            Giving Modes
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Comparison between immediate one-off emergency gifts and sustainable monthly recurring pledges.
+                        </p>
+
+                        <div className="space-y-4">
+                          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex">
+                            <div
+                              className="bg-magenta h-full transition-all"
+                              style={{ width: `${reportsData?.donationTypeSplit?.oneOff?.percentage || 0}%` }}
+                              title="One-Off Gifts"
+                            ></div>
+                            <div
+                              className="bg-emerald-500 h-full transition-all"
+                              style={{ width: `${reportsData?.donationTypeSplit?.recurring?.percentage || 0}%` }}
+                              title="Recurring Monthly Pledges"
+                            ></div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3.5 bg-pink-50/50 rounded-xl border border-pink-100">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-magenta mb-1">
+                                <span className="w-2.5 h-2.5 rounded-full bg-magenta"></span>
+                                <span>One-Time Direct Gifts</span>
+                              </div>
+                              <div className="text-xl font-black text-slate-900">
+                                £{(reportsData?.donationTypeSplit?.oneOff?.totalAmount || 0).toFixed(2)}
+                              </div>
+                              <div className="text-[11px] text-gray-500 mt-0.5">
+                                {reportsData?.donationTypeSplit?.oneOff?.count || 0} donations ({Math.round(reportsData?.donationTypeSplit?.oneOff?.percentage || 0)}%)
+                              </div>
+                            </div>
+
+                            <div className="p-3.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 mb-1">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                <span>Recurring Monthly Pledges</span>
+                              </div>
+                              <div className="text-xl font-black text-slate-900">
+                                £{(reportsData?.donationTypeSplit?.recurring?.totalAmount || 0).toFixed(2)}
+                              </div>
+                              <div className="text-[11px] text-gray-500 mt-0.5">
+                                {reportsData?.donationTypeSplit?.recurring?.count || 0} subscriptions ({Math.round(reportsData?.donationTypeSplit?.recurring?.percentage || 0)}%)
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Fund Allocation Information */}
+                      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            Donation Allocation &amp; Fund Solvency
+                          </h3>
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                            Charity Commission Audit
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Ensuring full traceability from incoming donations into designated appeals and client grants.
+                        </p>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <span className="text-xs font-bold text-slate-700">1. Total Donations Received</span>
+                            <span className="text-xs font-black text-emerald-600">
+                              £{(reportsData?.summary?.totalDonationsReceived || 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <span className="text-xs font-bold text-slate-700">2. Committed to Client Hardship Grants</span>
+                            <span className="text-xs font-black text-blue-600">
+                              £{(reportsData?.summary?.totalAllocatedAmount || 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <span className="text-xs font-bold text-slate-700">3. Actually Disbursed Aid</span>
+                            <span className="text-xs font-black text-purple-600">
+                              £{(reportsData?.summary?.totalDistributedAmount || 0).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-pink-50 border border-pink-100 font-bold">
+                            <span className="text-xs text-magenta">Net Unrestricted Reserves</span>
+                            <span className="text-xs text-magenta">
+                              £{Math.max(0, (reportsData?.summary?.totalDonationsReceived || 0) - (reportsData?.summary?.totalAllocatedAmount || 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detailed Donations Transactions Table */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            Donation Records Audit Log
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Showing {filteredDonationsList.length} of {reportsData?.donations?.length || 0} recorded transactions.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("excel", "donations")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <Download size={13} />
+                            <span>Excel</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("csv", "donations")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
+                          >
+                            <Download size={13} className="text-magenta" />
+                            <span>CSV</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                              <th className="py-3 px-4">Donation Ref</th>
+                              <th className="py-3 px-4">Date &amp; Time</th>
+                              <th className="py-3 px-4">Donor Name &amp; Contact</th>
+                              <th className="py-3 px-4">Campaign Allocation</th>
+                              <th className="py-3 px-4">Giving Type</th>
+                              <th className="py-3 px-4">Amount</th>
+                              <th className="py-3 px-4">Gift Aid (+25%)</th>
+                              <th className="py-3 px-4 text-right">Payment Channel</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 text-xs">
+                            {filteredDonationsList.length > 0 ? (
+                              filteredDonationsList.map((d: any) => (
+                                <tr key={d.id} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                                    {d.reference}
+                                  </td>
+                                  <td className="py-3.5 px-4 font-medium text-gray-500 whitespace-nowrap">
+                                    {new Date(d.createdAt).toLocaleString("en-GB", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <div className="font-bold text-slate-900">{d.donorName}</div>
+                                    <div className="text-[10px] text-gray-400">
+                                      {d.donorEmail} • {d.donorPhone}
+                                    </div>
+                                    <span className="inline-block mt-0.5 px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-pink-50 text-magenta uppercase">
+                                      {d.donorTier}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <div className="font-bold text-slate-900">{d.campaignTitle}</div>
+                                    <span
+                                      className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                                        d.isExternal
+                                          ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                                      }`}
+                                    >
+                                      {d.isExternal ? "External Campaign" : "Internal Appeal"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                        d.type === "RECURRING"
+                                          ? "bg-emerald-50 text-emerald-700"
+                                          : "bg-pink-50 text-magenta"
+                                      }`}
+                                    >
+                                      {d.type === "RECURRING" ? "Monthly Recurring" : "One-Off Gift"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-black text-slate-900">
+                                    £{Number(d.amount).toFixed(2)}
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    {d.giftAid ? (
+                                      <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                                        +£{Number(d.giftAidAmount).toFixed(2)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 text-[11px]">—</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-right">
+                                    <span className="text-[11px] font-semibold text-slate-600 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg">
+                                      {d.paymentMethod}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={8} className="py-12 text-center text-xs text-gray-400">
+                                  No donation records match the selected date range or search filter.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                          {filteredDonationsList.length > 0 && (
+                            <tfoot>
+                              <tr className="bg-gray-50 font-bold text-xs text-slate-900 border-t-2 border-gray-200">
+                                <td colSpan={5} className="py-3 px-4 text-right">
+                                  Total ({filteredDonationsList.length} Donations):
+                                </td>
+                                <td className="py-3 px-4 text-emerald-600 font-black">
+                                  £{totalFilteredDonationsAmount.toFixed(2)}
+                                </td>
+                                <td className="py-3 px-4 text-emerald-700 font-black">
+                                  +£{totalFilteredGiftAid.toFixed(2)}
+                                </td>
+                                <td className="py-3 px-4 text-right text-gray-400 text-[10px]">
+                                  Verified Audit
+                                </td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 2. CAMPAIGN PERFORMANCE REPORTS VIEW                                      */}
+                {/* ========================================================================= */}
+                {reportsActiveSubTab === "campaigns" && (
+                  <div className="space-y-6">
+                    {/* Campaign KPI Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Total Campaigns
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <Compass size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          {reportsData?.campaigns?.length || 0}
+                        </div>
+                        <div className="text-[11px] text-purple-600 font-semibold mt-1">
+                          {reportsData?.summary?.internalCampaignsCount ?? 1} Internal • {reportsData?.summary?.externalCampaignsCount ?? 0} External
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Combined Fundraising Goal
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Target size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{totalCampaignTarget.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-[11px] text-blue-600 font-semibold mt-1">
+                          Across all active public appeals
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Total Raised All-Time
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <CreditCard size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-emerald-600 tracking-tight">
+                          £{totalCampaignRaised.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-[11px] text-emerald-600 font-semibold mt-1">
+                          {totalCampaignTarget > 0 ? `${Math.round((totalCampaignRaised / totalCampaignTarget) * 100)}% overall goal achieved` : "Open Pool"}
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Period Campaign Inflow
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
+                            <TrendingUp size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.totalDonationsReceived || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-magenta font-semibold mt-1">
+                          Within selected date window
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Campaign Performance Table */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            Campaign Performance &amp; Progress Matrix
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Compare fundraising targets, total raised, gift velocity, and appeal types.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("excel", "campaigns")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <Download size={13} />
+                            <span>Excel</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("csv", "campaigns")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
+                          >
+                            <Download size={13} className="text-magenta" />
+                            <span>CSV</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                              <th className="py-3 px-4">Campaign Name &amp; Code</th>
+                              <th className="py-3 px-4">Campaign Type</th>
+                              <th className="py-3 px-4">Target Goal</th>
+                              <th className="py-3 px-4">Total Raised All-Time</th>
+                              <th className="py-3 px-4">Period Inflow</th>
+                              <th className="py-3 px-4">Fundraising Progress</th>
+                              <th className="py-3 px-4">Timeline</th>
+                              <th className="py-3 px-4 text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 text-xs">
+                            {filteredCampaignsList.length > 0 ? (
+                              filteredCampaignsList.map((camp: any) => (
+                                <tr key={camp.id} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="py-3.5 px-4 font-bold text-slate-900">
+                                    <div>{camp.title}</div>
+                                    <div className="text-[10px] text-gray-400 font-mono">
+                                      Code: {camp.campaignCode || `CAMP-${camp.id.slice(0, 6).toUpperCase()}`}
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                                        camp.campaignType === "EXTERNAL"
+                                          ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                                      }`}
+                                    >
+                                      {camp.campaignType === "EXTERNAL" ? "External Campaign" : "Internal Appeal"}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-semibold text-slate-600">
+                                    {camp.targetAmount > 0
+                                      ? `£${Number(camp.targetAmount).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`
+                                      : "Open Relief Pool"}
+                                  </td>
+                                  <td className="py-3.5 px-4 font-black text-slate-900">
+                                    £{Number(camp.raisedAmountAllTime).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="py-3.5 px-4 font-black text-emerald-600">
+                                    £{Number(camp.periodDonations).toFixed(2)}
+                                    <span className="text-[10px] text-gray-400 block font-normal">
+                                      ({camp.donationCount || camp.periodDonationsCount || 0} gifts)
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                          className="bg-magenta h-full rounded-full"
+                                          style={{ width: `${Math.min(100, camp.progressPercent)}%` }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-[11px] font-bold text-slate-700">
+                                        {Number(camp.progressPercent).toFixed(0)}%
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-4 text-gray-500 text-[11px]">
+                                    {camp.startDate ? new Date(camp.startDate).toLocaleDateString("en-GB") : "Ongoing"}
+                                    {camp.endDate ? ` → ${new Date(camp.endDate).toLocaleDateString("en-GB")}` : ""}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-right">
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                        camp.active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"
+                                      }`}
+                                    >
+                                      {camp.active ? "ACTIVE" : "CONCLUDED"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={8} className="py-12 text-center text-xs text-gray-400">
+                                  No campaigns match the filter query.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 3. DONOR REPORTS VIEW                                                     */}
+                {/* ========================================================================= */}
+                {reportsActiveSubTab === "donors" && (
+                  <div className="space-y-6">
+                    {/* Donor KPI Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Total Registered Donors
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Users size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          {reportsData?.summary?.totalDonorsCount || 0}
+                        </div>
+                        <div className="text-[11px] text-blue-600 font-semibold mt-1">
+                          CRM supporter community
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Repeat Supporters
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <Heart size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-emerald-600 tracking-tight">
+                          {reportsData?.summary?.repeatDonorsCount || 0} supporters
+                        </div>
+                        <div className="text-[11px] text-emerald-600 font-semibold mt-1">
+                          Multiple donations given ({Math.round(((reportsData?.summary?.repeatDonorsCount || 0) / Math.max(1, reportsData?.summary?.totalDonorsCount || 1)) * 100)}% retention)
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Average Lifetime Gift
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <Wallet size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.averageDonation || 0).toFixed(2)}
+                        </div>
+                        <div className="text-[11px] text-purple-600 font-semibold mt-1">
+                          Across all recorded contributions
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Communication Consent
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
+                            <Mail size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          {consentRate}%
+                        </div>
+                        <div className="text-[11px] text-magenta font-semibold mt-1">
+                          {consentedDonorsCount} consented to updates
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Donor CRM Contributions Table */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            Donor Contributions, Giving Tiers &amp; History
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Showing {filteredDonorsList.length} donors in the CRM register.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("excel", "donors")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <Download size={13} />
+                            <span>Excel</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("csv", "donors")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
+                          >
+                            <Download size={13} className="text-magenta" />
+                            <span>CSV</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                              <th className="py-3 px-4">Rank</th>
+                              <th className="py-3 px-4">Donor Name &amp; Contact</th>
+                              <th className="py-3 px-4">Phone Number</th>
+                              <th className="py-3 px-4">Location</th>
+                              <th className="py-3 px-4">Donation Tier</th>
+                              <th className="py-3 px-4">Total Amount Donated</th>
+                              <th className="py-3 px-4">Donations Count</th>
+                              <th className="py-3 px-4">Most Recent Donation</th>
+                              <th className="py-3 px-4 text-right">Communication Consent</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 text-xs">
+                            {filteredDonorsList.length > 0 ? (
+                              filteredDonorsList.map((donor: any, idx: number) => (
+                                <tr key={donor.id} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="py-3.5 px-4 font-black text-slate-400">
+                                    #{idx + 1}
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <div className="font-bold text-slate-900">{donor.name}</div>
+                                    <div className="text-[10px] text-gray-400">{donor.email}</div>
+                                  </td>
+                                  <td className="py-3.5 px-4 text-slate-600 font-medium">
+                                    {donor.phone || "N/A"}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-slate-600">
+                                    {donor.location || "United Kingdom"}
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-50 text-magenta uppercase">
+                                      ★ {donor.tier}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-black text-emerald-600">
+                                    £{Number(donor.totalContributed).toFixed(2)}
+                                  </td>
+                                  <td className="py-3.5 px-4 font-semibold text-slate-700">
+                                    {donor.donationsCount} gifts
+                                  </td>
+                                  <td className="py-3.5 px-4 text-gray-500 whitespace-nowrap">
+                                    {donor.lastDonationDate
+                                      ? new Date(donor.lastDonationDate).toLocaleDateString("en-GB", {
+                                          day: "numeric",
+                                          month: "short",
+                                          year: "numeric",
+                                        })
+                                      : "—"}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-right">
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                        donor.newsletterConsent
+                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                          : "bg-gray-100 text-gray-500"
+                                      }`}
+                                    >
+                                      {donor.newsletterConsent ? "Consented" : "Opted Out"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={9} className="py-12 text-center text-xs text-gray-400">
+                                  No donor records match the search filter.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 4. BENEFICIARY DISTRIBUTION REPORTS VIEW                                 */}
+                {/* ========================================================================= */}
+                {reportsActiveSubTab === "distributions" && (
+                  <div className="space-y-6">
+                    {/* Distribution KPI Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Total Funds Allocated
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Wallet size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          £{(reportsData?.summary?.totalAllocatedAmount || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-blue-600 font-semibold mt-1">
+                          Committed relief grants
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Actually Distributed Aid
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <HeartHandshake size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-purple-600 tracking-tight">
+                          £{(reportsData?.summary?.totalDistributedAmount || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-purple-600 font-semibold mt-1">
+                          Disbursed to verified clients
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Pending Payouts
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <Clock size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-amber-600 tracking-tight">
+                          £{(reportsData?.summary?.totalPendingDistribution || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                        <div className="text-[11px] text-amber-600 font-semibold mt-1">
+                          Awaiting redemption or dispatch
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                            Community Impact Reach
+                          </span>
+                          <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
+                            <Users size={16} />
+                          </div>
+                        </div>
+                        <div className="text-2xl font-black text-slate-900 tracking-tight">
+                          {reportsData?.summary?.totalHouseholdImpact || 0} People
+                        </div>
+                        <div className="text-[11px] text-magenta font-semibold mt-1">
+                          Across {reportsData?.summary?.totalBeneficiaryRequests || 0} client case files
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Support Category Breakdown */}
+                    {reportsData?.fundDistribution?.byType && reportsData.fundDistribution.byType.length > 0 && (
+                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            Support Distribution by Assistance Category
+                          </h3>
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                            Categorical Breakdown
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {reportsData.fundDistribution.byType.map((item: any, idx: number) => (
+                            <div key={idx} className="p-3.5 bg-gray-50 rounded-xl border border-gray-100 space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-900 truncate">
+                                  {item.type.replace(/_/g, " ")}
+                                </span>
+                                <span className="text-[10px] font-extrabold text-purple-600">
+                                  {Number(item.percentDistributed).toFixed(0)}% Disbursed
+                                </span>
+                              </div>
+                              <div className="text-base font-black text-slate-900">
+                                £{Number(item.distributed).toFixed(2)}
+                              </div>
+                              <div className="text-[10px] text-gray-500 flex items-center justify-between">
+                                <span>Allocated: £{Number(item.allocated).toFixed(2)}</span>
+                                <span>{item.beneficiariesCount} clients</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Beneficiary Distribution Detail Table */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                      <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h3 className="text-sm font-extrabold text-slate-900">
+                            Beneficiary Support Distribution Log
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            Showing {filteredDistributionsList.length} of {reportsData?.distributions?.length || 0} relief allocations.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("excel", "distributions")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <Download size={13} />
+                            <span>Excel</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExportActiveReport("csv", "distributions")}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-slate-700 hover:bg-gray-50"
+                          >
+                            <Download size={13} className="text-magenta" />
+                            <span>CSV</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                              <th className="py-3 px-4">Allocation Ref</th>
+                              <th className="py-3 px-4">Beneficiary &amp; Contact</th>
+                              <th className="py-3 px-4">Support Received</th>
+                              <th className="py-3 px-4">Fund Source</th>
+                              <th className="py-3 px-4">Amount Allocated</th>
+                              <th className="py-3 px-4">Amount Distributed</th>
+                              <th className="py-3 px-4">Distribution Date</th>
+                              <th className="py-3 px-4">Disbursement Method</th>
+                              <th className="py-3 px-4 text-right">Casework Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 text-xs">
+                            {filteredDistributionsList.length > 0 ? (
+                              filteredDistributionsList.map((dist: any) => (
+                                <tr key={dist.id} className="hover:bg-gray-50/50 transition-colors">
+                                  <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                                    <div>{dist.reference}</div>
+                                    <div className="text-[10px] text-gray-400 font-normal">
+                                      {new Date(dist.allocationDate).toLocaleDateString("en-GB")}
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <div className="font-bold text-slate-900">{dist.beneficiaryName}</div>
+                                    <div className="text-[10px] text-gray-400">
+                                      {dist.beneficiaryPhone} • {dist.beneficiaryEmail}
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-50 text-magenta uppercase">
+                                      {dist.supportCategory}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 font-semibold text-slate-700">
+                                    {dist.campaignTitle}
+                                  </td>
+                                  <td className="py-3.5 px-4 font-bold text-blue-600">
+                                    £{Number(dist.allocatedAmount).toFixed(2)}
+                                  </td>
+                                  <td className="py-3.5 px-4 font-black text-purple-600">
+                                    £{Number(dist.distributedAmount).toFixed(2)}
+                                  </td>
+                                  <td className="py-3.5 px-4 text-gray-500 whitespace-nowrap">
+                                    {dist.distributionDate
+                                      ? new Date(dist.distributionDate).toLocaleDateString("en-GB", {
+                                          day: "numeric",
+                                          month: "short",
+                                          year: "numeric",
+                                        })
+                                      : "Pending Dispatch"}
+                                  </td>
+                                  <td className="py-3.5 px-4">
+                                    <span className="text-[11px] font-medium text-slate-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                                      {dist.paymentMethod}
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 px-4 text-right">
+                                    <span
+                                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                        dist.status === "DISTRIBUTED"
+                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                          : dist.status === "CANCELLED"
+                                          ? "bg-red-50 text-red-600 border border-red-200"
+                                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                                      }`}
+                                    >
+                                      {dist.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={9} className="py-12 text-center text-xs text-gray-400">
+                                  No distribution records match the selected filters.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                          {filteredDistributionsList.length > 0 && (
+                            <tfoot>
+                              <tr className="bg-gray-50 font-bold text-xs text-slate-900 border-t-2 border-gray-200">
+                                <td colSpan={4} className="py-3 px-4 text-right">
+                                  Total ({filteredDistributionsList.length} Distributions):
+                                </td>
+                                <td className="py-3 px-4 text-blue-600 font-black">
+                                  £{totalFilteredAllocated.toFixed(2)}
+                                </td>
+                                <td className="py-3 px-4 text-purple-600 font-black">
+                                  £{totalFilteredDistributed.toFixed(2)}
+                                </td>
+                                <td colSpan={3} className="py-3 px-4 text-right text-gray-400 text-[10px]">
+                                  Verified Allocation Audit
+                                </td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
 
           
