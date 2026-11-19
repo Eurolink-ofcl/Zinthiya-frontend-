@@ -121,6 +121,7 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingApprovalNotice, setPendingApprovalNotice] = useState("");
+  const [portalAccessDisabledNotice, setPortalAccessDisabledNotice] = useState("");
 
   // Portal disabled status
   const [portalDisabledByAdmin, setPortalDisabledByAdmin] = useState(false);
@@ -373,6 +374,7 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
     setErrorMessage("");
     setSuccessMessage("");
     setPendingApprovalNotice("");
+    setPortalAccessDisabledNotice("");
 
     const effectiveEmail = loginEmail.trim();
     if (!effectiveEmail || !loginPassword) {
@@ -400,6 +402,16 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
     } catch (err: any) {
       const msg = err.message || "";
       if (
+        err.error === "PortalAccessDisabled" ||
+        msg.toLowerCase().includes("portal access") ||
+        msg.toLowerCase().includes("cannot sign in") ||
+        msg.toLowerCase().includes("disabled by administrator")
+      ) {
+        setPortalAccessDisabledNotice(
+          msg ||
+          "Beneficiary portal access is currently disabled for this account. You cannot sign in to the Beneficiary Portal. Please contact The Zinthiya Trust team at info@zinthiyatrust.org or 0116 254 5168."
+        );
+      } else if (
         msg.toLowerCase().includes("under review") ||
         msg.toLowerCase().includes("approves") ||
         err.error === "AccountPendingApproval" ||
@@ -676,6 +688,7 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
                       setErrorMessage("");
                       setSuccessMessage("");
                       setPendingApprovalNotice("");
+                      setPortalAccessDisabledNotice("");
                     }}
                     style={{
                       flex: 1,
@@ -699,6 +712,7 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
                       setErrorMessage("");
                       setSuccessMessage("");
                       setPendingApprovalNotice("");
+                      setPortalAccessDisabledNotice("");
                     }}
                     style={{
                       flex: 1,
@@ -738,6 +752,35 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
               >
                 <AlertCircle size={18} className="flex-shrink-0" />
                 <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Portal Access Disabled Banner */}
+            {portalAccessDisabledNotice && (
+              <div
+                style={{
+                  padding: "14px 18px",
+                  borderRadius: "14px",
+                  backgroundColor: "#FEF2F2",
+                  border: "1.5px solid #FECACA",
+                  color: "#991B1B",
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  marginBottom: "20px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                }}
+              >
+                <Lock size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "14px", color: "#991B1B" }}>
+                    Beneficiary Portal Access Disabled
+                  </div>
+                  <div style={{ marginTop: "4px" }}>
+                    {portalAccessDisabledNotice}
+                  </div>
+                </div>
               </div>
             )}
 

@@ -79,6 +79,7 @@ import {
   Landmark,
   Bell,
   Lock,
+  Unlock,
   EyeOff,
   Globe,
   ExternalLink,
@@ -1328,15 +1329,19 @@ export function AdminDashboardPage() {
   async function handleToggleBeneficiaryActive(beneficiary: BeneficiaryRecord, newActiveState: boolean) {
     try {
       await api.toggleBeneficiaryActiveAdmin(beneficiary.id, newActiveState);
-      setActionSuccessMsg(`Beneficiary "${beneficiary.fullName}" is now ${newActiveState ? "ACTIVE" : "DEACTIVATED"} successfully.`);
+      setActionSuccessMsg(
+        newActiveState
+          ? `Beneficiary portal access ENABLED for "${beneficiary.fullName}". They can now sign in to the Beneficiary Portal.`
+          : `Beneficiary portal access DISABLED for "${beneficiary.fullName}". They can no longer sign in to the Beneficiary Portal.`
+      );
       await loadBeneficiariesData();
       await loadDashboardData();
       if (viewingBeneficiary && viewingBeneficiary.id === beneficiary.id) {
         setViewingBeneficiary({ ...viewingBeneficiary, active: newActiveState });
       }
-      setTimeout(() => setActionSuccessMsg(""), 4000);
+      setTimeout(() => setActionSuccessMsg(""), 4500);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to update account active status.");
+      setErrorMsg(err.message || "Failed to update portal access status.");
     }
   }
 
@@ -6946,7 +6951,7 @@ export function AdminDashboardPage() {
                         >
                           <th style={{ padding: "14px 16px", width: "22%" }}>Beneficiary &amp; Contact</th>
                           <th style={{ padding: "14px 16px", width: "15%" }}>Location &amp; Household</th>
-                          <th style={{ padding: "14px 16px", width: "11%" }}>Account Status</th>
+                          <th style={{ padding: "14px 16px", width: "13%" }}>Portal Access</th>
                           <th style={{ padding: "14px 16px", width: "15%" }}>Assigned Advocate</th>
                           <th style={{ padding: "14px 16px", width: "18%" }}>Latest Application &amp; Needs</th>
                           <th style={{ padding: "14px 16px", width: "7%", textAlign: "center" }}>Case Files</th>
@@ -7067,7 +7072,7 @@ export function AdminDashboardPage() {
                                 )}
                               </td>
 
-                              {/* 3. Account Status with Toggle */}
+                              {/* 3. Portal Access & Status with Toggle */}
                               <td style={{ padding: "14px 16px", verticalAlign: "middle" }}>
                                 <button
                                   type="button"
@@ -7078,7 +7083,7 @@ export function AdminDashboardPage() {
                                     padding: 0,
                                     cursor: "pointer",
                                   }}
-                                  title="Click to toggle account activation status"
+                                  title={`Click to ${b.active ? "disable portal access (blocks sign-in)" : "enable portal access (allows sign-in)"}`}
                                 >
                                   {b.active ? (
                                     <span
@@ -7096,7 +7101,7 @@ export function AdminDashboardPage() {
                                       }}
                                     >
                                       <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#10B981" }}></span>
-                                      Active Account
+                                      Portal Access: Active
                                     </span>
                                   ) : (
                                     <span
@@ -7108,13 +7113,13 @@ export function AdminDashboardPage() {
                                         borderRadius: "9999px",
                                         fontSize: "10px",
                                         fontWeight: 800,
-                                        backgroundColor: "#F1F5F9",
-                                        color: "#64748B",
-                                        border: "1px solid #CBD5E1",
+                                        backgroundColor: "#FEF2F2",
+                                        color: "#B91C1C",
+                                        border: "1px solid #FECACA",
                                       }}
                                     >
-                                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#94A3B8" }}></span>
-                                      Deactivated
+                                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#EF4444" }}></span>
+                                      Portal Access: Disabled
                                     </span>
                                   )}
                                 </button>
@@ -18045,13 +18050,14 @@ export function AdminDashboardPage() {
                       {viewingBeneficiary.fullName}
                     </h2>
                     {viewingBeneficiary.active ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Active Casework
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Unlock size={12} className="text-emerald-600" />
+                        <span>Portal Access: Enabled</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-300">
-                        Deactivated Account
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                        <Lock size={12} className="text-rose-600" />
+                        <span>Portal Access: Disabled</span>
                       </span>
                     )}
                   </div>
@@ -18096,17 +18102,20 @@ export function AdminDashboardPage() {
                       height: "38px",
                       padding: "0 14px",
                       borderRadius: "10px",
-                      border: viewingBeneficiary.active ? "1.5px solid #CBD5E1" : "1.5px solid #A7F3D0",
-                      backgroundColor: viewingBeneficiary.active ? "#F1F5F9" : "#ECFDF5",
-                      color: viewingBeneficiary.active ? "#475569" : "#047857",
+                      border: viewingBeneficiary.active ? "1.5px solid #FECACA" : "1.5px solid #A7F3D0",
+                      backgroundColor: viewingBeneficiary.active ? "#FEF2F2" : "#ECFDF5",
+                      color: viewingBeneficiary.active ? "#DC2626" : "#047857",
                       fontSize: "12px",
                       fontWeight: 700,
                       cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
+                      gap: "6px",
                     }}
+                    title={viewingBeneficiary.active ? "Click to disable portal access (blocks sign-in)" : "Click to enable portal access (allows sign-in)"}
                   >
-                    <span>{viewingBeneficiary.active ? "Deactivate" : "Activate"}</span>
+                    {viewingBeneficiary.active ? <Lock size={13} /> : <Unlock size={13} />}
+                    <span>{viewingBeneficiary.active ? "Disable Portal Access" : "Enable Portal Access"}</span>
                   </button>
                   <button
                     type="button"
@@ -18200,6 +18209,72 @@ export function AdminDashboardPage() {
             {/* TAB CONTENT: 1. OVERVIEW */}
             {beneficiaryActiveTabModal === "OVERVIEW" && (
               <div className="space-y-6">
+                {/* PORTAL ACCESS SETTING CARD (ADMIN WORKFLOW) */}
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        viewingBeneficiary.active 
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
+                          : "bg-rose-50 text-rose-600 border border-rose-200"
+                      }`}>
+                        {viewingBeneficiary.active ? <Unlock size={22} /> : <Lock size={22} />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-slate-900 tracking-tight">
+                            Portal Access Setting
+                          </h4>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                            viewingBeneficiary.active
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-rose-50 text-rose-700 border-rose-200"
+                          }`}>
+                            {viewingBeneficiary.active ? "● Portal Access Enabled" : "● Portal Access Disabled"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                          {viewingBeneficiary.active
+                            ? `Portal access is currently ENABLED. ${viewingBeneficiary.fullName} can sign in to the Beneficiary Portal at /beneficiary/login using ${viewingBeneficiary.email} to view allocated relief funds, submit requests, and contact their caseworker.`
+                            : `Portal access is currently DISABLED. ${viewingBeneficiary.fullName} is blocked and can no longer sign in to the Beneficiary Portal. When attempting to log in, their access is denied.`
+                          }
+                        </p>
+                        <div className="text-[11px] font-mono text-slate-400 mt-2 flex items-center gap-2">
+                          <span>Login ID: <strong className="text-slate-600">{viewingBeneficiary.email}</strong></span>
+                          <span>&bull;</span>
+                          <span>Portal Path: <strong className="text-slate-600">/beneficiary/login</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {canWriteBeneficiaries && (
+                      <div className="flex-shrink-0 self-start sm:self-center">
+                        {viewingBeneficiary.active ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBeneficiaryActive(viewingBeneficiary, false)}
+                            className="px-4 py-2.5 rounded-xl text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+                            title="Disable beneficiary portal access (blocks login)"
+                          >
+                            <Lock size={14} />
+                            <span>Disable Portal Access</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBeneficiaryActive(viewingBeneficiary, true)}
+                            className="btn-3d-magenta px-4 py-2.5 rounded-xl text-xs font-black text-white transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+                            title="Enable beneficiary portal access (allows login)"
+                          >
+                            <Unlock size={14} />
+                            <span>Enable Portal Access</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
@@ -18776,25 +18851,28 @@ export function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold text-slate-900 block">
-                    Account Status
+                    Portal Access Setting
                   </span>
                   <span className="text-[11px] text-slate-500">
-                    {editBenActive ? "Beneficiary is active and eligible for assistance." : "Account is deactivated."}
+                    {editBenActive
+                      ? "Beneficiary portal access is ENABLED (Client can sign in to /beneficiary/login)."
+                      : "Beneficiary portal access is DISABLED (Client blocked from signing in)."}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setEditBenActive(!editBenActive)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer transition-colors flex items-center gap-1.5 ${
                     editBenActive
                       ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                      : "bg-slate-200 text-slate-700"
+                      : "bg-rose-100 text-rose-800 border border-rose-300"
                   }`}
                 >
-                  {editBenActive ? "ACTIVE" : "DEACTIVATED"}
+                  {editBenActive ? <Unlock size={12} /> : <Lock size={12} />}
+                  <span>{editBenActive ? "PORTAL: ENABLED" : "PORTAL: DISABLED"}</span>
                 </button>
               </div>
 
