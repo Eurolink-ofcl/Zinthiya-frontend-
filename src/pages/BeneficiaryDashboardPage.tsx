@@ -53,6 +53,38 @@ function formatBytes(bytes: number, decimals = 1): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
+function createPlayableAudioUrl(url: string): string {
+  if (!url) return "";
+  if (!url.startsWith("data:")) return url;
+
+  try {
+    const commaIndex = url.indexOf(",");
+    if (commaIndex === -1) return url;
+
+    const header = url.slice(0, commaIndex);
+    const base64Data = url.slice(commaIndex + 1);
+
+    let mime = "audio/webm";
+    const mimeMatch = header.match(/^data:(audio\/[a-zA-Z0-9.+-]+)/);
+    if (mimeMatch && mimeMatch[1]) {
+      mime = mimeMatch[1];
+    }
+
+    const binaryString = atob(base64Data);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], { type: mime });
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.error("Error creating Blob URL from base64 audio:", err);
+    return url;
+  }
+}
+
 function ZinthiyaLogo() {
   return (
     <svg
@@ -274,6 +306,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const audioChunksRef = useRef<Blob[]>([]);
   const audioStreamRef = useRef<MediaStream | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const currentBlobUrlRef = useRef<string | null>(null);
+  const cleanAudioMimeRef = useRef<string>("audio/webm");
   const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [voicePlayingId, setVoicePlayingId] = useState<string | number | null>(null);
@@ -659,6 +693,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         audioPlayerRef.current.pause();
         audioPlayerRef.current = null;
       }
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+        currentBlobUrlRef.current = null;
+      }
       if (audioStreamRef.current) {
         audioStreamRef.current.getTracks().forEach((t) => t.stop());
         audioStreamRef.current = null;
@@ -767,18 +805,26 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       audioStreamRef.current = stream;
       audioChunksRef.current = [];
 
-      let mimeType = "";
+      let recorderMime = "";
+      let cleanMime = "audio/webm";
       if (typeof MediaRecorder !== "undefined") {
-        if (MediaRecorder.isTypeSupported("audio/webm")) {
-          mimeType = "audio/webm";
+        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+          recorderMime = "audio/webm;codecs=opus";
+          cleanMime = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+          recorderMime = "audio/webm";
+          cleanMime = "audio/webm";
         } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-          mimeType = "audio/mp4";
-        } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
-          mimeType = "audio/ogg";
+          recorderMime = "audio/mp4";
+          cleanMime = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+          recorderMime = "audio/ogg;codecs=opus";
+          cleanMime = "audio/ogg";
         }
       }
+      cleanAudioMimeRef.current = cleanMime;
 
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const recorder = new MediaRecorder(stream, recorderMime ? { mimeType: recorderMime } : undefined);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -787,7 +833,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         }
       };
 
-      recorder.start(250);
+      // Record continuous unbroken audio file to guarantee intact header & duration
+      recorder.start();
       setIsRecordingVoice(true);
       setRecordingSeconds(0);
     } catch (err: any) {
@@ -822,7 +869,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
     recorder.onstop = async () => {
       try {
-        const mime = recorder.mimeType || "audio/webm";
+        const mime = cleanAudioMimeRef.current || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: mime });
 
         if (audioStreamRef.current) {
@@ -840,7 +887,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
         const reader = new FileReader();
         reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
+          let base64Audio = reader.result as string;
+          // Ensure data url format is clean "data:audio/webm;base64,..." without codec parameters
+          if (base64Audio.startsWith("data:")) {
+            const commaIndex = base64Audio.indexOf(",");
+            if (commaIndex !== -1) {
+              const rawData = base64Audio.slice(commaIndex + 1);
+              base64Audio = `data:${mime};base64,${rawData}`;
+            }
+          }
+
           const mins = Math.floor(durationSec / 60);
           const secs = durationSec % 60;
           const durationStr = `${mins}:${secs < 10 ? "0" : ""}${secs}`;
@@ -894,6 +950,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         audioPlayerRef.current.pause();
         audioPlayerRef.current = null;
       }
+      if (currentBlobUrlRef.current) {
+        URL.revokeObjectURL(currentBlobUrlRef.current);
+        currentBlobUrlRef.current = null;
+      }
       setVoicePlayingId(null);
       return;
     }
@@ -902,6 +962,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       audioPlayerRef.current.pause();
       audioPlayerRef.current = null;
     }
+    if (currentBlobUrlRef.current) {
+      URL.revokeObjectURL(currentBlobUrlRef.current);
+      currentBlobUrlRef.current = null;
+    }
 
     if (!audioUrl) {
       alert("No audio file attached to this message.");
@@ -909,7 +973,13 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
 
     try {
-      const audio = new Audio(audioUrl);
+      // Convert base64 data URL into native browser Blob URL for smooth, error-free HTML5 audio playback
+      const playableUrl = createPlayableAudioUrl(audioUrl);
+      if (playableUrl.startsWith("blob:")) {
+        currentBlobUrlRef.current = playableUrl;
+      }
+
+      const audio = new Audio(playableUrl);
       audioPlayerRef.current = audio;
       setVoicePlayingId(id);
 
@@ -917,17 +987,30 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         console.error("Audio playback error:", err);
         setVoicePlayingId(null);
         audioPlayerRef.current = null;
+        if (currentBlobUrlRef.current) {
+          URL.revokeObjectURL(currentBlobUrlRef.current);
+          currentBlobUrlRef.current = null;
+        }
         alert("Could not play audio message.");
       });
 
       audio.onended = () => {
         setVoicePlayingId(null);
         audioPlayerRef.current = null;
+        if (currentBlobUrlRef.current) {
+          URL.revokeObjectURL(currentBlobUrlRef.current);
+          currentBlobUrlRef.current = null;
+        }
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error("Audio playback error on element:", e);
         setVoicePlayingId(null);
         audioPlayerRef.current = null;
+        if (currentBlobUrlRef.current) {
+          URL.revokeObjectURL(currentBlobUrlRef.current);
+          currentBlobUrlRef.current = null;
+        }
         alert("Could not play audio message.");
       };
     } catch (err) {

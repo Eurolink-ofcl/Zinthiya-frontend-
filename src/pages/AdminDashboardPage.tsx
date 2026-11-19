@@ -108,6 +108,38 @@ function formatBytes(bytes: number, decimals = 1): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
+function createPlayableAudioUrl(url: string): string {
+  if (!url) return "";
+  if (!url.startsWith("data:")) return url;
+
+  try {
+    const commaIndex = url.indexOf(",");
+    if (commaIndex === -1) return url;
+
+    const header = url.slice(0, commaIndex);
+    const base64Data = url.slice(commaIndex + 1);
+
+    let mime = "audio/webm";
+    const mimeMatch = header.match(/^data:(audio\/[a-zA-Z0-9.+-]+)/);
+    if (mimeMatch && mimeMatch[1]) {
+      mime = mimeMatch[1];
+    }
+
+    const binaryString = atob(base64Data);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const blob = new Blob([bytes], { type: mime });
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.error("Error creating Blob URL from base64 audio:", err);
+    return url;
+  }
+}
+
 function ZinthiyaLogo() {
   return (
     <svg
@@ -3465,6 +3497,8 @@ export function AdminDashboardPage() {
   const commsAudioChunksRef = useRef<Blob[]>([]);
   const commsAudioStreamRef = useRef<MediaStream | null>(null);
   const commsAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const commsCurrentBlobUrlRef = useRef<string | null>(null);
+  const commsCleanAudioMimeRef = useRef<string>("audio/webm");
 
   const [commsSending, setCommsSending] = useState<boolean>(false);
   const [commsRecordingVoice, setCommsRecordingVoice] = useState<boolean>(false);
@@ -3478,6 +3512,10 @@ export function AdminDashboardPage() {
       if (commsAudioPlayerRef.current) {
         commsAudioPlayerRef.current.pause();
         commsAudioPlayerRef.current = null;
+      }
+      if (commsCurrentBlobUrlRef.current) {
+        URL.revokeObjectURL(commsCurrentBlobUrlRef.current);
+        commsCurrentBlobUrlRef.current = null;
       }
       if (commsAudioStreamRef.current) {
         commsAudioStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -3610,18 +3648,26 @@ export function AdminDashboardPage() {
       commsAudioStreamRef.current = stream;
       commsAudioChunksRef.current = [];
 
-      let mimeType = "";
+      let recorderMime = "";
+      let cleanMime = "audio/webm";
       if (typeof MediaRecorder !== "undefined") {
-        if (MediaRecorder.isTypeSupported("audio/webm")) {
-          mimeType = "audio/webm";
+        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+          recorderMime = "audio/webm;codecs=opus";
+          cleanMime = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+          recorderMime = "audio/webm";
+          cleanMime = "audio/webm";
         } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-          mimeType = "audio/mp4";
-        } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
-          mimeType = "audio/ogg";
+          recorderMime = "audio/mp4";
+          cleanMime = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+          recorderMime = "audio/ogg;codecs=opus";
+          cleanMime = "audio/ogg";
         }
       }
+      commsCleanAudioMimeRef.current = cleanMime;
 
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const recorder = new MediaRecorder(stream, recorderMime ? { mimeType: recorderMime } : undefined);
       commsMediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -3630,7 +3676,8 @@ export function AdminDashboardPage() {
         }
       };
 
-      recorder.start(250);
+      // Record continuous unbroken audio file to guarantee intact header & duration
+      recorder.start();
       setCommsRecordingVoice(true);
       setCommsVoiceSeconds(0);
     } catch (err: any) {
@@ -3666,7 +3713,7 @@ export function AdminDashboardPage() {
 
     recorder.onstop = async () => {
       try {
-        const mime = recorder.mimeType || "audio/webm";
+        const mime = commsCleanAudioMimeRef.current || "audio/webm";
         const audioBlob = new Blob(commsAudioChunksRef.current, { type: mime });
 
         if (commsAudioStreamRef.current) {
@@ -3685,7 +3732,16 @@ export function AdminDashboardPage() {
 
         const reader = new FileReader();
         reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
+          let base64Audio = reader.result as string;
+          // Ensure data url format is clean "data:audio/webm;base64,..." without codec parameters
+          if (base64Audio.startsWith("data:")) {
+            const commaIndex = base64Audio.indexOf(",");
+            if (commaIndex !== -1) {
+              const rawData = base64Audio.slice(commaIndex + 1);
+              base64Audio = `data:${mime};base64,${rawData}`;
+            }
+          }
+
           const mins = Math.floor(durationSec / 60);
           const secs = durationSec % 60;
           const durationStr = `${mins}:${secs < 10 ? "0" : ""}${secs}`;
@@ -3735,6 +3791,10 @@ export function AdminDashboardPage() {
         commsAudioPlayerRef.current.pause();
         commsAudioPlayerRef.current = null;
       }
+      if (commsCurrentBlobUrlRef.current) {
+        URL.revokeObjectURL(commsCurrentBlobUrlRef.current);
+        commsCurrentBlobUrlRef.current = null;
+      }
       setCommsPlayingAudioId(null);
       return;
     }
@@ -3743,6 +3803,10 @@ export function AdminDashboardPage() {
       commsAudioPlayerRef.current.pause();
       commsAudioPlayerRef.current = null;
     }
+    if (commsCurrentBlobUrlRef.current) {
+      URL.revokeObjectURL(commsCurrentBlobUrlRef.current);
+      commsCurrentBlobUrlRef.current = null;
+    }
 
     if (!audioUrl) {
       alert("No audio file attached to this message.");
@@ -3750,7 +3814,13 @@ export function AdminDashboardPage() {
     }
 
     try {
-      const audio = new Audio(audioUrl);
+      // Convert base64 data URL into native browser Blob URL for smooth, error-free HTML5 audio playback
+      const playableUrl = createPlayableAudioUrl(audioUrl);
+      if (playableUrl.startsWith("blob:")) {
+        commsCurrentBlobUrlRef.current = playableUrl;
+      }
+
+      const audio = new Audio(playableUrl);
       commsAudioPlayerRef.current = audio;
       setCommsPlayingAudioId(id);
 
@@ -3758,17 +3828,30 @@ export function AdminDashboardPage() {
         console.error("Audio playback error:", err);
         setCommsPlayingAudioId(null);
         commsAudioPlayerRef.current = null;
+        if (commsCurrentBlobUrlRef.current) {
+          URL.revokeObjectURL(commsCurrentBlobUrlRef.current);
+          commsCurrentBlobUrlRef.current = null;
+        }
         alert("Could not play audio message.");
       });
 
       audio.onended = () => {
         setCommsPlayingAudioId(null);
         commsAudioPlayerRef.current = null;
+        if (commsCurrentBlobUrlRef.current) {
+          URL.revokeObjectURL(commsCurrentBlobUrlRef.current);
+          commsCurrentBlobUrlRef.current = null;
+        }
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error("Audio playback error on element:", e);
         setCommsPlayingAudioId(null);
         commsAudioPlayerRef.current = null;
+        if (commsCurrentBlobUrlRef.current) {
+          URL.revokeObjectURL(commsCurrentBlobUrlRef.current);
+          commsCurrentBlobUrlRef.current = null;
+        }
         alert("Could not play audio message.");
       };
     } catch (err) {
