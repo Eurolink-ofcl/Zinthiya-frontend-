@@ -28,7 +28,9 @@ import {
   AlertCircle,
   Lock,
   Download,
-  Printer
+  Printer,
+  Mail,
+  Megaphone
 } from "../components/Icons";
 
 function ZinthiyaLogo() {
@@ -117,8 +119,10 @@ function parseCampaignContent(desc: string) {
 export function DonorDashboardPage() {
   const navigate = useNavigate();
 
-  // Navigation tab state: Dashboard -> Active Campaigns -> Make a Donation -> Donation History -> Profile & Settings
-  const [activeTab, setActiveTab] = useState<"dashboard" | "campaigns" | "donate" | "donations" | "profile">("dashboard");
+  // Navigation tab state: Dashboard -> Active Campaigns -> Make a Donation -> Donation History -> Community Newsletters -> Profile & Settings
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "campaigns" | "donate" | "donations" | "newsletters" | "profile"
+  >("dashboard");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Real Database State (ZERO mock data)
@@ -126,6 +130,9 @@ export function DonorDashboardPage() {
   const [stats, setStats] = useState<DonorStats | null>(null);
   const [donations, setDonations] = useState<DonationRecord[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
+  const [newsletters, setNewsletters] = useState<any[]>([]);
+  const [newslettersLoading, setNewslettersLoading] = useState(false);
+  const [viewingNewsletterModal, setViewingNewsletterModal] = useState<any | null>(null);
 
   // Loading & Error State
   const [loading, setLoading] = useState(true);
@@ -211,17 +218,19 @@ export function DonorDashboardPage() {
 
     try {
       // Parallel fetch of real database entities
-      const [profileRes, statsRes, donationsRes, campaignsRes] = await Promise.all([
+      const [profileRes, statsRes, donationsRes, campaignsRes, newslettersRes] = await Promise.all([
         api.getDonorProfile(),
         api.getDonorStats(),
         api.getMyDonations(),
         api.getCampaigns(),
+        api.getDonorNewsletters().catch(() => ({ newsletters: [], donorConsent: { emailNewsletter: true, email: "" } })),
       ]);
 
       setDonor(profileRes);
       setStats(statsRes);
       setDonations(donationsRes);
       setCampaigns(campaignsRes);
+      setNewsletters(newslettersRes?.newsletters || []);
 
       // Populate profile form fields
       setProfileName(profileRes.fullName || "");
@@ -488,12 +497,13 @@ export function DonorDashboardPage() {
   const totalCampaignRaised = campaigns.reduce((acc, c) => acc + Number(c.raisedAmount || 0), 0);
   const totalCampaignPercent = totalCampaignTarget > 0 ? Math.min(100, Math.round((totalCampaignRaised / totalCampaignTarget) * 100)) : 0;
 
-  // Sidebar navigation items: Dashboard -> Active Campaigns -> Make a Donation -> Donation History -> Profile & Settings
+  // Sidebar navigation items: Dashboard -> Active Campaigns -> Make a Donation -> Donation History -> Community Newsletters -> Profile & Settings
   const navItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
     { id: "campaigns" as const, label: "Active Campaigns", icon: Compass, badge: campaigns.length },
     { id: "donate" as const, label: "Make a Donation", icon: Heart },
     { id: "donations" as const, label: "Donation History", icon: Clock, badge: donations.length },
+    { id: "newsletters" as const, label: "Community Newsletters", icon: Mail, badge: newsletters.length || undefined },
     { id: "profile" as const, label: "Profile & Settings", icon: User },
   ];
 
@@ -840,6 +850,7 @@ export function DonorDashboardPage() {
                   {activeTab === "campaigns" && "All Available Relief Campaigns"}
                   {activeTab === "donate" && "Make a Donation"}
                   {activeTab === "donations" && "Donation History & Receipts"}
+                  {activeTab === "newsletters" && "Community Announcements & Newsletters"}
                   {activeTab === "profile" && "Profile & Communication Preferences"}
                 </h1>
                 <p style={{ fontSize: "11px", color: "#8E7287", margin: 0 }}>
@@ -3330,7 +3341,269 @@ export function DonorDashboardPage() {
                 </div>
               )}
 
-              {/* TAB 5: PROFILE & SETTINGS (Dedicated view with DB persist) */}
+              {/* ========================================================================= */}
+              {/* TAB 5: COMMUNITY ANNOUNCEMENTS & NEWSLETTERS                              */}
+              {/* ========================================================================= */}
+              {activeTab === "newsletters" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  {/* Top Intro Card */}
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: "24px",
+                      padding: "28px",
+                      border: "1px solid rgba(230, 18, 126, 0.15)",
+                      boxShadow: "0 4px 14px rgba(36, 18, 33, 0.04)"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+                      <div>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 12px", borderRadius: "9999px", backgroundColor: "#FCE8F3", color: "#B80C64", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                          <Mail size={12} style={{ width: "12px", height: "12px" }} />
+                          <span>Community Broadcasts &amp; Impact Reports</span>
+                        </div>
+                        <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#241221", margin: 0 }}>
+                          Community Announcements &amp; Newsletters
+                        </h2>
+                        <p style={{ fontSize: "13px", color: "#5C475A", marginTop: "6px", maxWidth: "680px" }}>
+                          Stay connected with stories of direct relief, fuel voucher distributions, hardship relief metrics, and emergency appeals delivered across Leicester and Leicestershire by The Zinthiya Trust (Registered Charity #1137350).
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={loadDashboardData}
+                        disabled={loading}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "8px 16px",
+                          borderRadius: "12px",
+                          border: "1px solid #E5D5DF",
+                          backgroundColor: "#ffffff",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#5C475A",
+                          cursor: "pointer"
+                        }}
+                      >
+                        <span>Refresh Feed</span>
+                      </button>
+                    </div>
+
+                    {/* GDPR Communication Consent Banner */}
+                    <div
+                      style={{
+                        marginTop: "20px",
+                        padding: "16px 20px",
+                        borderRadius: "16px",
+                        backgroundColor: donor?.emailNewsletter ? "#ECFDF5" : "#FFFBEB",
+                        border: donor?.emailNewsletter ? "1px solid #A7F3D0" : "1px solid #FDE68A",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "12px"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                        <div
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "10px",
+                            backgroundColor: donor?.emailNewsletter ? "#D1FAE5" : "#FEF3C7",
+                            color: donor?.emailNewsletter ? "#059669" : "#D97706",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0
+                          }}
+                        >
+                          {donor?.emailNewsletter ? (
+                            <ShieldCheck size={18} style={{ width: "18px", height: "18px" }} />
+                          ) : (
+                            <AlertCircle size={18} style={{ width: "18px", height: "18px" }} />
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: 800, color: donor?.emailNewsletter ? "#065F46" : "#92400E" }}>
+                            {donor?.emailNewsletter
+                              ? "Email Newsletter Subscription Active (UK GDPR Opt-In Verified)"
+                              : "Email Broadcast Delivery Currently Disabled"}
+                          </div>
+                          <p style={{ fontSize: "12px", color: donor?.emailNewsletter ? "#047857" : "#B45309", marginTop: "2px" }}>
+                            {donor?.emailNewsletter
+                              ? `All Trust dispatches are automatically delivered to your registered inbox: ${donor?.email || "your registered email"}.`
+                              : "You are currently opted out of email delivery. All public community announcements remain available here in your portal, or you can opt in below."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("profile");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        style={{
+                          padding: "8px 14px",
+                          borderRadius: "10px",
+                          backgroundColor: "#ffffff",
+                          border: donor?.emailNewsletter ? "1px solid #A7F3D0" : "1px solid #FCD34D",
+                          color: donor?.emailNewsletter ? "#065F46" : "#92400E",
+                          fontSize: "11px",
+                          fontWeight: 800,
+                          cursor: "pointer"
+                        }}
+                      >
+                        {donor?.emailNewsletter ? "Manage Consent Preferences" : "Enable Email Newsletters"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Newsletters Cards Feed */}
+                  {newsletters.length === 0 ? (
+                    <div
+                      style={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: "24px",
+                        padding: "48px 24px",
+                        textAlign: "center",
+                        border: "1px solid rgba(230, 18, 126, 0.12)"
+                      }}
+                    >
+                      <Mail size={40} style={{ width: "40px", height: "40px", color: "#D1C2CD", margin: "0 auto 12px auto" }} />
+                      <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221" }}>
+                        No Community Newsletters Yet
+                      </h3>
+                      <p style={{ fontSize: "13px", color: "#8E7287", marginTop: "4px", maxWidth: "460px", margin: "4px auto 0 auto" }}>
+                        The Trust executive outreach team publishes seasonal impact reports and relief milestone briefings here. Please check back soon!
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {newsletters.map((item: any) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            backgroundColor: "#ffffff",
+                            borderRadius: "24px",
+                            padding: "24px",
+                            border: "1px solid rgba(230, 18, 126, 0.12)",
+                            boxShadow: "0 2px 10px rgba(36, 18, 33, 0.03)",
+                            transition: "all 0.2s ease"
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  padding: "3px 10px",
+                                  borderRadius: "9999px",
+                                  backgroundColor: "#FCE8F3",
+                                  color: "#B80C64",
+                                  fontSize: "10px",
+                                  fontWeight: 800,
+                                  textTransform: "uppercase"
+                                }}
+                              >
+                                <Sparkles size={10} style={{ width: "10px", height: "10px" }} />
+                                <span>Official Trust Update</span>
+                              </span>
+                              <span
+                                style={{
+                                  padding: "3px 8px",
+                                  borderRadius: "8px",
+                                  backgroundColor: "#F4F0F3",
+                                  color: "#5C475A",
+                                  fontSize: "11px",
+                                  fontWeight: 700
+                                }}
+                              >
+                                {item.channel === "MULTICHANNEL" ? "Multichannel Broadcast" : "Email &amp; Portal Broadcast"}
+                              </span>
+                            </div>
+
+                            <span style={{ fontSize: "12px", fontWeight: 700, color: "#8E7287" }}>
+                              {new Date(item.createdAt).toLocaleDateString("en-GB", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric"
+                              })}
+                            </span>
+                          </div>
+
+                          <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: "0 0 8px 0" }}>
+                            {item.subject}
+                          </h3>
+
+                          <div style={{ fontSize: "11px", fontWeight: 700, color: "#8E7287", marginBottom: "12px" }}>
+                            Author: <span style={{ color: "#241221" }}>{item.authorName || "Zinthiya Trust Executive Office"}</span>
+                            {item.recipientsCount > 0 && (
+                              <span> • Reached {item.recipientsCount} verified supporters</span>
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              lineHeight: "1.65",
+                              color: "#4A3947",
+                              whiteSpace: "pre-wrap",
+                              backgroundColor: "#FAF7F9",
+                              padding: "16px 18px",
+                              borderRadius: "16px",
+                              border: "1px solid rgba(230, 18, 126, 0.08)",
+                              marginBottom: "16px"
+                            }}
+                          >
+                            {item.content}
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", paddingTop: "8px", borderTop: "1px solid rgba(230, 18, 126, 0.08)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#059669", fontWeight: 700 }}>
+                              <Check size={13} style={{ width: "13px", height: "13px" }} />
+                              <span>Verified Charity Broadcast • UK Charity #1137350</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("campaigns");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "8px 16px",
+                                borderRadius: "12px",
+                                background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)",
+                                color: "#ffffff",
+                                fontSize: "12px",
+                                fontWeight: 800,
+                                border: "none",
+                                cursor: "pointer",
+                                boxShadow: "0 2px 8px rgba(230, 18, 126, 0.2)"
+                              }}
+                            >
+                              <Heart size={13} style={{ width: "13px", height: "13px" }} />
+                              <span>Support Our Work</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 6: PROFILE & SETTINGS (Dedicated view with DB persist) */}
               {activeTab === "profile" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                   <div

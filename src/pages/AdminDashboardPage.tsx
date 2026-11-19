@@ -2867,11 +2867,58 @@ export function AdminDashboardPage() {
   const [newsletterChannelFilter, setNewsletterChannelFilter] = useState<string>("ALL");
   const [showComposeNewsletterModal, setShowComposeNewsletterModal] = useState<boolean>(false);
   const [composeSubject, setComposeSubject] = useState("");
-  const [composeAudience, setComposeAudience] = useState("ALL_CONSENTED");
   const [composeChannel, setComposeChannel] = useState("EMAIL");
   const [composeBody, setComposeBody] = useState("");
   const [dispatchingNewsletter, setDispatchingNewsletter] = useState(false);
   const [newsletterSuccessMsg, setNewsletterSuccessMsg] = useState("");
+
+  // Newsletter Targeting & Consent Management (Section 5 & 6 Spec)
+  const [composeTargetMode, setComposeTargetMode] = useState<"GROUPS" | "TIERS" | "INDIVIDUAL">("GROUPS");
+  const [composeSelectedGroup, setComposeSelectedGroup] = useState<"ALL_DONORS" | "MAJOR_DONORS" | "REGULAR_DONORS">("ALL_DONORS");
+  const [composeSelectedTiers, setComposeSelectedTiers] = useState<string[]>([
+    "SUPPORTER",
+    "BRONZE",
+    "SILVER",
+    "GOLD",
+    "PLATINUM",
+  ]);
+  const [composeSelectedDonorIds, setComposeSelectedDonorIds] = useState<string[]>([]);
+  const [composeDonorSearch, setComposeDonorSearch] = useState<string>("");
+
+  // CRM Multi-Donor Selection State (Section 5 CRM Spec)
+  const [selectedCrmDonorIds, setSelectedCrmDonorIds] = useState<string[]>([]);
+
+  // Modal to view broadcast content
+  const [viewingBroadcast, setViewingBroadcast] = useState<any | null>(null);
+
+  // Live calculation of target recipients & GDPR communication consent
+  const composeTargetDonors = useMemo(() => {
+    if (composeTargetMode === "GROUPS") {
+      if (composeSelectedGroup === "ALL_DONORS") {
+        return donors;
+      } else if (composeSelectedGroup === "MAJOR_DONORS") {
+        return donors.filter((d) => Number(d.totalDonated || 0) >= 500);
+      } else if (composeSelectedGroup === "REGULAR_DONORS") {
+        return donors.filter(
+          (d) => (d.donationsCount || d.donations?.length || 0) >= 2 || Number(d.totalDonated || 0) >= 100
+        );
+      }
+      return donors;
+    } else if (composeTargetMode === "TIERS") {
+      return donors.filter((d) => composeSelectedTiers.includes(d.donationTier || "SUPPORTER"));
+    } else if (composeTargetMode === "INDIVIDUAL") {
+      return donors.filter((d) => composeSelectedDonorIds.includes(d.id));
+    }
+    return donors;
+  }, [donors, composeTargetMode, composeSelectedGroup, composeSelectedTiers, composeSelectedDonorIds]);
+
+  const composeEligibleDonors = useMemo(() => {
+    return composeTargetDonors.filter((d) => d.emailNewsletter === true);
+  }, [composeTargetDonors]);
+
+  const composeExcludedDonors = useMemo(() => {
+    return composeTargetDonors.filter((d) => !d.emailNewsletter);
+  }, [composeTargetDonors]);
 
   // Logout Modal State
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState<boolean>(false);
@@ -3040,8 +3087,14 @@ export function AdminDashboardPage() {
   async function loadNewsletterData() {
     setNewsletterLoading(true);
     try {
-      const n = await api.getNewsletterAdmin();
+      const [n, d] = await Promise.all([
+        api.getNewsletterAdmin(),
+        donors.length === 0 ? api.getDonorsAdmin() : Promise.resolve(null),
+      ]);
       setNewsletterData(n);
+      if (d && Array.isArray(d)) {
+        setDonors(d);
+      }
     } catch (err: any) {
       console.error("Failed to load newsletter data:", err);
     } finally {
@@ -3059,21 +3112,44 @@ export function AdminDashboardPage() {
       alert("Message body is required.");
       return;
     }
+    if (composeTargetDonors.length === 0) {
+      alert("Please select at least one recipient group, tier, or individual donor.");
+      return;
+    }
+    if (composeEligibleDonors.length === 0) {
+      alert(
+        "None of the selected recipients have given active communication consent. Under UK PECR & GDPR regulations, newsletters cannot be sent to non-consented supporters."
+      );
+      return;
+    }
 
     setDispatchingNewsletter(true);
     try {
       await api.dispatchNewsletterAdmin({
-        subject: composeSubject,
-        audience: composeAudience,
+        subject: composeSubject.trim(),
+        content: composeBody.trim(),
+        body: composeBody.trim(),
         channel: composeChannel,
-        body: composeBody,
+        targetType: composeTargetMode,
+        targetGroups: composeTargetMode === "GROUPS" ? [composeSelectedGroup] : [],
+        targetTiers: composeTargetMode === "TIERS" ? composeSelectedTiers : [],
+        selectedDonorIds: composeTargetMode === "INDIVIDUAL" ? composeSelectedDonorIds : [],
+        recipientsCount: composeEligibleDonors.length,
+        eligibleCount: composeEligibleDonors.length,
+        excludedCount: composeExcludedDonors.length,
+        authorName: adminProfile?.fullName
+          ? `${adminProfile.fullName} (Zinthiya Trust)`
+          : "Zinthiya Trust Executive Office",
       });
-      setNewsletterSuccessMsg("Newsletter broadcast dispatched successfully!");
+      setNewsletterSuccessMsg(
+        `Newsletter broadcast successfully sent! Delivered to ${composeEligibleDonors.length} eligible consented supporters (${composeExcludedDonors.length} excluded without consent).`
+      );
       setShowComposeNewsletterModal(false);
       setComposeSubject("");
       setComposeBody("");
+      setComposeSelectedDonorIds([]);
       loadNewsletterData();
-      setTimeout(() => setNewsletterSuccessMsg(""), 5000);
+      setTimeout(() => setNewsletterSuccessMsg(""), 6000);
     } catch (err: any) {
       alert(err.message || "Failed to dispatch newsletter.");
     } finally {
@@ -5395,6 +5471,42 @@ export function AdminDashboardPage() {
 
               {/* DONORS TABLE */}
               <div className="admin-card overflow-hidden">
+                {/* Bulk Donor Selection Banner (Section 5 UI Requirement) */}
+                {selectedCrmDonorIds.length > 0 && (
+                  <div className="p-3 bg-pink-50 border-b border-pink-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-magenta text-white flex items-center justify-center font-bold text-[10px]">
+                        {selectedCrmDonorIds.length}
+                      </span>
+                      <span className="font-bold text-slate-900">
+                        {selectedCrmDonorIds.length} donor{selectedCrmDonorIds.length > 1 ? "s" : ""} selected for targeted communication
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCrmDonorIds([])}
+                        className="px-2.5 py-1 text-slate-600 hover:text-slate-800 font-bold hover:underline cursor-pointer text-xs"
+                      >
+                        Deselect All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setComposeTargetMode("INDIVIDUAL");
+                          setComposeSelectedDonorIds([...selectedCrmDonorIds]);
+                          setShowComposeNewsletterModal(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-bold text-xs shadow-sm cursor-pointer"
+                        style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
+                      >
+                        <Mail size={13} />
+                        <span>Compose Newsletter for Selected ({selectedCrmDonorIds.length})</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {donorsLoading ? (
                   <div className="p-16 text-center text-xs text-gray-500 flex flex-col items-center justify-center gap-2">
                     <RefreshCw size={24} className="animate-spin text-magenta" />
@@ -5413,6 +5525,30 @@ export function AdminDashboardPage() {
                     <table className="admin-table w-full text-left text-xs">
                       <thead>
                         <tr>
+                          <th className="w-10 text-center py-3 px-3">
+                            <input
+                              type="checkbox"
+                              checked={
+                                filteredDonors.length > 0 &&
+                                filteredDonors.every((d) => selectedCrmDonorIds.includes(d.id))
+                              }
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const allIds = Array.from(
+                                    new Set([...selectedCrmDonorIds, ...filteredDonors.map((d) => d.id)])
+                                  );
+                                  setSelectedCrmDonorIds(allIds);
+                                } else {
+                                  const filteredSet = new Set(filteredDonors.map((d) => d.id));
+                                  setSelectedCrmDonorIds(
+                                    selectedCrmDonorIds.filter((id) => !filteredSet.has(id))
+                                  );
+                                }
+                              }}
+                              className="rounded text-magenta focus:ring-magenta cursor-pointer"
+                              title="Select all filtered donors"
+                            />
+                          </th>
                           <th>Donor Name &amp; Contact</th>
                           <th>Location</th>
                           <th>Giving Tier</th>
@@ -5429,6 +5565,24 @@ export function AdminDashboardPage() {
 
                           return (
                             <tr key={donor.id}>
+                              {/* Selection Checkbox */}
+                              <td className="w-10 text-center py-3.5 px-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedCrmDonorIds.includes(donor.id)}
+                                  onChange={() => {
+                                    if (selectedCrmDonorIds.includes(donor.id)) {
+                                      setSelectedCrmDonorIds(
+                                        selectedCrmDonorIds.filter((id) => id !== donor.id)
+                                      );
+                                    } else {
+                                      setSelectedCrmDonorIds([...selectedCrmDonorIds, donor.id]);
+                                    }
+                                  }}
+                                  className="rounded text-magenta focus:ring-magenta cursor-pointer"
+                                />
+                              </td>
+
                               {/* Name & Email */}
                               <td className="py-3.5 px-4">
                                 <div className="flex items-center gap-3">
@@ -10826,15 +10980,31 @@ export function AdminDashboardPage() {
 
                 <div className="space-y-3">
                   {(newsletterData?.campaignsHistory || []).map((camp: any) => (
-                    <div key={camp.id} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div>
-                        <div className="font-bold text-xs text-slate-900">{camp.subject}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          Sent: {new Date(camp.sentAt).toLocaleString("en-GB")} • Delivered to {camp.recipientsCount} verified supporters
+                    <div
+                      key={camp.id}
+                      className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="space-y-1">
+                        <div className="font-bold text-xs text-slate-900 flex items-center gap-2">
+                          <span>{camp.subject}</span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-pink-50 text-magenta border border-pink-100">
+                            {camp.targetType === "TIERS"
+                              ? "By Tiers"
+                              : camp.targetType === "INDIVIDUAL"
+                              ? "Individual Selection"
+                              : "By Donor Group"}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Sent: {new Date(camp.sentAt).toLocaleString("en-GB")} • Delivered to{" "}
+                          <strong className="text-emerald-700">{camp.recipientsCount || camp.eligibleCount} consented supporters</strong>
+                          {camp.excludedCount !== undefined && camp.excludedCount > 0 && (
+                            <span> ({camp.excludedCount} non-consented excluded)</span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
                         <div className="text-center px-3 py-1 bg-white rounded-xl border border-slate-100">
                           <div className="text-[10px] text-slate-400 font-semibold uppercase">Open Rate</div>
                           <div className="text-xs font-black text-emerald-600">{camp.openRate}%</div>
@@ -10844,6 +11014,15 @@ export function AdminDashboardPage() {
                           <div className="text-[10px] text-slate-400 font-semibold uppercase">Click Rate</div>
                           <div className="text-xs font-black text-blue-600">{camp.clickRate}%</div>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setViewingBroadcast(camp)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 cursor-pointer shadow-2xs"
+                        >
+                          <Eye size={12} className="text-magenta" />
+                          <span>View Message</span>
+                        </button>
 
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
                           {camp.status}
@@ -20093,25 +20272,28 @@ export function AdminDashboardPage() {
 
 
       {/* ========================================================================= */}
-      {/* MODAL: COMPOSE NEWSLETTER BROADCAST                                       */}
+      {/* MODAL: COMPOSE NEWSLETTER BROADCAST (Section 5 & 6 Document Spec)          */}
       {/* ========================================================================= */}
       {showComposeNewsletterModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
           onClick={() => setShowComposeNewsletterModal(false)}
         >
           <div
-            className="bg-white rounded-3xl p-6 max-w-xl w-full border border-pink-100 shadow-2xl relative space-y-4"
+            className="bg-white rounded-3xl p-6 max-w-2xl w-full border border-pink-100 shadow-2xl relative space-y-4 my-8 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
-                  <Mail size={18} />
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-pink-50 text-magenta flex items-center justify-center">
+                  <Mail size={20} />
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900">Compose Newsletter Broadcast</h3>
-                  <p className="text-[11px] text-slate-500">Dispatches to consented supporters in the registry.</p>
+                  <p className="text-[11px] text-slate-500">
+                    Target supporters by groups, giving tiers or individual profiles with UK GDPR &amp; PECR consent enforcement.
+                  </p>
                 </div>
               </div>
               <button
@@ -20124,32 +20306,23 @@ export function AdminDashboardPage() {
             </div>
 
             <form onSubmit={handleDispatchNewsletterSubmit} className="space-y-4 text-xs">
+              {/* Broadcast Subject Line */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Broadcast Subject Line *</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Broadcast Subject Line *
+                </label>
                 <input
                   type="text"
                   value={composeSubject}
                   onChange={(e) => setComposeSubject(e.target.value)}
-                  placeholder="e.g. Winter Crisis Grant Impact: 400 Families Supported"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                  placeholder="e.g. Leicester Winter Warmth Relief: Emergency Support & Impact Update"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
                   required
                 />
               </div>
 
+              {/* Channel and Mode Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Target Audience</label>
-                  <select
-                    value={composeAudience}
-                    onChange={(e) => setComposeAudience(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                  >
-                    <option value="ALL_CONSENTED">All Consented Donors ({newsletterData?.stats?.totalSubscribers || 0})</option>
-                    <option value="MAJOR_DONORS">Major Donors (£500+)</option>
-                    <option value="REGULAR_DONORS">Monthly Regular Donors</option>
-                  </select>
-                </div>
-
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">Dispatch Channel</label>
                   <select
@@ -20159,23 +20332,362 @@ export function AdminDashboardPage() {
                   >
                     <option value="EMAIL">Email Newsletter (Standard)</option>
                     <option value="SMS">SMS Emergency Broadcast</option>
-                    <option value="MULTICHANNEL">Multichannel (Email & SMS)</option>
+                    <option value="MULTICHANNEL">Multichannel (Email &amp; SMS)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Targeting Method *</label>
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setComposeTargetMode("GROUPS")}
+                      className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        composeTargetMode === "GROUPS"
+                          ? "bg-white text-magenta shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Groups
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setComposeTargetMode("TIERS")}
+                      className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        composeTargetMode === "TIERS"
+                          ? "bg-white text-magenta shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Giving Tiers
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setComposeTargetMode("INDIVIDUAL")}
+                      className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        composeTargetMode === "INDIVIDUAL"
+                          ? "bg-white text-magenta shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Individual
+                    </button>
+                  </div>
                 </div>
               </div>
 
+              {/* TARGETING PANEL 1: SPECIFIC DONOR GROUPS */}
+              {composeTargetMode === "GROUPS" && (
+                <div className="p-3.5 bg-pink-50/50 rounded-2xl border border-pink-100 space-y-2">
+                  <label className="block text-[11px] font-bold text-slate-700">
+                    Select Specific Donor Group
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      {
+                        id: "ALL_DONORS",
+                        title: "All Donors",
+                        desc: `${donors.length} registered supporters`,
+                      },
+                      {
+                        id: "MAJOR_DONORS",
+                        title: "Major Donors",
+                        desc: `£500+ giving (${donors.filter((d) => Number(d.totalDonated || 0) >= 500).length} supporters)`,
+                      },
+                      {
+                        id: "REGULAR_DONORS",
+                        title: "Monthly / Regular",
+                        desc: `Repeat givers (${
+                          donors.filter(
+                            (d) =>
+                              (d.donationsCount || d.donations?.length || 0) >= 2 ||
+                              Number(d.totalDonated || 0) >= 100
+                          ).length
+                        } supporters)`,
+                      },
+                    ].map((grp) => {
+                      const isSelected = composeSelectedGroup === grp.id;
+                      return (
+                        <div
+                          key={grp.id}
+                          onClick={() => setComposeSelectedGroup(grp.id as any)}
+                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                            isSelected
+                              ? "bg-white border-magenta shadow-xs ring-1 ring-magenta/20"
+                              : "bg-white/80 border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-black ${isSelected ? "text-magenta" : "text-slate-800"}`}>
+                              {grp.title}
+                            </span>
+                            <input
+                              type="radio"
+                              name="donorGroup"
+                              checked={isSelected}
+                              onChange={() => setComposeSelectedGroup(grp.id as any)}
+                              className="text-magenta focus:ring-magenta cursor-pointer"
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium">{grp.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TARGETING PANEL 2: TARGET DONORS BY DONATION TIERS */}
+              {composeTargetMode === "TIERS" && (
+                <div className="p-3.5 bg-pink-50/50 rounded-2xl border border-pink-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700">
+                      Target by Giving Tiers (Select one or more)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setComposeSelectedTiers(["SUPPORTER", "BRONZE", "SILVER", "GOLD", "PLATINUM"])
+                        }
+                        className="text-[10px] text-magenta font-bold hover:underline cursor-pointer"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setComposeSelectedTiers([])}
+                        className="text-[10px] text-slate-500 font-bold hover:underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {[
+                      { id: "SUPPORTER", label: "Supporter", range: "Up to £99" },
+                      { id: "BRONZE", label: "Bronze", range: "£100 - £499" },
+                      { id: "SILVER", label: "Silver", range: "£500 - £999" },
+                      { id: "GOLD", label: "Gold", range: "£1,000 - £4,999" },
+                      { id: "PLATINUM", label: "Platinum", range: "£5,000+" },
+                    ].map((tier) => {
+                      const isChecked = composeSelectedTiers.includes(tier.id);
+                      const count = donors.filter((d) => (d.donationTier || "SUPPORTER") === tier.id).length;
+                      return (
+                        <label
+                          key={tier.id}
+                          className={`flex flex-col p-2.5 rounded-xl border cursor-pointer transition-all ${
+                            isChecked
+                              ? "bg-white border-magenta shadow-xs ring-1 ring-magenta/20"
+                              : "bg-white/70 border-slate-200 hover:border-slate-300 opacity-60"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[11px] font-black text-slate-900">{tier.label}</span>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setComposeSelectedTiers(composeSelectedTiers.filter((t) => t !== tier.id));
+                                } else {
+                                  setComposeSelectedTiers([...composeSelectedTiers, tier.id]);
+                                }
+                              }}
+                              className="rounded text-magenta focus:ring-magenta cursor-pointer"
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-semibold">{tier.range}</span>
+                          <span className="text-[10px] text-magenta font-bold mt-1">
+                            {count} donor{count === 1 ? "" : "s"}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* TARGETING PANEL 3: SELECT INDIVIDUAL DONORS */}
+              {composeTargetMode === "INDIVIDUAL" && (
+                <div className="p-3.5 bg-pink-50/50 rounded-2xl border border-pink-100 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="relative flex-1">
+                      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Filter by name or email address..."
+                        value={composeDonorSearch}
+                        onChange={(e) => setComposeDonorSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-magenta/20"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const filtered = donors.filter((d) => {
+                            if (!composeDonorSearch.trim()) return true;
+                            const q = composeDonorSearch.toLowerCase();
+                            return d.fullName.toLowerCase().includes(q) || d.email.toLowerCase().includes(q);
+                          });
+                          setComposeSelectedDonorIds(
+                            Array.from(new Set([...composeSelectedDonorIds, ...filtered.map((d) => d.id)]))
+                          );
+                        }}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Select Filtered
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setComposeSelectedDonorIds([])}
+                        className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 divide-y divide-gray-100">
+                    {donors
+                      .filter((d) => {
+                        if (!composeDonorSearch.trim()) return true;
+                        const q = composeDonorSearch.toLowerCase();
+                        return d.fullName.toLowerCase().includes(q) || d.email.toLowerCase().includes(q);
+                      })
+                      .map((donor) => {
+                        const isSelected = composeSelectedDonorIds.includes(donor.id);
+                        return (
+                          <label
+                            key={donor.id}
+                            className={`flex items-center justify-between p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                              isSelected
+                                ? "bg-white border-magenta shadow-2xs"
+                                : "bg-white/70 border-slate-100 hover:border-slate-200"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {
+                                  if (isSelected) {
+                                    setComposeSelectedDonorIds(
+                                      composeSelectedDonorIds.filter((id) => id !== donor.id)
+                                    );
+                                  } else {
+                                    setComposeSelectedDonorIds([...composeSelectedDonorIds, donor.id]);
+                                  }
+                                }}
+                                className="rounded text-magenta focus:ring-magenta cursor-pointer"
+                              />
+                              <div>
+                                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                                  <span>{donor.fullName}</span>
+                                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-pink-50 text-magenta border border-pink-100">
+                                    {donor.donationTier || "SUPPORTER"}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-mono">{donor.email}</div>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <div className="font-extrabold text-slate-900 text-[11px]">
+                                £{Number(donor.totalDonated || 0).toFixed(2)}
+                              </div>
+                              {donor.emailNewsletter ? (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600">
+                                  <Check size={9} />
+                                  <span>Consented</span>
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
+                                  No Consent
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* LIVE RECIPIENT SUMMARY & CONSENT BREAKDOWN (Section 6 Requirement) */}
+              <div className="space-y-2 p-3 bg-slate-50/90 rounded-2xl border border-slate-200/80">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                  <span>Recipient Summary &amp; Consent Verification</span>
+                  <span className="text-slate-500 font-medium">
+                    Total Selected: <strong className="text-slate-900">{composeTargetDonors.length}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Eligible Recipients */}
+                  <div className="p-3.5 rounded-xl bg-emerald-50/90 border border-emerald-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                        Eligible Recipients
+                      </span>
+                      <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                        <Check size={11} />
+                      </div>
+                    </div>
+                    <div className="text-2xl font-black text-emerald-900">
+                      {composeEligibleDonors.length}
+                    </div>
+                    <p className="text-[11px] font-semibold text-emerald-700 leading-tight">
+                      Can receive the newsletter. Verified communication consent on file.
+                    </p>
+                  </div>
+
+                  {/* Excluded Recipients */}
+                  <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-800">
+                        Excluded Recipients
+                      </span>
+                      <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[10px]">
+                        !
+                      </div>
+                    </div>
+                    <div className="text-2xl font-black text-amber-900">
+                      {composeExcludedDonors.length}
+                    </div>
+                    <p className="text-[11px] font-semibold text-amber-700 leading-tight">
+                      Have not given consent. Automatically excluded under UK GDPR &amp; PECR.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 px-1 pt-1">
+                  <ShieldCheck size={12} className="text-emerald-600 shrink-0" />
+                  <span>
+                    UK PECR &amp; DPA 2018 Statutory Rule: Promotional and newsletter emails are restricted strictly
+                    to consented recipients.
+                  </span>
+                </div>
+              </div>
+
+              {/* Message Content */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Newsletter Message Content *</label>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Newsletter Message Content *
+                </label>
                 <textarea
                   rows={5}
                   value={composeBody}
                   onChange={(e) => setComposeBody(e.target.value)}
-                  placeholder="Dear Supporters, on behalf of The Zinthiya Trust we want to share the immense impact your donations have delivered this month..."
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                  placeholder="Dear Supporters, On behalf of The Zinthiya Trust we want to share the immense impact your charitable contributions have delivered this month across our community relief hubs..."
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
                   required
                 />
               </div>
 
+              {/* Modal Actions */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -20187,24 +20699,120 @@ export function AdminDashboardPage() {
 
                 <button
                   type="submit"
-                  disabled={dispatchingNewsletter}
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50"
+                  disabled={dispatchingNewsletter || composeEligibleDonors.length === 0}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50"
                   style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
                 >
                   {dispatchingNewsletter ? (
                     <>
                       <RefreshCw size={13} className="animate-spin" />
-                      <span>Dispatching...</span>
+                      <span>Dispatching Broadcast...</span>
                     </>
                   ) : (
                     <>
                       <Megaphone size={13} />
-                      <span>Send Broadcast Dispatch</span>
+                      <span>
+                        Send Broadcast ({composeEligibleDonors.length} Consented Supporters)
+                      </span>
                     </>
                   )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: VIEW PAST BROADCAST DISPATCH CONTENT                               */}
+      {/* ========================================================================= */}
+      {viewingBroadcast && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+          onClick={() => setViewingBroadcast(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 max-w-xl w-full border border-pink-100 shadow-2xl relative space-y-4 my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-pink-50 text-magenta flex items-center justify-center">
+                  <Mail size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">Broadcast Dispatch Details</h3>
+                  <p className="text-[11px] text-slate-500">Official Trust Newsletter Record</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingBroadcast(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Subject</span>
+                <div className="text-sm font-black text-slate-900 mt-0.5">{viewingBroadcast.subject}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold">Sent Date &amp; Time</span>
+                  <div className="font-bold text-slate-800">
+                    {new Date(viewingBroadcast.sentAt || viewingBroadcast.createdAt).toLocaleString("en-GB")}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold">Target Audience</span>
+                  <div className="font-bold text-magenta">
+                    {viewingBroadcast.targetType === "TIERS"
+                      ? `Tiers: ${(Array.isArray(viewingBroadcast.targetTiers)
+                          ? viewingBroadcast.targetTiers
+                          : []
+                        ).join(", ") || "Selected Tiers"}`
+                      : viewingBroadcast.targetType === "INDIVIDUAL"
+                      ? "Individual Donors Selection"
+                      : "Specific Donor Group"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold">Delivered Recipients</span>
+                  <div className="font-extrabold text-emerald-700">
+                    {viewingBroadcast.recipientsCount || viewingBroadcast.eligibleCount} Consented Donors
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-semibold">Excluded (No Consent)</span>
+                  <div className="font-extrabold text-amber-700">
+                    {viewingBroadcast.excludedCount ?? 0} Non-Consented
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Newsletter Content
+                </span>
+                <div className="mt-1 p-4 bg-gray-50 rounded-2xl border border-gray-100 font-medium text-slate-700 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
+                  {viewingBroadcast.content || "No content recorded for this broadcast."}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setViewingBroadcast(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

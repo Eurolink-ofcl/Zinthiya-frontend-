@@ -635,6 +635,30 @@ class ApiService {
     });
   }
 
+  async getDonorNewsletters(): Promise<{
+    newsletters: Array<{
+      id: string;
+      subject: string;
+      content: string;
+      channel: string;
+      targetType: string;
+      authorName: string;
+      createdAt: string;
+      recipientsCount: number;
+    }>;
+    donorConsent: {
+      emailNewsletter: boolean;
+      email: string;
+      fullName?: string;
+      donationTier?: string;
+    };
+  }> {
+    return this.request<any>("/donors/newsletters", {
+      method: "GET",
+      headers: this.getHeaders(true),
+    });
+  }
+
   async makeDonation(payload: CreateDonationPayload): Promise<any> {
     return this.request<any>("/donations/donor", {
       method: "POST",
