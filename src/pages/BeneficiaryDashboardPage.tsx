@@ -973,7 +973,11 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     e.preventDefault();
     try {
       setIsSubmittingRequest(true);
-      const chosenCat = requestCategory || (liveCategories.length > 0 ? liveCategories[0].name : "Emergency Food Parcel & Essentials");
+      const chosenCat = requestCategory || (liveCategories.length > 0 ? liveCategories[0].name : "");
+      if (!chosenCat) {
+        alert("Please select a valid support category.");
+        return;
+      }
       await api.submitBeneficiarySupportRequest({
         serviceType: chosenCat,
         notes: requestNotes,
@@ -6259,13 +6263,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </option>
                     ))
                   ) : (
-                    <>
-                      <option value="Emergency Food Parcel & Essentials">Emergency Food Parcel &amp; Essentials</option>
-                      <option value="Emergency Heating & Fuel Voucher">Emergency Heating &amp; Fuel Voucher</option>
-                      <option value="Domestic Abuse Crisis Sanctuary Relocation">Domestic Abuse Crisis Sanctuary Relocation</option>
-                      <option value="Winter Bedding & Warm Clothing Pack">Winter Bedding &amp; Warm Clothing Pack</option>
-                      <option value="Debt & Energy Arrears Advocacy">Debt &amp; Energy Arrears Advocacy</option>
-                    </>
+                    <option value="" disabled>
+                      Loading dynamic categories from database...
+                    </option>
                   )}
                 </select>
               </div>
