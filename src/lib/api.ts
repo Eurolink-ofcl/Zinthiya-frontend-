@@ -264,6 +264,11 @@ export interface ChatMessage {
   voiceTranscript?: string | null;
   audioUrl?: string | null;
   attachment?: ChatAttachment | null;
+  originalMessage?: string | null;
+  originalLanguage?: string | null;
+  translatedMessage?: string | null;
+  translatedLanguage?: string | null;
+  preferredLanguage?: string | null;
   detectedLanguage?: string | null;
   translationText?: string | null;
   timestamp: string;
@@ -286,6 +291,8 @@ export interface CommunicationThread {
     status: string;
     urgency: string;
   } | null;
+  preferredLanguage?: string | null;
+  preferredLanguageLabel?: string | null;
   messages: ChatMessage[];
   lastMessage?: ChatMessage | null;
   unreadCount: number;
@@ -1297,6 +1304,34 @@ class ApiService {
         "Content-Type": "application/json",
         Accept: "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /**
+   * Dynamic neural machine translation endpoint. Translates between any supported language pair.
+   */
+  async translateMessage(payload: {
+    message: string;
+    sourceLanguage?: string;
+    targetLanguage?: string;
+  }): Promise<{
+    originalMessage: string;
+    detectedLanguage: string;
+    targetLanguage: string;
+    translatedMessage: string;
+  }> {
+    return this.request<{
+      originalMessage: string;
+      detectedLanguage: string;
+      targetLanguage: string;
+      translatedMessage: string;
+    }>("/communications/translate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(payload),
     });

@@ -433,8 +433,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 text: m.text || "",
                 voiceDuration: m.voiceDuration,
                 voiceTranscript: m.voiceTranscript,
+                audioUrl: m.audioUrl || null,
+                attachment: m.attachment || null,
+                originalMessage: m.originalMessage || null,
+                originalLanguage: m.originalLanguage || null,
+                translatedMessage: m.translatedMessage || null,
+                translatedLanguage: m.translatedLanguage || null,
                 detectedLanguage: m.detectedLanguage || "English (UK)",
-                translationText: m.translationText || m.text
+                translationText: m.translationText || null
               }));
             setChatThreads({ "thread-1": formatted });
           }
@@ -477,8 +483,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           voiceTranscript: m.voiceTranscript,
           audioUrl: m.audioUrl || null,
           attachment: m.attachment || null,
+          originalMessage: m.originalMessage || null,
+          originalLanguage: m.originalLanguage || null,
+          translatedMessage: m.translatedMessage || null,
+          translatedLanguage: m.translatedLanguage || null,
           detectedLanguage: m.detectedLanguage || "English (UK)",
-          translationText: m.translationText || m.text
+          translationText: m.translationText || null
         }));
         setChatThreads({ "thread-1": formatted });
       }
@@ -747,15 +757,6 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     e.preventDefault();
     if (!messageText.trim() && !selectedAttachment) return;
 
-    // Detect non-English or default English
-    const detected = /[\u0A80-\u0AFF]/.test(messageText)
-      ? "Gujarati (ગુજરાતી)"
-      : /[\u0900-\u097F]/.test(messageText)
-      ? "Hindi (हिन्दी)"
-      : /[\u0600-\u06FF]/.test(messageText)
-      ? "Urdu (اردو)"
-      : "English (UK)";
-
     const textToSend = messageText.trim();
     const attachmentToSend = selectedAttachment;
     setMessageText("");
@@ -766,8 +767,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         text: textToSend || (attachmentToSend ? attachmentToSend.name : ""),
         type: attachmentToSend ? "attachment" : "text",
         attachment: attachmentToSend || undefined,
-        detectedLanguage: detected,
-        translationText: textToSend ? `Message from ${beneficiaryUser.fullName}: ${textToSend}` : undefined
+        sourceLanguage: "auto",
+        targetLanguage: "en",
       });
 
       if (res && Array.isArray(res.messages)) {
@@ -784,8 +785,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           voiceTranscript: m.voiceTranscript,
           audioUrl: m.audioUrl || null,
           attachment: m.attachment || null,
+          originalMessage: m.originalMessage || null,
+          originalLanguage: m.originalLanguage || null,
+          translatedMessage: m.translatedMessage || null,
+          translatedLanguage: m.translatedLanguage || null,
           detectedLanguage: m.detectedLanguage || "English (UK)",
-          translationText: m.translationText || m.text
+          translationText: m.translationText || null
         }));
         setChatThreads({ "thread-1": formatted });
       }
@@ -1019,7 +1024,27 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
   };
 
-  const handleToggleTranslate = (msgId: string | number) => {
+  const handleToggleTranslate = async (msgId: string | number) => {
+    const thread = chatThreads[activeConversationId] || [];
+    const msg = thread.find((m: any) => String(m.id) === String(msgId));
+
+    if (msg && !msg.translationText && msg.text) {
+      try {
+        const target = chatTranslationTarget || "en";
+        const res = await api.translateMessage({
+          message: msg.text,
+          sourceLanguage: "auto",
+          targetLanguage: target,
+        });
+        if (res && res.translatedMessage) {
+          msg.translationText = res.translatedMessage;
+          msg.detectedLanguage = res.detectedLanguage;
+        }
+      } catch (err) {
+        console.error("Dynamic translation failed:", err);
+      }
+    }
+
     setTranslatedMessages((prev) => ({
       ...prev,
       [msgId]: !prev[msgId]
@@ -4499,14 +4524,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       }}
                     >
                       <option value="en">English (UK)</option>
-                      <option value="gu">ગુજરાતી (Gujarati)</option>
+                      <option value="ml">മലയാളം (Malayalam)</option>
                       <option value="hi">हिन्दी (Hindi)</option>
-                      <option value="pa">ਪੰਜਾਬી (Punjabi)</option>
-                      <option value="ur">اردو (Urdu)</option>
-                      <option value="pl">Polski (Polish)</option>
-                      <option value="so">Af-Soomaali (Somali)</option>
+                      <option value="ta">தமிழ் (Tamil)</option>
                       <option value="ar">العربية (Arabic)</option>
+                      <option value="gu">ગુજરાતી (Gujarati)</option>
+                      <option value="ur">اردو (Urdu)</option>
+                      <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
                       <option value="bn">বাংলা (Bengali)</option>
+                      <option value="so">Af-Soomaali (Somali)</option>
+                      <option value="pl">Polski (Polish)</option>
+                      <option value="fr">Français (French)</option>
+                      <option value="es">Español (Spanish)</option>
                     </select>
                   </div>
 
@@ -4743,8 +4772,25 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     ) : (
                       (chatThreads[activeConversationId] || []).map((msg: any) => {
                         const isUser = msg.sender === "beneficiary";
-                        const isTranslated = !!translatedMessages[msg.id];
-                        const displayText = isTranslated ? msg.translationText : msg.text;
+                        const hasTranslation = !!msg.translationText && msg.translationText.trim() !== msg.text.trim();
+                        const isToggled = !!translatedMessages[msg.id];
+
+                        let displayText = msg.text;
+                        let showToggleOption = false;
+                        let toggleBtnLabel = "";
+
+                        if (!isUser && hasTranslation) {
+                          displayText = isToggled ? msg.text : msg.translationText;
+                          showToggleOption = true;
+                          toggleBtnLabel = isToggled ? "Show Translated Message" : "Show Original (English)";
+                        } else if (isUser && hasTranslation) {
+                          displayText = isToggled ? msg.translationText : msg.text;
+                          showToggleOption = true;
+                          toggleBtnLabel = isToggled ? "Show Original Message" : "Show Translated for Advocate (English)";
+                        } else if (!isUser && msg.text) {
+                          showToggleOption = true;
+                          toggleBtnLabel = isToggled ? "Show Original Message" : "Translate Message";
+                        }
 
                         return (
                           <div
@@ -4949,7 +4995,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               )}
 
                               {/* Message Translation Action Pill */}
-                              {msg.translationText && displayText && (
+                              {showToggleOption && displayText && (
                                 <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                   <button
                                     type="button"
@@ -4968,12 +5014,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     }}
                                   >
                                     <Languages size={11} />
-                                    <span>{isTranslated ? "Show Original" : "Translate Message"}</span>
+                                    <span>{toggleBtnLabel}</span>
                                   </button>
 
-                                  {isTranslated && (
+                                  {hasTranslation && (
                                     <span style={{ fontSize: "9.5px", color: isUser ? "rgba(255,255,255,0.7)" : "#94A3B8" }}>
-                                      AI Translated
+                                      {!isUser && !isToggled ? "⚡ Auto-translated for you" : "AI Neural Translation"}
                                     </span>
                                   )}
                                 </div>

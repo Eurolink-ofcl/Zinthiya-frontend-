@@ -3610,11 +3610,12 @@ export function AdminDashboardPage() {
     setCommsAttachment(null);
 
     try {
+      const activeThread = commsThreads.find((t) => t.beneficiaryId === selectedThreadId);
       const payload: any = {
         text: textToSend || (attachmentToSend ? attachmentToSend.name : ""),
         type: attachmentToSend ? "attachment" : "text",
         attachment: attachmentToSend || undefined,
-        detectedLanguage: "English (UK)",
+        targetLanguage: activeThread?.preferredLanguage || "auto",
       };
 
       const res = await api.sendBeneficiaryMessageAdmin(selectedThreadId, payload);
@@ -3860,7 +3861,27 @@ export function AdminDashboardPage() {
     }
   };
 
-  const handleToggleCommsTranslate = (id: string) => {
+  const handleToggleCommsTranslate = async (id: string) => {
+    const currentThread = commsThreads.find((t) => t.beneficiaryId === selectedThreadId);
+    const msg = currentThread?.messages.find((m) => m.id === id);
+
+    if (msg && !msg.translationText && msg.text) {
+      try {
+        const res = await api.translateMessage({
+          message: msg.text,
+          sourceLanguage: msg.originalLanguage || 'auto',
+          targetLanguage: 'en',
+        });
+        if (res && res.translatedMessage) {
+          msg.translationText = res.translatedMessage;
+          msg.detectedLanguage = res.detectedLanguage;
+          setCommsThreads((prev) => [...prev]);
+        }
+      } catch (err) {
+        console.error("Staff dynamic translation error:", err);
+      }
+    }
+
     setCommsTranslatedIds((prev) => ({
       ...prev,
       [id]: !prev[id],
@@ -12579,8 +12600,25 @@ export function AdminDashboardPage() {
                         ) : (
                           activeCommsThread.messages.map((msg) => {
                             const isStaff = msg.sender === "staff";
-                            const isTranslated = !!commsTranslatedIds[msg.id];
-                            const displayText = isTranslated && msg.translationText ? msg.translationText : msg.text;
+                            const hasTranslation = !!msg.translationText && msg.translationText.trim() !== msg.text.trim();
+                            const isToggled = !!commsTranslatedIds[msg.id];
+
+                            let displayText = msg.text;
+                            let showToggle = false;
+                            let toggleLabel = "";
+
+                            if (!isStaff && hasTranslation) {
+                              displayText = isToggled ? msg.text : msg.translationText;
+                              showToggle = true;
+                              toggleLabel = isToggled ? "Show English Translation for Staff" : "Show Original Beneficiary Text";
+                            } else if (isStaff && hasTranslation) {
+                              displayText = isToggled ? msg.translationText : msg.text;
+                              showToggle = true;
+                              toggleLabel = isToggled ? "Show Original English" : `Show Delivered Translation (${msg.detectedLanguage || msg.translatedLanguage || "Native"})`;
+                            } else if (!isStaff && msg.text && (!msg.originalLanguage || msg.originalLanguage !== 'en')) {
+                              showToggle = true;
+                              toggleLabel = isToggled ? "Show Original Text" : "Translate into English for Staff";
+                            }
 
                             return (
                               <div
@@ -12712,19 +12750,21 @@ export function AdminDashboardPage() {
                                   )}
 
                                   {/* 1-Click Translation for Staff */}
-                                  {!isStaff && (msg.translationText || msg.detectedLanguage?.toLowerCase().includes("gujarati") || msg.detectedLanguage?.toLowerCase().includes("hindi") || msg.detectedLanguage?.toLowerCase().includes("punjabi") || msg.detectedLanguage?.toLowerCase().includes("urdu")) && (
+                                  {showToggle && (
                                     <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                                       <button
                                         type="button"
                                         onClick={() => handleToggleCommsTranslate(msg.id)}
-                                        className="text-[10px] font-extrabold text-magenta hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                        className={`text-[10px] font-extrabold inline-flex items-center gap-1 cursor-pointer hover:underline ${
+                                          isStaff ? "text-white" : "text-magenta"
+                                        }`}
                                       >
                                         <Languages size={11} />
-                                        <span>{isTranslated ? "Show Original Beneficiary Text" : "Translate into English for Staff"}</span>
+                                        <span>{toggleLabel}</span>
                                       </button>
-                                      {isTranslated && (
-                                        <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                                          Translated to English
+                                      {!isStaff && hasTranslation && !isToggled && (
+                                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                          Auto-Translated to English
                                         </span>
                                       )}
                                     </div>
@@ -12934,6 +12974,27 @@ export function AdminDashboardPage() {
                           <span className="font-semibold text-slate-800">
                             {activeCommsThread.townCity}{activeCommsThread.postcode ? `, ${activeCommsThread.postcode}` : ""}
                           </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Language & Translation Profile */}
+                    <div className="space-y-2 text-xs">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Language & Translation
+                      </div>
+                      <div className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 space-y-1.5">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-400">Preferred Language:</span>
+                          <span className="font-bold text-slate-900 inline-flex items-center gap-1">
+                            <Globe size={11} className="text-blue-600" />
+                            <span>{activeCommsThread.preferredLanguageLabel || activeCommsThread.preferredLanguage || "English (UK)"}</span>
+                          </span>
+                        </div>
+                        <div className="text-[10.5px] text-slate-500">
+                          {activeCommsThread.preferredLanguage && activeCommsThread.preferredLanguage !== "en"
+                            ? "⚡ AI Neural Machine Translation active. Inbound messages auto-translated to English; staff replies automatically translated into beneficiary's preferred language."
+                            : "Standard English casework correspondence."}
                         </div>
                       </div>
                     </div>
