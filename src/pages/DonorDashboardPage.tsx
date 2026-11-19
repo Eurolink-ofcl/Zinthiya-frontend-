@@ -3826,16 +3826,6 @@ export function DonorDashboardPage() {
                             />
                             <span>Receive our monthly community impact email newsletter</span>
                           </label>
-
-                          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13px", color: "#5C475A" }}>
-                            <input
-                              type="checkbox"
-                              checked={profileSms}
-                              onChange={(e) => setProfileSms(e.target.checked)}
-                              style={{ width: "16px", height: "16px", accentColor: "#E6127E" }}
-                            />
-                            <span>Receive critical urgent relief campaign SMS alerts</span>
-                          </label>
                         </div>
                       </div>
 

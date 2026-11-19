@@ -12831,12 +12831,6 @@ export function AdminDashboardPage() {
                 <span className={`px-2.5 py-1 rounded-full font-bold ${viewingDonor.generalConsent ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-600"}`}>
                   General Consent: {viewingDonor.generalConsent ? "Granted" : "Withheld"}
                 </span>
-                <span className={`px-2.5 py-1 rounded-full font-bold ${viewingDonor.smsAlerts ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-600"}`}>
-                  SMS Alerts: {viewingDonor.smsAlerts ? "Active" : "Disabled"}
-                </span>
-                <span className={`px-2.5 py-1 rounded-full font-bold ${viewingDonor.postalUpdates ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-600"}`}>
-                  Postal Mail: {viewingDonor.postalUpdates ? "Active" : "Disabled"}
-                </span>
               </div>
             </div>
 
@@ -13538,16 +13532,6 @@ export function AdminDashboardPage() {
                   />
                   <span>General Contact &amp; Outreach Consent</span>
                 </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newDonorSms}
-                    onChange={(e) => setNewDonorSms(e.target.checked)}
-                    className="accent-magenta w-4 h-4"
-                  />
-                  <span>Receive Emergency Relief SMS Alerts</span>
-                </label>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-3">
@@ -13697,26 +13681,6 @@ export function AdminDashboardPage() {
                     className="accent-magenta w-4 h-4"
                   />
                   <span>General Contact Permission</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editDonorSms}
-                    onChange={(e) => setEditDonorSms(e.target.checked)}
-                    className="accent-magenta w-4 h-4"
-                  />
-                  <span>SMS Emergency Alerts</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editDonorPostal}
-                    onChange={(e) => setEditDonorPostal(e.target.checked)}
-                    className="accent-magenta w-4 h-4"
-                  />
-                  <span>Postal Updates</span>
                 </label>
               </div>
 
