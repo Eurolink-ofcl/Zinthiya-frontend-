@@ -6068,16 +6068,15 @@ export function AdminDashboardPage() {
                               </button>
 
                               {/* Delete Option */}
-                              {isCustom && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteCustomTier(tier.id)}
-                                  className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200/80 hover:border-red-200 transition-all cursor-pointer shadow-2xs"
-                                  title={`Delete ${tier.name}`}
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                disabled={settingDonationTiers.length <= 1}
+                                onClick={() => handleDeleteCustomTier(tier.id)}
+                                className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200/80 hover:border-red-200 transition-all cursor-pointer shadow-2xs disabled:opacity-20 disabled:cursor-not-allowed"
+                                title={settingDonationTiers.length <= 1 ? "At least one giving tier must be retained" : `Delete ${tier.name}`}
+                              >
+                                <Trash2 size={12} />
+                              </button>
                             </div>
                           </div>
 
@@ -13205,17 +13204,15 @@ export function AdminDashboardPage() {
                         >
                           <Edit size={13} />
                         </button>
-                        {isCustom && (
-                          <button
-                            type="button"
-                            disabled={settingDonationTiers.length <= 1}
-                            onClick={() => setDeletingTier(tier)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                            title={`Delete ${tier.name}`}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          disabled={settingDonationTiers.length <= 1}
+                          onClick={() => setDeletingTier(tier)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                          title={settingDonationTiers.length <= 1 ? "At least one giving tier must be retained" : `Delete ${tier.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
                   );
