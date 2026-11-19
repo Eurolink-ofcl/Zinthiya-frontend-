@@ -601,7 +601,7 @@ class ApiService {
   // Token & Session Storage
   getToken(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("zinthiya_token");
+    return localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token");
   }
 
   setSession(user: DonorUser, token: string): void {
@@ -1249,13 +1249,20 @@ class ApiService {
     assignedAdvocate?: string | null;
     messages: ChatMessage[];
   }> {
+    const token = typeof window !== "undefined"
+      ? (localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token"))
+      : null;
     return this.request<{
       beneficiaryId: string;
       assignedAdvocate?: string | null;
       messages: ChatMessage[];
     }>("/auth/beneficiary/messages", {
       method: "GET",
-      headers: this.getHeaders(true),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
   }
 
@@ -1267,9 +1274,16 @@ class ApiService {
     detectedLanguage?: string;
     translationText?: string;
   }): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {
+    const token = typeof window !== "undefined"
+      ? (localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token"))
+      : null;
     return this.request<{ message: ChatMessage; messages: ChatMessage[] }>("/auth/beneficiary/messages", {
       method: "POST",
-      headers: this.getHeaders(true),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(payload),
     });
   }

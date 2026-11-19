@@ -4015,6 +4015,8 @@ export function AdminDashboardPage() {
       loadCommunicationsData();
       loadStaffData();
       loadBeneficiariesData();
+      const interval = setInterval(loadCommunicationsData, 4000);
+      return () => clearInterval(interval);
     } else if (activeTab === "newsletter") {
       loadNewsletterData();
     } else if (activeTab === "reports") {

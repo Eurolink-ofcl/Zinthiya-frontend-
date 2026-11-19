@@ -364,6 +364,26 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
             primaryLanguage: "English (United Kingdom)",
             interpreterNeeded: false
           });
+
+          if (Array.isArray(u.communicationLogs)) {
+            const formatted = u.communicationLogs
+              .filter((m: any) => m && (m.isChatMessage || m.sender || m.text))
+              .map((m: any) => ({
+                id: m.id || `m-${Date.now()}`,
+                sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
+                name: m.name || m.staffName || (m.sender === "beneficiary" ? u.fullName : (u.assignedAdvocate || "Caseworker")),
+                time: m.timestamp
+                  ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "Just now",
+                type: m.type || "text",
+                text: m.text || "",
+                voiceDuration: m.voiceDuration,
+                voiceTranscript: m.voiceTranscript,
+                detectedLanguage: m.detectedLanguage || "English (UK)",
+                translationText: m.translationText || m.text
+              }));
+            setChatThreads({ "thread-1": formatted });
+          }
         }
         if (data && data.requests) setLiveRequests(data.requests);
         if (data && data.allocations) setLiveAllocations(data.allocations);
@@ -393,7 +413,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         const formatted = res.messages.map((m: any) => ({
           id: m.id || `m-${Date.now()}`,
           sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
-          name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : (res.assignedAdvocate || "Caseworker")),
+          name: m.name || m.staffName || (m.sender === "beneficiary" ? beneficiaryUser.fullName : (res.assignedAdvocate || "Caseworker")),
           time: m.timestamp
             ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             : "Just now",
@@ -414,6 +434,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   useEffect(() => {
     if (activeTab === "messages") {
       loadBeneficiaryMessages();
+      const interval = setInterval(loadBeneficiaryMessages, 4000);
+      return () => clearInterval(interval);
     }
   }, [activeTab]);
 
