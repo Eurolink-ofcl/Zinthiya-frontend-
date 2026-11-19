@@ -622,16 +622,18 @@ export function AdminDashboardPage() {
     }
   }
 
-  async function handleDeleteCampaign(campaign: CampaignRecord) {
+  async function handleDeleteCampaign(campaign: CampaignRecord, force = false) {
     try {
-      await api.deleteCampaignAdmin(campaign.id);
-      setActionSuccessMsg(`Campaign "${campaign.title}" was successfully processed.`);
+      await api.deleteCampaignAdmin(campaign.id, force);
+      // Immediately remove from local state for instant feedback
+      setCampaigns((prev) => prev.filter((c) => c.id !== campaign.id));
+      setActionSuccessMsg(`Campaign "${campaign.title}" was successfully deleted.`);
       setDeletingCampaign(null);
       await loadCampaignsData();
       await loadDashboardData();
       setTimeout(() => setActionSuccessMsg(""), 4000);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to delete campaign .");
+      setErrorMsg(err.message || "Failed to delete campaign.");
     }
   }
 
@@ -4129,17 +4131,18 @@ export function AdminDashboardPage() {
       const type = c.campaignType || "INTERNAL";
       const matchType = campaignTypeFilter === "ALL" ? true : type === campaignTypeFilter;
 
+      const isArchived = Boolean(c.archived) || c.status === "ARCHIVED";
       const matchStatus =
         campaignStatusFilter === "ALL"
-          ? true
+          ? !isArchived
           : campaignStatusFilter === "ACTIVE"
-          ? (c.status === "ACTIVE" || (!c.status && c.active && !c.archived))
+          ? (c.status === "ACTIVE" || (!c.status && c.active)) && !isArchived
           : campaignStatusFilter === "DRAFT"
-          ? c.status === "DRAFT"
+          ? c.status === "DRAFT" && !isArchived
           : campaignStatusFilter === "COMPLETED"
-          ? c.status === "COMPLETED"
+          ? c.status === "COMPLETED" && !isArchived
           : campaignStatusFilter === "ARCHIVED"
-          ? (c.status === "ARCHIVED" || c.archived)
+          ? isArchived
           : true;
 
       return matchSearch && matchType && matchStatus;
@@ -4219,15 +4222,16 @@ export function AdminDashboardPage() {
     .filter((dn) => dn.status === "COMPLETED" && dn.giftAid)
     .reduce((sum, dn) => sum + Number(dn.amount || 0) * 0.25, 0);
 
-  const totalActiveCampaigns = campaigns.filter((c) => (c.status === "ACTIVE" || (!c.status && c.active)) && !c.archived).length;
-  const internalCampaignsCount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL").length;
-  const externalCampaignsCount = campaigns.filter((c) => c.campaignType === "EXTERNAL").length;
-  const internalRaisedAmount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL").reduce((sum, c) => sum + Number(c.raisedAmount || 0), 0);
-  const externalRaisedAmount = campaigns.filter((c) => c.campaignType === "EXTERNAL").reduce((sum, c) => sum + Number(c.raisedAmount || 0), 0);
+  const totalActiveCampaigns = campaigns.filter((c) => (c.status === "ACTIVE" || (!c.status && c.active)) && !c.archived && c.status !== "ARCHIVED").length;
+  const internalCampaignsCount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL" && !c.archived && c.status !== "ARCHIVED").length;
+  const externalCampaignsCount = campaigns.filter((c) => c.campaignType === "EXTERNAL" && !c.archived && c.status !== "ARCHIVED").length;
+  const internalRaisedAmount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL" && !c.archived && c.status !== "ARCHIVED").reduce((sum, c) => sum + Number(c.raisedAmount || 0), 0);
+  const externalRaisedAmount = campaigns.filter((c) => c.campaignType === "EXTERNAL" && !c.archived && c.status !== "ARCHIVED").reduce((sum, c) => sum + Number(c.raisedAmount || 0), 0);
   const totalCampaignTarget = campaigns
     .filter((c) => !c.archived && c.status !== "ARCHIVED")
     .reduce((sum, c) => sum + Number(c.targetAmount || 0), 0);
   const totalCampaignRaised = campaigns
+    .filter((c) => !c.archived && c.status !== "ARCHIVED")
     .reduce((sum, c) => sum + Number(c.raisedAmount || 0), 0);
   const totalCampaignProgress =
     totalCampaignTarget > 0 ? Math.min(100, Math.round((totalCampaignRaised / totalCampaignTarget) * 100)) : 0;
@@ -14889,22 +14893,25 @@ export function AdminDashboardPage() {
               <Trash2 size={24} />
             </div>
             <h3 className="text-base font-extrabold text-slate-900 text-center">
-              Delete or Archive Campaign?
+              Delete Campaign
             </h3>
             <p className="text-xs text-slate-600 text-center mt-2 leading-relaxed">
-              Are you sure you want to remove &quot;<strong>{deletingCampaign.title}</strong>&quot;?
+              Are you sure you want to delete &quot;<strong>{deletingCampaign.title}</strong>&quot;?
             </p>
             {deletingCampaign.donationsCount && deletingCampaign.donationsCount > 0 ? (
-              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900">
-                <strong>Notice:</strong> This campaign has <strong>{deletingCampaign.donationsCount} recorded donation(s)</strong> in the financial audit ledger. To maintain regulatory compliance, it will be safely <strong>Archived</strong> rather than erased.
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+                <strong>Audit Ledger Notice:</strong> This campaign has <strong>{deletingCampaign.donationsCount} recorded donation(s)</strong>.
+                <p className="mt-1 text-slate-600">
+                  You can safely <strong>Archive</strong> it to hide it from active views, or <strong>Permanently Delete</strong> it (donations will be preserved as unassigned gifts in the audit ledger).
+                </p>
               </div>
             ) : (
               <p className="text-[11px] text-slate-400 text-center mt-1">
-                This cause has zero recorded donations and will be permanently deleted.
+                This campaign has zero recorded donations and will be permanently deleted from the system.
               </p>
             )}
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setDeletingCampaign(null)}
@@ -14912,13 +14919,32 @@ export function AdminDashboardPage() {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteCampaign(deletingCampaign)}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm cursor-pointer"
-              >
-                Confirm Removal
-              </button>
+              {deletingCampaign.donationsCount && deletingCampaign.donationsCount > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCampaign(deletingCampaign, false)}
+                    className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                  >
+                    Archive Cause
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCampaign(deletingCampaign, true)}
+                    className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                  >
+                    Permanently Delete
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteCampaign(deletingCampaign, true)}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  Confirm Delete
+                </button>
+              )}
             </div>
           </div>
         </div>

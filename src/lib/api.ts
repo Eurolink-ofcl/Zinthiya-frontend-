@@ -959,8 +959,9 @@ class ApiService {
     });
   }
 
-  async deleteCampaignAdmin(id: string): Promise<any> {
-    return this.request<any>(`/admin/campaigns/${id}`, {
+  async deleteCampaignAdmin(id: string, force = false): Promise<any> {
+    const qs = force ? "?force=true" : "";
+    return this.request<any>(`/admin/campaigns/${id}${qs}`, {
       method: "DELETE",
       headers: this.getHeaders(false),
     });
