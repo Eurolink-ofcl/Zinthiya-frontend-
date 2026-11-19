@@ -845,11 +845,11 @@ class ApiService {
     });
   }
 
-  async updateBeneficiaryRequestStatus(id: string, status: string, reviewNotes?: string): Promise<any> {
+  async updateBeneficiaryRequestStatus(id: string, status: string, reviewNotes?: string, assignedAdvocate?: string): Promise<any> {
     return this.request<any>(`/admin/beneficiary-requests/${id}/status`, {
       method: "PATCH",
       headers: this.getHeaders(false),
-      body: JSON.stringify({ status, reviewNotes }),
+      body: JSON.stringify({ status, reviewNotes, assignedAdvocate }),
     });
   }
 

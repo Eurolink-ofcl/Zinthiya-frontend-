@@ -1104,6 +1104,7 @@ export function AdminDashboardPage() {
   // Form states for Application Review
   const [reviewStatusValue, setReviewStatusValue] = useState("APPROVED");
   const [reviewNotesValue, setReviewNotesValue] = useState("");
+  const [reviewAdvocateValue, setReviewAdvocateValue] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
   // Form states for Assign Advocate
@@ -1388,15 +1389,28 @@ export function AdminDashboardPage() {
 
     setSubmittingReview(true);
     try {
+      const chosenAdvocate = reviewAdvocateValue.trim() && reviewAdvocateValue.trim() !== "UNASSIGNED" ? reviewAdvocateValue.trim() : undefined;
       await api.updateBeneficiaryRequestStatus(
         reviewingRequestItem.request.id,
         reviewStatusValue,
-        reviewNotesValue.trim() || undefined
+        reviewNotesValue.trim() || undefined,
+        chosenAdvocate
       );
 
-      setActionSuccessMsg(`Application for ${reviewingRequestItem.beneficiary.fullName} (${reviewingRequestItem.request.serviceType}) updated to ${reviewStatusValue} successfully!`);
+      if (chosenAdvocate) {
+        try {
+          await api.assignBeneficiaryAdvocateAdmin(reviewingRequestItem.beneficiary.id, chosenAdvocate);
+        } catch {}
+      }
+
+      setActionSuccessMsg(
+        `Application for ${reviewingRequestItem.beneficiary.fullName} (${reviewingRequestItem.request.serviceType}) updated to ${reviewStatusValue} successfully!${
+          chosenAdvocate ? ` Assigned advocate: ${chosenAdvocate}.` : ""
+        }`
+      );
       setReviewingRequestItem(null);
       setReviewNotesValue("");
+      setReviewAdvocateValue("");
 
       await loadBeneficiariesData();
       await loadDashboardData();
@@ -7252,6 +7266,7 @@ export function AdminDashboardPage() {
                                           setReviewingRequestItem({ beneficiary: b, request: latestReq });
                                           setReviewStatusValue(latestReq.status);
                                           setReviewNotesValue(latestReq.reviewNotes || latestReq.notes || "");
+                                          setReviewAdvocateValue(b.assignedAdvocate || "");
                                         }}
                                         style={{
                                           display: "inline-flex",
@@ -7399,6 +7414,7 @@ export function AdminDashboardPage() {
                                         setReviewingRequestItem({ beneficiary: b, request: latestReq });
                                         setReviewStatusValue("APPROVED");
                                         setReviewNotesValue(latestReq.reviewNotes || latestReq.notes || "");
+                                        setReviewAdvocateValue(b.assignedAdvocate || "");
                                       }}
                                       title="Review & Approve Pending Application"
                                       style={{
@@ -18409,6 +18425,7 @@ export function AdminDashboardPage() {
                                 setReviewingRequestItem({ beneficiary: viewingBeneficiary, request: req });
                                 setReviewStatusValue(req.status);
                                 setReviewNotesValue(req.reviewNotes || req.notes || "");
+                                setReviewAdvocateValue(viewingBeneficiary.assignedAdvocate || "");
                               }}
                               className="px-2.5 py-1 rounded-lg text-xs font-bold text-magenta bg-pink-50 hover:bg-pink-100 cursor-pointer"
                             >
@@ -19122,6 +19139,52 @@ export function AdminDashboardPage() {
   boxSizing: "border-box",
 }}
                 />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                    Assign Casework Advocate {reviewStatusValue === "APPROVED" ? "(Recommended upon Approval)" : "(Optional)"}
+                  </label>
+                  {reviewingRequestItem.beneficiary.assignedAdvocate ? (
+                    <span className="text-[10px] text-slate-500 font-semibold">
+                      Currently: <strong className="text-magenta">{reviewingRequestItem.beneficiary.assignedAdvocate.split("(")[0].trim()}</strong>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      Currently Unassigned
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <select
+                    value={reviewAdvocateValue}
+                    onChange={(e) => setReviewAdvocateValue(e.target.value)}
+                    style={{
+                      width: "100%",
+                      height: "44px",
+                      minHeight: "44px",
+                      padding: "0 14px",
+                      fontSize: "13px",
+                      color: "#0F172A",
+                      backgroundColor: "#FFFFFF",
+                      border: "1.5px solid #CBD5E1",
+                      borderRadius: "12px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <option value="">-- Keep Unassigned (Assign Later) --</option>
+                    {activeAdvocatesList.map((adv) => (
+                      <option key={adv.id} value={adv.display}>
+                        {adv.display} • {adv.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  When a beneficiary self-registers online, their advocate is initially unassigned. Approving this application allows you to assign a dedicated casework advocate immediately or leave it unassigned to allocate later.
+                </p>
               </div>
 
               <div style={{ paddingTop: "16px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", borderTop: "1px solid #F1F5F9", marginTop: "12px" }}>
