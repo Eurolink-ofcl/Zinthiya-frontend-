@@ -3106,12 +3106,34 @@ export function AdminDashboardPage() {
 
   // Custom Giving Tier Modal State (Section 5 CRM Spec)
   const [showAddCustomTierModal, setShowAddCustomTierModal] = useState<boolean>(false);
+  const [editingTierId, setEditingTierId] = useState<string | null>(null);
+  const [deletingTier, setDeletingTier] = useState<DonationTierConfig | null>(null);
   const [tierModalName, setTierModalName] = useState<string>("");
   const [tierModalAmount, setTierModalAmount] = useState<string>("");
   const [tierModalColor, setTierModalColor] = useState<string>("emerald");
   const [tierModalDescription, setTierModalDescription] = useState<string>("");
   const [tierModalSaving, setTierModalSaving] = useState<boolean>(false);
   const [tierModalError, setTierModalError] = useState<string>("");
+
+  function openAddTierModal() {
+    setEditingTierId(null);
+    setTierModalName("");
+    setTierModalAmount("");
+    setTierModalColor("emerald");
+    setTierModalDescription("");
+    setTierModalError("");
+    setShowAddCustomTierModal(true);
+  }
+
+  function openEditTierModal(tier: DonationTierConfig) {
+    setEditingTierId(tier.id);
+    setTierModalName(tier.name);
+    setTierModalAmount(String(tier.minAmount));
+    setTierModalColor(tier.color || "emerald");
+    setTierModalDescription(tier.description || "");
+    setTierModalError("");
+    setShowAddCustomTierModal(true);
+  }
 
   async function handleSaveCustomTier(e?: React.FormEvent) {
     if (e && e.preventDefault) e.preventDefault();
@@ -3128,17 +3150,34 @@ export function AdminDashboardPage() {
 
     setTierModalSaving(true);
     try {
-      const newTier: DonationTierConfig = {
-        id: `TIER_${Date.now()}`,
-        name: tierModalName.trim(),
-        minAmount: amt,
-        color: tierModalColor || "emerald",
-        description: tierModalDescription.trim() || `Donors contributing £${amt.toFixed(2)} or more`,
-      };
-
-      const updatedTiers = [...settingDonationTiers, newTier].sort(
-        (a, b) => Number(a.minAmount) - Number(b.minAmount)
-      );
+      let updatedTiers: DonationTierConfig[];
+      if (editingTierId) {
+        // Update existing tier
+        updatedTiers = settingDonationTiers.map((t) => {
+          if (t.id === editingTierId) {
+            return {
+              ...t,
+              name: tierModalName.trim(),
+              minAmount: amt,
+              color: tierModalColor || t.color || "emerald",
+              description: tierModalDescription.trim() || `Donors contributing £${amt.toFixed(2)} or more`,
+            };
+          }
+          return t;
+        }).sort((a, b) => Number(a.minAmount) - Number(b.minAmount));
+      } else {
+        // Create new tier
+        const newTier: DonationTierConfig = {
+          id: `TIER_${Date.now()}`,
+          name: tierModalName.trim(),
+          minAmount: amt,
+          color: tierModalColor || "emerald",
+          description: tierModalDescription.trim() || `Donors contributing £${amt.toFixed(2)} or more`,
+        };
+        updatedTiers = [...settingDonationTiers, newTier].sort(
+          (a, b) => Number(a.minAmount) - Number(b.minAmount)
+        );
+      }
 
       setSettingDonationTiers(updatedTiers);
 
@@ -3153,12 +3192,18 @@ export function AdminDashboardPage() {
 
       await api.updateSystemSettings(currentPayload);
 
-      setActionSuccessMsg(`Giving Tier "${newTier.name}" (£${amt.toFixed(2)}+) added successfully!`);
+      setActionSuccessMsg(
+        editingTierId
+          ? `Giving Tier "${tierModalName.trim()}" updated successfully!`
+          : `Giving Tier "${tierModalName.trim()}" (£${amt.toFixed(2)}+) added successfully!`
+      );
       setShowAddCustomTierModal(false);
+      setEditingTierId(null);
       setTierModalName("");
       setTierModalAmount("");
       setTierModalDescription("");
       setTierModalColor("emerald");
+      setTimeout(() => setActionSuccessMsg(""), 4000);
     } catch (err: any) {
       setTierModalError(err.message || "Failed to save custom giving tier.");
     } finally {
@@ -3166,18 +3211,17 @@ export function AdminDashboardPage() {
     }
   }
 
-  async function handleDeleteCustomTier(tierId: string) {
+  async function confirmDeleteTier(tierId: string) {
     if (settingDonationTiers.length <= 1) {
       alert("At least one base giving tier must be retained in the system.");
+      setDeletingTier(null);
       return;
     }
     const target = settingDonationTiers.find((t) => t.id === tierId);
-    if (!window.confirm(`Are you sure you want to delete the giving tier "${target?.name || tierId}"?`)) {
-      return;
-    }
 
     const updatedTiers = settingDonationTiers.filter((t) => t.id !== tierId);
     setSettingDonationTiers(updatedTiers);
+    setDeletingTier(null);
 
     const currentPayload = {
       ...(systemSettings || {}),
@@ -3188,7 +3232,15 @@ export function AdminDashboardPage() {
       await api.updateSystemSettings(currentPayload);
     } catch {}
 
-    setActionSuccessMsg(`Giving tier "${target?.name || tierId}" deleted.`);
+    setActionSuccessMsg(`Giving tier "${target?.name || tierId}" was successfully deleted.`);
+    setTimeout(() => setActionSuccessMsg(""), 4000);
+  }
+
+  async function handleDeleteCustomTier(tierId: string) {
+    const target = settingDonationTiers.find((t) => t.id === tierId);
+    if (target) {
+      setDeletingTier(target);
+    }
   }
 
   async function handleResetDefaultTiers() {
@@ -5848,14 +5900,7 @@ export function AdminDashboardPage() {
                 >
                   <button
                     type="button"
-                    onClick={() => {
-                      setTierModalName("");
-                      setTierModalAmount("");
-                      setTierModalDescription("");
-                      setTierModalColor("emerald");
-                      setTierModalError("");
-                      setShowAddCustomTierModal(true);
-                    }}
+                    onClick={openAddTierModal}
                     className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 shadow-xs cursor-pointer transition-all"
                     style={{
                       display: "inline-flex",
@@ -5932,14 +5977,7 @@ export function AdminDashboardPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        setTierModalName("");
-                        setTierModalAmount("");
-                        setTierModalDescription("");
-                        setTierModalColor("emerald");
-                        setTierModalError("");
-                        setShowAddCustomTierModal(true);
-                      }}
+                      onClick={openAddTierModal}
                       className="text-[10px] font-bold text-magenta hover:underline cursor-pointer"
                     >
                       + Manage
@@ -5993,14 +6031,7 @@ export function AdminDashboardPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setTierModalName("");
-                        setTierModalAmount("");
-                        setTierModalDescription("");
-                        setTierModalColor("emerald");
-                        setTierModalError("");
-                        setShowAddCustomTierModal(true);
-                      }}
+                      onClick={openAddTierModal}
                       className="btn-3d-magenta px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-1.5 shadow-sm cursor-pointer transition-transform hover:scale-[1.02]"
                     >
                       <Award size={13} />
@@ -6025,16 +6056,29 @@ export function AdminDashboardPage() {
                         <div>
                           <div className="flex items-center justify-between gap-1.5 mb-2">
                             <DonorTierBadge tier={tier.name} tiers={settingDonationTiers} />
-                            {isCustom && (
+                            <div className="flex items-center gap-1">
+                              {/* Edit Option */}
                               <button
                                 type="button"
-                                onClick={() => handleDeleteCustomTier(tier.id)}
-                                className="text-slate-300 hover:text-red-600 p-1 rounded-md transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
-                                title={`Delete custom tier "${tier.name}"`}
+                                onClick={() => openEditTierModal(tier)}
+                                className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-magenta hover:bg-pink-50 border border-slate-200/80 hover:border-pink-200 transition-all cursor-pointer shadow-2xs"
+                                title={`Edit ${tier.name}`}
                               >
-                                <Trash2 size={13} />
+                                <Edit size={12} />
                               </button>
-                            )}
+
+                              {/* Delete Option */}
+                              {isCustom && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomTier(tier.id)}
+                                  className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200/80 hover:border-red-200 transition-all cursor-pointer shadow-2xs"
+                                  title={`Delete ${tier.name}`}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           <div className="mt-2">
@@ -12966,9 +13010,13 @@ export function AdminDashboardPage() {
               <div className="w-12 h-12 rounded-2xl bg-pink-50 text-magenta flex items-center justify-center mx-auto mb-2">
                 <Award size={24} />
               </div>
-              <h2 className="text-xl font-black text-gray-900">Add Custom Giving Tier</h2>
+              <h2 className="text-xl font-black text-gray-900">
+                {editingTierId ? "Edit Giving Tier" : "Add Custom Giving Tier"}
+              </h2>
               <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
-                Define the tier title, minimum cumulative donation threshold in GBP (£), and badge styling. Donors are automatically categorized when their giving reaches this level.
+                {editingTierId
+                  ? "Update the tier title, minimum cumulative donation threshold in GBP (£), theme color, and recognition perks."
+                  : "Define the tier title, minimum cumulative donation threshold in GBP (£), and badge styling. Donors are automatically categorized when their giving reaches this level."}
               </p>
             </div>
 
@@ -13095,12 +13143,12 @@ export function AdminDashboardPage() {
                   {tierModalSaving ? (
                     <>
                       <RefreshCw size={14} className="animate-spin" />
-                      <span>Saving Tier...</span>
+                      <span>{editingTierId ? "Updating Tier..." : "Saving Tier..."}</span>
                     </>
                   ) : (
                     <>
                       <Check size={14} />
-                      <span>Save &amp; Apply Giving Tier</span>
+                      <span>{editingTierId ? "Update Giving Tier" : "Save & Apply Giving Tier"}</span>
                     </>
                   )}
                 </button>
@@ -13131,6 +13179,7 @@ export function AdminDashboardPage() {
                   const donorCount = donors.filter(
                     (d) => getDonorTierConfig(d, settingDonationTiers).id === tier.id
                   ).length;
+                  const isCustom = tier.id.startsWith("TIER_") || (tier.id !== "SUPPORTER" && tier.id !== "BRONZE" && tier.id !== "SILVER" && tier.id !== "GOLD" && tier.id !== "PLATINUM");
 
                   return (
                     <div
@@ -13147,19 +13196,101 @@ export function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        disabled={settingDonationTiers.length <= 1}
-                        onClick={() => handleDeleteCustomTier(tier.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
-                        title="Delete giving tier"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditTierModal(tier)}
+                          className="p-1.5 text-gray-400 hover:text-magenta hover:bg-pink-50 rounded-lg transition-colors cursor-pointer"
+                          title={`Edit ${tier.name}`}
+                        >
+                          <Edit size={13} />
+                        </button>
+                        {isCustom && (
+                          <button
+                            type="button"
+                            disabled={settingDonationTiers.length <= 1}
+                            onClick={() => setDeletingTier(tier)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                            title={`Delete ${tier.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1.6: CONFIRM DELETE GIVING TIER                                     */}
+      {/* ========================================================================= */}
+      {deletingTier && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10000,
+            backgroundColor: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem"
+          }}
+          onClick={() => setDeletingTier(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-pink-100 shadow-2xl relative"
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: "1.5rem",
+              padding: "2rem",
+              maxWidth: "28rem",
+              width: "100%",
+              position: "relative",
+              border: "1px solid #FCE7F3",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-900 text-center">
+              Delete Giving Tier
+            </h3>
+            <p className="text-xs text-slate-600 text-center mt-2 leading-relaxed">
+              Are you sure you want to delete the giving tier &quot;<strong>{deletingTier.name}</strong>&quot; (£{Number(deletingTier.minAmount).toFixed(2)}+)?
+            </p>
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+              <strong>Notice:</strong> Donors currently assigned to this tier will be automatically re-categorized into the appropriate active tier based on their cumulative contribution.
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setDeletingTier(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmDeleteTier(deletingTier.id)}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+              >
+                Confirm Delete
+              </button>
             </div>
           </div>
         </div>
