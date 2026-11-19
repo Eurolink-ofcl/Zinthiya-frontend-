@@ -3312,51 +3312,72 @@ export function AdminDashboardPage() {
     setSettingsLoading(true);
     setSettingsErrorMsg("");
     try {
+      // Load local cached values immediately for instant rendering
+      try {
+        const cached = localStorage.getItem("zinthiya_system_settings");
+        if (cached) {
+          const s = JSON.parse(cached);
+          if (s?.charity) {
+            setSettingCharityName(s.charity.name || "");
+            setSettingRegNumber(s.charity.regNumber || "");
+            setSettingCompanyNumber(s.charity.companyNumber || "");
+            setSettingOfficialAddress(s.charity.officialAddress || "");
+            setSettingContactEmail(s.charity.contactEmail || "");
+            setSettingContactPhone(s.charity.contactPhone || "");
+            setSettingGiftAidRate(s.charity.giftAidRate ?? 25);
+          }
+        }
+      } catch {}
+
       const s = await api.getSystemSettings();
       setSystemSettings(s);
-      if (s.charity) {
+      if (s?.charity) {
         setSettingCharityName(s.charity.name || "");
         setSettingRegNumber(s.charity.regNumber || "");
         setSettingCompanyNumber(s.charity.companyNumber || "");
         setSettingOfficialAddress(s.charity.officialAddress || "");
         setSettingContactEmail(s.charity.contactEmail || "");
         setSettingContactPhone(s.charity.contactPhone || "");
-        setSettingGiftAidRate(s.charity.giftAidRate || 25);
+        setSettingGiftAidRate(s.charity.giftAidRate ?? 25);
+        try {
+          localStorage.setItem("zinthiya_system_settings", JSON.stringify(s));
+        } catch {}
       }
-      if (s.notifications) {
+      if (s?.notifications) {
         setNotifyOnDonation(s.notifications.emailOnDonation ?? true);
         setNotifyOnBeneficiary(s.notifications.emailOnBeneficiaryRequest ?? true);
         setNotifyWeeklyDigest(s.notifications.weeklyDigest ?? true);
         setNotifySecurityAlerts(s.notifications.securityAlerts ?? true);
       }
-      if (s.security) {
+      if (s?.security) {
         setSecTwoFactor(s.security.twoFactorAuth ?? false);
         setSecSessionTimeout(s.security.sessionTimeoutMinutes ?? 60);
         setSecEnforceStrongPwd(s.security.enforceStrongPasswords ?? true);
         setSecStrictAudit(s.security.strictAuditLogging ?? true);
       }
     } catch (err: any) {
+      console.error("Failed to load system settings:", err);
       setSettingsErrorMsg(err.message || "Failed to load system settings.");
     } finally {
       setSettingsLoading(false);
     }
   }
 
-  async function handleSettingsSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSettingsSubmit(e?: React.FormEvent) {
+    if (e && e.preventDefault) e.preventDefault();
     setSettingsSaving(true);
     setSettingsSuccessMsg("");
     setSettingsErrorMsg("");
     try {
       const payload = {
         charity: {
-          name: settingCharityName,
-          regNumber: settingRegNumber,
-          companyNumber: settingCompanyNumber,
-          officialAddress: settingOfficialAddress,
-          contactEmail: settingContactEmail,
-          contactPhone: settingContactPhone,
-          giftAidRate: Number(settingGiftAidRate),
+          name: settingCharityName.trim(),
+          regNumber: settingRegNumber.trim(),
+          companyNumber: settingCompanyNumber.trim(),
+          officialAddress: settingOfficialAddress.trim(),
+          contactEmail: settingContactEmail.trim(),
+          contactPhone: settingContactPhone.trim(),
+          giftAidRate: Number(settingGiftAidRate) || 25,
         },
         notifications: {
           emailOnDonation: notifyOnDonation,
@@ -3366,16 +3387,33 @@ export function AdminDashboardPage() {
         },
         security: {
           twoFactorAuth: secTwoFactor,
-          sessionTimeoutMinutes: Number(secSessionTimeout),
+          sessionTimeoutMinutes: Number(secSessionTimeout) || 60,
           enforceStrongPasswords: secEnforceStrongPwd,
           strictAuditLogging: secStrictAudit,
         },
       };
+
+      // Instantly store in local storage
+      try {
+        localStorage.setItem("zinthiya_system_settings", JSON.stringify(payload));
+      } catch {}
+
       const res = await api.updateSystemSettings(payload);
-      setSettingsSuccessMsg("System settings saved and applied successfully.");
-      setSystemSettings(res.settings || payload);
-      setTimeout(() => setSettingsSuccessMsg(""), 4000);
+      const updated = res?.settings || payload;
+      setSystemSettings(updated);
+      if (updated?.charity) {
+        setSettingCharityName(updated.charity.name || "");
+        setSettingRegNumber(updated.charity.regNumber || "");
+        setSettingCompanyNumber(updated.charity.companyNumber || "");
+        setSettingOfficialAddress(updated.charity.officialAddress || "");
+        setSettingContactEmail(updated.charity.contactEmail || "");
+        setSettingContactPhone(updated.charity.contactPhone || "");
+        setSettingGiftAidRate(updated.charity.giftAidRate ?? 25);
+      }
+      setSettingsSuccessMsg("Charity registration and system settings saved successfully!");
+      setTimeout(() => setSettingsSuccessMsg(""), 5000);
     } catch (err: any) {
+      console.error("Failed to save settings:", err);
       setSettingsErrorMsg(err.message || "Failed to update system settings.");
     } finally {
       setSettingsSaving(false);
@@ -11709,10 +11747,36 @@ export function AdminDashboardPage() {
 
               <form onSubmit={handleSettingsSubmit} className="space-y-6">
                 {/* Section 1: Statutory Charity Profile */}
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                    <Landmark size={18} className="text-magenta" />
-                    <h2 className="text-sm font-black text-slate-900">Charity Statutory Registration (Charity Commission for England & Wales)</h2>
+                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-3">
+                    <div className="flex items-center gap-2">
+                      <Landmark size={20} className="text-magenta" />
+                      <div>
+                        <h2 className="text-sm font-black text-slate-900">Charity Statutory Registration (Charity Commission for England &amp; Wales)</h2>
+                        <p className="text-[11px] text-slate-400">Official registered charity particulars for The Zinthiya Trust (UK Charity #1137350)</p>
+                      </div>
+                    </div>
+
+                    {canManageSettings && (
+                      <button
+                        type="submit"
+                        disabled={settingsSaving}
+                        className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-sm hover:opacity-95 disabled:opacity-50 transition-all self-start sm:self-auto"
+                        style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
+                      >
+                        {settingsSaving ? (
+                          <>
+                            <RefreshCw size={13} className="animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={13} />
+                            <span>Save Settings</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
@@ -11722,7 +11786,8 @@ export function AdminDashboardPage() {
                         type="text"
                         value={settingCharityName}
                         onChange={(e) => setSettingCharityName(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
+                        placeholder="The Zinthiya Ganeshpanchan Trust"
                       />
                     </div>
 
@@ -11732,7 +11797,8 @@ export function AdminDashboardPage() {
                         type="text"
                         value={settingRegNumber}
                         onChange={(e) => setSettingRegNumber(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-mono font-bold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
+                        placeholder="1137350"
                       />
                     </div>
 
@@ -11742,7 +11808,8 @@ export function AdminDashboardPage() {
                         type="text"
                         value={settingCompanyNumber}
                         onChange={(e) => setSettingCompanyNumber(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-mono font-bold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
+                        placeholder="07258327"
                       />
                     </div>
 
@@ -11752,7 +11819,8 @@ export function AdminDashboardPage() {
                         type="text"
                         value={settingOfficialAddress}
                         onChange={(e) => setSettingOfficialAddress(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
+                        placeholder="12 New Walk, Leicester, LE1 6TF, United Kingdom"
                       />
                     </div>
 
@@ -11763,9 +11831,9 @@ export function AdminDashboardPage() {
                           type="number"
                           value={settingGiftAidRate}
                           onChange={(e) => setSettingGiftAidRate(Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                          className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-bold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all pr-8"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-1">HMRC reclaims 25p per £1 on eligible UK donations.</p>
                     </div>
@@ -11776,7 +11844,8 @@ export function AdminDashboardPage() {
                         type="email"
                         value={settingContactEmail}
                         onChange={(e) => setSettingContactEmail(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
+                        placeholder="info@zinthiyatrust.org"
                       />
                     </div>
 
@@ -11786,40 +11855,44 @@ export function AdminDashboardPage() {
                         type="text"
                         value={settingContactPhone}
                         onChange={(e) => setSettingContactPhone(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                        className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
+                        placeholder="0116 254 5168"
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Save Button */}
-                {canManageSettings ? (
-                  <div className="flex items-center justify-end">
-                    <button
-                      type="submit"
-                      disabled={settingsSaving}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50"
-                      style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
-                    >
-                      {settingsSaving ? (
-                        <>
-                          <RefreshCw size={14} className="animate-spin" />
-                          <span>Saving Settings...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={14} />
-                          <span>Save System Settings</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-amber-600 flex-shrink-0" />
-                    <span>View-only mode: You do not possess administrative permissions to modify system configuration.</span>
-                  </div>
-                )}
+                  {/* Save Button inside card footer */}
+                  {canManageSettings ? (
+                    <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <p className="text-[11px] text-slate-500">
+                        Updates the official statutory records across all receipts, invoices, Gift Aid declarations, and public reports.
+                      </p>
+                      <button
+                        type="submit"
+                        disabled={settingsSaving}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50 hover:opacity-95 transition-all"
+                        style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
+                      >
+                        {settingsSaving ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin" />
+                            <span>Saving Settings...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={14} />
+                            <span>Save System Settings</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-amber-600 flex-shrink-0" />
+                      <span>View-only mode: You do not possess administrative permissions to modify system configuration.</span>
+                    </div>
+                  )}
+                </div>
               </form>
             </div>
           )}
