@@ -3748,6 +3748,7 @@ export function AdminDashboardPage() {
   useEffect(() => {
     if (activeTab === "donors") {
       loadDonorsData();
+      loadSettingsData();
     } else if (activeTab === "campaigns") {
       loadCampaignsData();
     } else if (activeTab === "donations") {
@@ -3790,6 +3791,7 @@ export function AdminDashboardPage() {
       const [donorsRes, campaignsRes] = await Promise.all([
         api.getAllDonorsAdmin(),
         api.getCampaigns(),
+        loadSettingsData(),
       ]);
       setDonors(donorsRes);
       setCampaignsList(campaignsRes);
@@ -5946,14 +5948,120 @@ export function AdminDashboardPage() {
                   <div className="text-xs font-bold text-slate-700 mt-1.5 flex flex-wrap gap-1.5">
                     {settingDonationTiers.map((tier) => {
                       const count = donors.filter((d) => getDonorTierConfig(d, settingDonationTiers).id === tier.id).length;
-                      if (count === 0) return null;
                       return (
-                        <span key={tier.id} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
-                          {tier.name}: {count}
+                        <span key={tier.id} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold flex items-center gap-1 border border-slate-200/50">
+                          <span>{tier.name}:</span>
+                          <strong className={count > 0 ? "text-magenta font-black" : "text-slate-400"}>{count}</strong>
                         </span>
                       );
                     })}
                   </div>
+                </div>
+              </div>
+
+              {/* CONFIGURABLE GIVING TIERS ROSTER & THRESHOLDS DISPLAY */}
+              <div className="admin-card p-5 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-pink-50 text-magenta flex items-center justify-center border border-pink-100 shadow-xs">
+                      <Award size={20} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-slate-900">
+                          Configured Giving Tiers &amp; Recognition Thresholds
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-100 text-pink-800">
+                          {settingDonationTiers.length} Active Tiers
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Tier thresholds determine automatic donor recognition badges, CRM filtering, and targeted newsletter broadcasts.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={handleResetDefaultTiers}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-magenta transition-colors cursor-pointer flex items-center gap-1.5"
+                      title="Restore default standard tiers (Supporter, Bronze, Silver, Gold, Platinum)"
+                    >
+                      <RefreshCw size={12} />
+                      <span>Defaults</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTierModalName("");
+                        setTierModalAmount("");
+                        setTierModalDescription("");
+                        setTierModalColor("emerald");
+                        setTierModalError("");
+                        setShowAddCustomTierModal(true);
+                      }}
+                      className="btn-3d-magenta px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-white flex items-center gap-1.5 shadow-sm cursor-pointer transition-transform hover:scale-[1.02]"
+                    >
+                      <Award size={13} />
+                      <span>+ Add Custom Tier</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid of Tier Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3 pt-4">
+                  {settingDonationTiers.map((tier) => {
+                    const count = donors.filter(
+                      (d) => getDonorTierConfig(d, settingDonationTiers).id === tier.id
+                    ).length;
+                    const isCustom = tier.id.startsWith("TIER_") || (tier.id !== "SUPPORTER" && tier.id !== "BRONZE" && tier.id !== "SILVER" && tier.id !== "GOLD" && tier.id !== "PLATINUM");
+
+                    return (
+                      <div
+                        key={tier.id}
+                        className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-white hover:border-pink-200 hover:shadow-xs transition-all flex flex-col justify-between relative group"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-1.5 mb-2">
+                            <DonorTierBadge tier={tier.name} tiers={settingDonationTiers} />
+                            {isCustom && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCustomTier(tier.id)}
+                                className="text-slate-300 hover:text-red-600 p-1 rounded-md transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
+                                title={`Delete custom tier "${tier.name}"`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="mt-2">
+                            <div className="text-base font-black text-slate-900 tracking-tight">
+                              £{Number(tier.minAmount).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}+
+                            </div>
+                            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                              Min Contribution
+                            </div>
+                          </div>
+
+                          {tier.description && (
+                            <p className="text-[11px] text-slate-600 mt-2 line-clamp-2 leading-relaxed" title={tier.description}>
+                              {tier.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[10px] text-slate-500 font-semibold">
+                          <span>Active Donors:</span>
+                          <span className={`font-black ${count > 0 ? "text-magenta" : "text-slate-400"}`}>
+                            {count} {count === 1 ? "supporter" : "supporters"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
