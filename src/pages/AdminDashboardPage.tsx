@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { downloadReceiptPdf } from "../lib/pdfReceipt";
 import { CampaignImageUpload } from "../components/CampaignImageUpload";
@@ -98,6 +98,15 @@ import {
   Pause,
   Volume2
 } from "../components/Icons";
+
+function formatBytes(bytes: number, decimals = 1): string {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+}
 
 function ZinthiyaLogo() {
   return (
@@ -3445,12 +3454,37 @@ export function AdminDashboardPage() {
   const [commsFilter, setCommsFilter] = useState<"ALL" | "UNREAD" | "ASSIGNED_ME" | "UNASSIGNED">("ALL");
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [commsMessageText, setCommsMessageText] = useState<string>("");
+  const [commsAttachment, setCommsAttachment] = useState<{
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+  } | null>(null);
+  const commsFileInputRef = useRef<HTMLInputElement | null>(null);
+  const commsMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const commsAudioChunksRef = useRef<Blob[]>([]);
+  const commsAudioStreamRef = useRef<MediaStream | null>(null);
+  const commsAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
   const [commsSending, setCommsSending] = useState<boolean>(false);
   const [commsRecordingVoice, setCommsRecordingVoice] = useState<boolean>(false);
   const [commsVoiceSeconds, setCommsVoiceSeconds] = useState<number>(0);
   const [commsPlayingAudioId, setCommsPlayingAudioId] = useState<string | null>(null);
   const [commsTranslatedIds, setCommsTranslatedIds] = useState<{ [id: string]: boolean }>({});
   const [commsErrorMsg, setCommsErrorMsg] = useState<string>("");
+
+  useEffect(() => {
+    return () => {
+      if (commsAudioPlayerRef.current) {
+        commsAudioPlayerRef.current.pause();
+        commsAudioPlayerRef.current = null;
+      }
+      if (commsAudioStreamRef.current) {
+        commsAudioStreamRef.current.getTracks().forEach((t) => t.stop());
+        commsAudioStreamRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let interval: any = null;
@@ -3506,31 +3540,46 @@ export function AdminDashboardPage() {
     }
   }
 
+  const handleCommsFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert("File size exceeds 8MB limit. Please select a smaller file.");
+      if (commsFileInputRef.current) commsFileInputRef.current.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCommsAttachment({
+        name: file.name,
+        size: file.size,
+        type: file.type || "application/octet-stream",
+        url: reader.result as string,
+      });
+    };
+    reader.readAsDataURL(file);
+    if (commsFileInputRef.current) commsFileInputRef.current.value = "";
+  };
+
   async function handleSendCommsMessage() {
-    if (!selectedThreadId || (!commsMessageText.trim() && !commsRecordingVoice)) return;
+    if (!selectedThreadId || (!commsMessageText.trim() && !commsAttachment)) return;
     setCommsSending(true);
+    const textToSend = commsMessageText.trim();
+    const attachmentToSend = commsAttachment;
+    setCommsMessageText("");
+    setCommsAttachment(null);
+
     try {
-      let payload: any = {
-        text: commsMessageText.trim(),
-        type: "text",
+      const payload: any = {
+        text: textToSend || (attachmentToSend ? attachmentToSend.name : ""),
+        type: attachmentToSend ? "attachment" : "text",
+        attachment: attachmentToSend || undefined,
         detectedLanguage: "English (UK)",
       };
 
-      if (commsRecordingVoice) {
-        const dur = commsVoiceSeconds || 5;
-        payload = {
-          text: `[Voice Note 0:${dur < 10 ? "0" : ""}${dur}]`,
-          type: "voice",
-          voiceDuration: `0:${dur < 10 ? "0" : ""}${dur}`,
-          voiceTranscript: "Voice casework note from Trust advocacy staff regarding beneficiary inquiry.",
-          detectedLanguage: "English (UK)",
-        };
-        setCommsRecordingVoice(false);
-        setCommsVoiceSeconds(0);
-      }
-
       const res = await api.sendBeneficiaryMessageAdmin(selectedThreadId, payload);
-      setCommsMessageText("");
 
       setCommsThreads((prev) =>
         prev.map((t) => {
@@ -3551,14 +3600,180 @@ export function AdminDashboardPage() {
     }
   }
 
-  const handleToggleCommsAudio = (id: string) => {
+  const handleStartCommsVoiceRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Microphone recording is not supported on this browser.");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      commsAudioStreamRef.current = stream;
+      commsAudioChunksRef.current = [];
+
+      let mimeType = "";
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported("audio/webm")) {
+          mimeType = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+          mimeType = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
+          mimeType = "audio/ogg";
+        }
+      }
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      commsMediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          commsAudioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.start(250);
+      setCommsRecordingVoice(true);
+      setCommsVoiceSeconds(0);
+    } catch (err: any) {
+      console.error("Microphone error:", err);
+      alert(err.message || "Could not access microphone. Please grant microphone permissions.");
+    }
+  };
+
+  const handleCancelCommsVoiceRecording = () => {
+    if (commsMediaRecorderRef.current && commsMediaRecorderRef.current.state !== "inactive") {
+      try {
+        commsMediaRecorderRef.current.stop();
+      } catch (e) {}
+    }
+    if (commsAudioStreamRef.current) {
+      commsAudioStreamRef.current.getTracks().forEach((t) => t.stop());
+      commsAudioStreamRef.current = null;
+    }
+    commsAudioChunksRef.current = [];
+    setCommsRecordingVoice(false);
+    setCommsVoiceSeconds(0);
+  };
+
+  const handleStopAndSendCommsVoiceRecording = async () => {
+    if (!selectedThreadId || !commsMediaRecorderRef.current || commsMediaRecorderRef.current.state === "inactive") {
+      handleCancelCommsVoiceRecording();
+      return;
+    }
+
+    const durationSec = commsVoiceSeconds;
+    const recorder = commsMediaRecorderRef.current;
+    setCommsSending(true);
+
+    recorder.onstop = async () => {
+      try {
+        const mime = recorder.mimeType || "audio/webm";
+        const audioBlob = new Blob(commsAudioChunksRef.current, { type: mime });
+
+        if (commsAudioStreamRef.current) {
+          commsAudioStreamRef.current.getTracks().forEach((t) => t.stop());
+          commsAudioStreamRef.current = null;
+        }
+        commsAudioChunksRef.current = [];
+        setCommsRecordingVoice(false);
+        setCommsVoiceSeconds(0);
+
+        if (audioBlob.size === 0) {
+          alert("Audio recording was empty. Please try speaking again.");
+          setCommsSending(false);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          const mins = Math.floor(durationSec / 60);
+          const secs = durationSec % 60;
+          const durationStr = `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+
+          try {
+            const res = await api.sendBeneficiaryMessageAdmin(selectedThreadId, {
+              text: `[Voice Note ${durationStr}]`,
+              type: "voice",
+              voiceDuration: durationStr,
+              audioUrl: base64Audio,
+              detectedLanguage: "English (UK)"
+            });
+
+            setCommsThreads((prev) =>
+              prev.map((t) => {
+                if (t.beneficiaryId === selectedThreadId) {
+                  return {
+                    ...t,
+                    messages: res.messages,
+                    lastMessage: res.message,
+                  };
+                }
+                return t;
+              })
+            );
+          } catch (err: any) {
+            console.error("Failed to send voice note:", err);
+            alert(err.message || "Failed to send voice note.");
+          } finally {
+            setCommsSending(false);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      } catch (err: any) {
+        console.error("Error processing voice blob:", err);
+        alert("Failed to process recorded audio.");
+        setCommsSending(false);
+      }
+    };
+
+    recorder.stop();
+  };
+
+  const handleToggleCommsAudio = (id: string, audioUrl?: string | null) => {
     if (commsPlayingAudioId === id) {
+      if (commsAudioPlayerRef.current) {
+        commsAudioPlayerRef.current.pause();
+        commsAudioPlayerRef.current = null;
+      }
       setCommsPlayingAudioId(null);
-    } else {
+      return;
+    }
+
+    if (commsAudioPlayerRef.current) {
+      commsAudioPlayerRef.current.pause();
+      commsAudioPlayerRef.current = null;
+    }
+
+    if (!audioUrl) {
+      alert("No audio file attached to this message.");
+      return;
+    }
+
+    try {
+      const audio = new Audio(audioUrl);
+      commsAudioPlayerRef.current = audio;
       setCommsPlayingAudioId(id);
-      setTimeout(() => {
-        setCommsPlayingAudioId((curr) => (curr === id ? null : curr));
-      }, 4000);
+
+      audio.play().catch((err) => {
+        console.error("Audio playback error:", err);
+        setCommsPlayingAudioId(null);
+        commsAudioPlayerRef.current = null;
+        alert("Could not play audio message.");
+      });
+
+      audio.onended = () => {
+        setCommsPlayingAudioId(null);
+        commsAudioPlayerRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setCommsPlayingAudioId(null);
+        commsAudioPlayerRef.current = null;
+        alert("Could not play audio message.");
+      };
+    } catch (err) {
+      console.error("Audio player error:", err);
+      setCommsPlayingAudioId(null);
     }
   };
 
@@ -12163,13 +12378,18 @@ export function AdminDashboardPage() {
                               {/* Last message preview */}
                               <p className="text-[11px] text-slate-500 truncate mb-1.5 leading-snug">
                                 {lastMsg ? (
-                                  lastMsg.type === "voice" ? (
+                                  lastMsg.type === "voice" || lastMsg.audioUrl ? (
                                     <span className="inline-flex items-center gap-1 text-magenta font-semibold">
                                       <Mic size={11} />
-                                      <span>Voice Note ({lastMsg.voiceDuration || "0:15"})</span>
+                                      <span>Voice Note {lastMsg.voiceDuration ? `(${lastMsg.voiceDuration})` : ""}</span>
+                                    </span>
+                                  ) : lastMsg.attachment ? (
+                                    <span className="inline-flex items-center gap-1 text-magenta font-semibold">
+                                      <Paperclip size={11} />
+                                      <span>{lastMsg.attachment.name}</span>
                                     </span>
                                   ) : (
-                                    lastMsg.text || "Attached casework message"
+                                    lastMsg.text || "Casework message"
                                   )
                                 ) : (
                                   <span className="italic text-slate-400">No message history yet</span>
@@ -12308,13 +12528,13 @@ export function AdminDashboardPage() {
                                       : "bg-white border border-slate-200/90 text-slate-900 rounded-tl-xs"
                                   }`}
                                 >
-                                  {msg.type === "voice" ? (
+                                  {msg.type === "voice" || msg.audioUrl ? (
                                     /* Voice Message Player */
                                     <div className="space-y-2 min-w-[240px]">
                                       <div className="flex items-center gap-3">
                                         <button
                                           type="button"
-                                          onClick={() => handleToggleCommsAudio(msg.id)}
+                                          onClick={() => handleToggleCommsAudio(msg.id, msg.audioUrl)}
                                           className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105 flex-shrink-0 ${
                                             isStaff ? "bg-white text-magenta" : "bg-magenta text-white"
                                           }`}
@@ -12340,12 +12560,12 @@ export function AdminDashboardPage() {
                                             isStaff ? "text-white/80" : "text-slate-500"
                                           }`}>
                                             <span>{commsPlayingAudioId === msg.id ? "Playing casework audio..." : "Voice Note"}</span>
-                                            <span>{msg.voiceDuration || "0:15"}</span>
+                                            <span>{msg.voiceDuration || "Audio"}</span>
                                           </div>
                                         </div>
                                       </div>
 
-                                      {/* Audio Transcript */}
+                                      {/* Audio Transcript - only if real */}
                                       {msg.voiceTranscript && (
                                         <div className={`pt-2 border-t text-[11px] italic leading-normal ${
                                           isStaff ? "border-white/20 text-white/95" : "border-slate-100 text-slate-700"
@@ -12358,6 +12578,53 @@ export function AdminDashboardPage() {
                                     /* Text Message Body */
                                     <div className="whitespace-pre-wrap">
                                       {displayText}
+                                    </div>
+                                  )}
+
+                                  {/* Render real attachment if present */}
+                                  {msg.attachment && (
+                                    <div className="mt-2.5">
+                                      {msg.attachment.type?.startsWith("image/") || msg.attachment.url?.startsWith("data:image/") ? (
+                                        <div className={`rounded-xl overflow-hidden border max-w-xs ${isStaff ? "border-white/30" : "border-slate-200"}`}>
+                                          <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
+                                            <img src={msg.attachment.url} alt={msg.attachment.name} className="w-full max-h-48 object-cover cursor-pointer hover:opacity-95" />
+                                          </a>
+                                          <div className={`px-2.5 py-1.5 text-[11px] flex items-center justify-between ${isStaff ? "bg-black/20 text-white" : "bg-slate-50 text-slate-700"}`}>
+                                            <span className="truncate max-w-[170px]">{msg.attachment.name}</span>
+                                            <a href={msg.attachment.url} download={msg.attachment.name} className="font-bold underline ml-2 flex items-center gap-1">
+                                              <Download size={11} /> Save
+                                            </a>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 min-w-[220px] ${
+                                          isStaff ? "bg-white/15 border-white/30 text-white" : "bg-slate-50 border-slate-200 text-slate-800"
+                                        }`}>
+                                          <div className="flex items-center gap-2 overflow-hidden">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                              isStaff ? "bg-white/20 text-white" : "bg-magenta/10 text-magenta"
+                                            }`}>
+                                              <FileText size={16} />
+                                            </div>
+                                            <div className="overflow-hidden">
+                                              <p className="font-bold truncate max-w-[140px] text-[11.5px]">{msg.attachment.name}</p>
+                                              <p className="text-[10px] opacity-75">{formatBytes(msg.attachment.size)}</p>
+                                            </div>
+                                          </div>
+                                          <a
+                                            href={msg.attachment.url}
+                                            download={msg.attachment.name}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-opacity hover:opacity-90 flex-shrink-0 ${
+                                              isStaff ? "bg-white text-magenta" : "bg-magenta text-white"
+                                            }`}
+                                          >
+                                            <Download size={12} />
+                                            <span>Save</span>
+                                          </a>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
 
@@ -12388,34 +12655,59 @@ export function AdminDashboardPage() {
 
                       {/* Chat Input & Voice Toolbar */}
                       <div className="p-3 bg-white border-t border-slate-200 flex-shrink-0">
+                        {/* Selected attachment preview */}
+                        {commsAttachment && (
+                          <div className="mb-2 p-2 rounded-xl bg-[#FFF5F9] border border-magenta/20 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 overflow-hidden">
+                              {commsAttachment.type.startsWith("image/") ? (
+                                <img src={commsAttachment.url} alt="Attachment" className="w-8 h-8 rounded-lg object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-magenta/10 text-magenta flex items-center justify-center flex-shrink-0">
+                                  <FileText size={16} />
+                                </div>
+                              )}
+                              <div className="overflow-hidden">
+                                <p className="text-xs font-bold text-slate-800 truncate max-w-xs">{commsAttachment.name}</p>
+                                <p className="text-[10px] text-slate-500">{formatBytes(commsAttachment.size)}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setCommsAttachment(null)}
+                              className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                              title="Remove attachment"
+                            >
+                              <X size={15} />
+                            </button>
+                          </div>
+                        )}
+
                         {commsRecordingVoice ? (
                           /* Active Voice Recording Controls */
                           <div className="p-3 rounded-xl bg-[#FFF5F9] border border-magenta/20 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
                               <span className="text-xs font-bold text-slate-800">
-                                Recording Voice Casework Note: <span className="text-magenta font-extrabold">0:{commsVoiceSeconds < 10 ? "0" : ""}{commsVoiceSeconds}</span>
+                                Recording Voice Casework Note: <span className="text-magenta font-extrabold">{Math.floor(commsVoiceSeconds / 60)}:{commsVoiceSeconds % 60 < 10 ? "0" : ""}{commsVoiceSeconds % 60}</span>
                               </span>
+                              <span className="text-[11px] text-slate-500 hidden sm:inline">(Speak clearly into your microphone)</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setCommsRecordingVoice(false);
-                                  setCommsVoiceSeconds(0);
-                                }}
+                                onClick={handleCancelCommsVoiceRecording}
                                 className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                               >
                                 Cancel
                               </button>
                               <button
                                 type="button"
-                                onClick={handleSendCommsMessage}
+                                onClick={handleStopAndSendCommsVoiceRecording}
                                 disabled={commsSending}
                                 className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#E6127E] to-[#FF5FA0] text-white text-xs font-bold hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
                               >
                                 <Send size={13} />
-                                <span>Stop & Send Voice Note</span>
+                                <span>{commsSending ? "Sending..." : "Stop & Send Voice Note"}</span>
                               </button>
                             </div>
                           </div>
@@ -12428,6 +12720,25 @@ export function AdminDashboardPage() {
                             }}
                             className="flex items-center gap-2"
                           >
+                            {/* Hidden file input */}
+                            <input
+                              type="file"
+                              ref={commsFileInputRef}
+                              onChange={handleCommsFileSelect}
+                              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                              className="hidden"
+                            />
+
+                            {/* Attach document button */}
+                            <button
+                              type="button"
+                              onClick={() => commsFileInputRef.current?.click()}
+                              title="Attach document or bill"
+                              className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-magenta hover:bg-[#FCE8F3]/60 transition-colors cursor-pointer"
+                            >
+                              <Paperclip size={17} />
+                            </button>
+
                             <input
                               type="text"
                               value={commsMessageText}
@@ -12438,10 +12749,7 @@ export function AdminDashboardPage() {
 
                             <button
                               type="button"
-                              onClick={() => {
-                                setCommsRecordingVoice(true);
-                                setCommsVoiceSeconds(0);
-                              }}
+                              onClick={handleStartCommsVoiceRecording}
                               title="Record Voice Casework Note"
                               className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-magenta hover:bg-[#FCE8F3]/60 transition-colors cursor-pointer"
                             >
@@ -12450,7 +12758,7 @@ export function AdminDashboardPage() {
 
                             <button
                               type="submit"
-                              disabled={!commsMessageText.trim() || commsSending}
+                              disabled={(!commsMessageText.trim() && !commsAttachment) || commsSending}
                               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#E6127E] to-[#FF5FA0] text-white text-xs font-bold hover:shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer flex-shrink-0"
                             >
                               <Send size={14} />

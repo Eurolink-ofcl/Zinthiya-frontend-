@@ -244,16 +244,26 @@ export interface BeneficiaryRecord {
   beneficiaryRequests: AdminBeneficiaryRequest[];
 }
 
+export interface ChatAttachment {
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+}
+
 export interface ChatMessage {
   id: string;
   isChatMessage?: boolean;
   sender: 'beneficiary' | 'staff';
   senderId?: string;
-  name: string;
+  name?: string;
+  staffName?: string;
   text: string;
-  type?: 'text' | 'voice';
+  type?: 'text' | 'voice' | 'attachment';
   voiceDuration?: string | null;
   voiceTranscript?: string | null;
+  audioUrl?: string | null;
+  attachment?: ChatAttachment | null;
   detectedLanguage?: string | null;
   translationText?: string | null;
   timestamp: string;
@@ -1220,9 +1230,11 @@ class ApiService {
     beneficiaryId: string,
     payload: {
       text: string;
-      type?: 'text' | 'voice';
+      type?: 'text' | 'voice' | 'attachment';
       voiceDuration?: string;
       voiceTranscript?: string;
+      audioUrl?: string;
+      attachment?: ChatAttachment;
       detectedLanguage?: string;
       translationText?: string;
     }
@@ -1268,9 +1280,11 @@ class ApiService {
 
   async sendBeneficiaryMessage(payload: {
     text: string;
-    type?: 'text' | 'voice';
+    type?: 'text' | 'voice' | 'attachment';
     voiceDuration?: string;
     voiceTranscript?: string;
+    audioUrl?: string;
+    attachment?: ChatAttachment;
     detectedLanguage?: string;
     translationText?: string;
   }): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import {
@@ -43,6 +43,15 @@ import {
   Volume2,
   Globe
 } from "../components/Icons";
+
+function formatBytes(bytes: number, decimals = 1): string {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+}
 
 function ZinthiyaLogo() {
   return (
@@ -254,6 +263,17 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [activeConversationId, setActiveConversationId] = useState<string>("thread-1");
   const [showAdvocateProfileModal, setShowAdvocateProfileModal] = useState<boolean>(false);
   const [messageText, setMessageText] = useState("");
+  const [selectedAttachment, setSelectedAttachment] = useState<{
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [isRecordingVoice, setIsRecordingVoice] = useState<boolean>(false);
   const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
   const [voicePlayingId, setVoicePlayingId] = useState<string | number | null>(null);
@@ -417,10 +437,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           time: m.timestamp
             ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             : "Just now",
-          type: m.type || "text",
+          type: m.type || (m.audioUrl ? "voice" : m.attachment ? "attachment" : "text"),
           text: m.text || "",
           voiceDuration: m.voiceDuration,
           voiceTranscript: m.voiceTranscript,
+          audioUrl: m.audioUrl || null,
+          attachment: m.attachment || null,
           detectedLanguage: m.detectedLanguage || "English (UK)",
           translationText: m.translationText || m.text
         }));
@@ -630,6 +652,20 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
   };
 
+  // Cleanup audio tracks and playback on unmount
+  useEffect(() => {
+    return () => {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((t) => t.stop());
+        audioStreamRef.current = null;
+      }
+    };
+  }, []);
+
   // Voice recording timer hook
   useEffect(() => {
     let interval: any = null;
@@ -646,9 +682,32 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     };
   }, [isRecordingVoice]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert("File size exceeds 8MB limit. Please select a smaller file.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedAttachment({
+        name: file.name,
+        size: file.size,
+        type: file.type || "application/octet-stream",
+        url: reader.result as string,
+      });
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && !selectedAttachment) return;
 
     // Detect non-English or default English
     const detected = /[\u0A80-\u0AFF]/.test(messageText)
@@ -660,28 +719,33 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       : "English (UK)";
 
     const textToSend = messageText.trim();
+    const attachmentToSend = selectedAttachment;
     setMessageText("");
+    setSelectedAttachment(null);
 
     try {
       const res = await api.sendBeneficiaryMessage({
-        text: textToSend,
-        type: "text",
+        text: textToSend || (attachmentToSend ? attachmentToSend.name : ""),
+        type: attachmentToSend ? "attachment" : "text",
+        attachment: attachmentToSend || undefined,
         detectedLanguage: detected,
-        translationText: `Message from ${beneficiaryUser.fullName}: ${textToSend}`
+        translationText: textToSend ? `Message from ${beneficiaryUser.fullName}: ${textToSend}` : undefined
       });
 
       if (res && Array.isArray(res.messages)) {
         const formatted = res.messages.map((m: any) => ({
           id: m.id || `m-${Date.now()}`,
           sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
-          name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : "Caseworker"),
+          name: m.name || m.staffName || (m.sender === "beneficiary" ? beneficiaryUser.fullName : "Caseworker"),
           time: m.timestamp
             ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             : "Just now",
-          type: m.type || "text",
+          type: m.type || (m.audioUrl ? "voice" : m.attachment ? "attachment" : "text"),
           text: m.text || "",
           voiceDuration: m.voiceDuration,
           voiceTranscript: m.voiceTranscript,
+          audioUrl: m.audioUrl || null,
+          attachment: m.attachment || null,
           detectedLanguage: m.detectedLanguage || "English (UK)",
           translationText: m.translationText || m.text
         }));
@@ -693,53 +757,182 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
   };
 
-  const handleSendVoiceMessage = async () => {
-    if (!isRecordingVoice) return;
-    const dur = recordingSeconds || 4;
-    setIsRecordingVoice(false);
-    setRecordingSeconds(0);
-
+  const handleStartVoiceRecording = async () => {
     try {
-      const res = await api.sendBeneficiaryMessage({
-        text: `[Voice Note 0:${dur < 10 ? "0" : ""}${dur}]`,
-        type: "voice",
-        voiceDuration: `0:${dur < 10 ? "0" : ""}${dur}`,
-        voiceTranscript: `Voice message from ${beneficiaryUser.fullName} regarding casework update.`,
-        detectedLanguage: "English (UK)",
-        translationText: "Voice casework message from beneficiary."
-      });
-
-      if (res && Array.isArray(res.messages)) {
-        const formatted = res.messages.map((m: any) => ({
-          id: m.id || `m-${Date.now()}`,
-          sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
-          name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : "Caseworker"),
-          time: m.timestamp
-            ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-            : "Just now",
-          type: m.type || "text",
-          text: m.text || "",
-          voiceDuration: m.voiceDuration,
-          voiceTranscript: m.voiceTranscript,
-          detectedLanguage: m.detectedLanguage || "English (UK)",
-          translationText: m.translationText || m.text
-        }));
-        setChatThreads({ "thread-1": formatted });
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Microphone recording is not supported on this browser.");
+        return;
       }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      let mimeType = "";
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported("audio/webm")) {
+          mimeType = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+          mimeType = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
+          mimeType = "audio/ogg";
+        }
+      }
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.start(250);
+      setIsRecordingVoice(true);
+      setRecordingSeconds(0);
     } catch (err: any) {
-      console.error("Failed to send voice message:", err);
-      alert(err.message || "Unable to send voice message.");
+      console.error("Microphone error:", err);
+      alert(err.message || "Could not access microphone. Please grant microphone permissions.");
     }
   };
 
-  const handleTogglePlayVoice = (id: string | number) => {
+  const handleCancelVoiceRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+    }
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
+    }
+    audioChunksRef.current = [];
+    setIsRecordingVoice(false);
+    setRecordingSeconds(0);
+  };
+
+  const handleStopAndSendVoiceMessage = async () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") {
+      handleCancelVoiceRecording();
+      return;
+    }
+
+    const durationSec = recordingSeconds;
+    const recorder = mediaRecorderRef.current;
+
+    recorder.onstop = async () => {
+      try {
+        const mime = recorder.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: mime });
+
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach((t) => t.stop());
+          audioStreamRef.current = null;
+        }
+        audioChunksRef.current = [];
+        setIsRecordingVoice(false);
+        setRecordingSeconds(0);
+
+        if (audioBlob.size === 0) {
+          alert("Audio recording was empty. Please try speaking again.");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          const mins = Math.floor(durationSec / 60);
+          const secs = durationSec % 60;
+          const durationStr = `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+
+          try {
+            const res = await api.sendBeneficiaryMessage({
+              text: `[Voice Note ${durationStr}]`,
+              type: "voice",
+              voiceDuration: durationStr,
+              audioUrl: base64Audio,
+              detectedLanguage: "English (UK)"
+            });
+
+            if (res && Array.isArray(res.messages)) {
+              const formatted = res.messages.map((m: any) => ({
+                id: m.id || `m-${Date.now()}`,
+                sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
+                name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : "Caseworker"),
+                time: m.timestamp
+                  ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : "Just now",
+                type: m.type || (m.audioUrl ? "voice" : m.attachment ? "attachment" : "text"),
+                text: m.text || "",
+                voiceDuration: m.voiceDuration,
+                voiceTranscript: m.voiceTranscript,
+                audioUrl: m.audioUrl || null,
+                attachment: m.attachment || null,
+                detectedLanguage: m.detectedLanguage || "English (UK)",
+                translationText: m.translationText || m.text
+              }));
+              setChatThreads({ "thread-1": formatted });
+            }
+          } catch (err: any) {
+            console.error("Failed to send voice message:", err);
+            alert(err.message || "Unable to send voice message.");
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+      } catch (err: any) {
+        console.error("Error processing voice blob:", err);
+        alert("Failed to process recorded audio.");
+      }
+    };
+
+    recorder.stop();
+  };
+
+  const handleTogglePlayVoice = (id: string | number, audioUrl?: string | null) => {
     if (voicePlayingId === id) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        audioPlayerRef.current = null;
+      }
       setVoicePlayingId(null);
-    } else {
+      return;
+    }
+
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current = null;
+    }
+
+    if (!audioUrl) {
+      alert("No audio file attached to this message.");
+      return;
+    }
+
+    try {
+      const audio = new Audio(audioUrl);
+      audioPlayerRef.current = audio;
       setVoicePlayingId(id);
-      setTimeout(() => {
-        setVoicePlayingId((curr) => (curr === id ? null : curr));
-      }, 4000);
+
+      audio.play().catch((err) => {
+        console.error("Audio playback error:", err);
+        setVoicePlayingId(null);
+        audioPlayerRef.current = null;
+        alert("Could not play audio message.");
+      });
+
+      audio.onended = () => {
+        setVoicePlayingId(null);
+        audioPlayerRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setVoicePlayingId(null);
+        audioPlayerRef.current = null;
+        alert("Could not play audio message.");
+      };
+    } catch (err) {
+      console.error("Audio player error:", err);
+      setVoicePlayingId(null);
     }
   };
 
@@ -4514,7 +4707,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                 <button
                                   type="button"
-                                  onClick={() => handleTogglePlayVoice(msg.id)}
+                                  onClick={() => handleTogglePlayVoice(msg.id, msg.audioUrl)}
                                   style={{
                                     width: "36px",
                                     height: "36px",
@@ -4552,12 +4745,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2px", fontSize: "10px", color: isUser ? "rgba(255,255,255,0.85)" : "#8E7287" }}>
                                     <span>{voicePlayingId === msg.id ? "Playing audio..." : "Voice Message"}</span>
-                                    <span>{msg.voiceDuration || "0:24"}</span>
+                                    <span>{msg.voiceDuration || "Audio"}</span>
                                   </div>
                                 </div>
                               </div>
 
-                              {/* Voice Message Transcript Toggle */}
+                              {/* Voice Message Transcript Toggle - only if real transcript exists */}
                               {msg.voiceTranscript && (
                                 <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #F1F5F9" }}>
                                   <div style={{ fontSize: "11px", fontStyle: "italic", lineHeight: "1.4", color: isUser ? "rgba(255,255,255,0.95)" : "#475569" }}>
@@ -4590,7 +4783,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               )}
                             </div>
                           ) : (
-                            /* REGULAR TEXT MESSAGE BUBBLE */
+                            /* REGULAR TEXT & ATTACHMENT MESSAGE BUBBLE */
                             <div
                               style={{
                                 padding: "12px 16px",
@@ -4603,10 +4796,77 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 border: isUser ? "none" : "1px solid rgba(230, 18, 126, 0.12)"
                               }}
                             >
-                              <div>{displayText}</div>
+                              {displayText && <div>{displayText}</div>}
+
+                              {/* Render real attachment if present */}
+                              {msg.attachment && (
+                                <div style={{ marginTop: displayText ? "8px" : "0" }}>
+                                  {msg.attachment.type?.startsWith("image/") || msg.attachment.url?.startsWith("data:image/") ? (
+                                    <div style={{ borderRadius: "10px", overflow: "hidden", border: isUser ? "1px solid rgba(255,255,255,0.3)" : "1px solid #E2E8F0", maxWidth: "280px" }}>
+                                      <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
+                                        <img src={msg.attachment.url} alt={msg.attachment.name} style={{ width: "100%", maxHeight: "200px", objectFit: "cover", display: "block" }} />
+                                      </a>
+                                      <div style={{ padding: "6px 10px", backgroundColor: isUser ? "rgba(0,0,0,0.15)" : "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}>
+                                        <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "160px" }}>{msg.attachment.name}</span>
+                                        <a href={msg.attachment.url} download={msg.attachment.name} style={{ color: isUser ? "#ffffff" : "#E6127E", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "3px", textDecoration: "none" }}>
+                                          <Download size={12} /> Save
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{
+                                      padding: "8px 12px",
+                                      borderRadius: "10px",
+                                      backgroundColor: isUser ? "rgba(255,255,255,0.15)" : "#F8FAFC",
+                                      border: isUser ? "1px solid rgba(255,255,255,0.3)" : "1px solid #E2E8F0",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: "10px",
+                                      minWidth: "220px"
+                                    }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+                                        <div style={{ width: "28px", height: "28px", borderRadius: "6px", backgroundColor: isUser ? "rgba(255,255,255,0.2)" : "#FCE8F3", color: isUser ? "#ffffff" : "#E6127E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                          <FileText size={15} />
+                                        </div>
+                                        <div style={{ overflow: "hidden" }}>
+                                          <p style={{ margin: 0, fontSize: "11.5px", fontWeight: 700, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "140px" }}>
+                                            {msg.attachment.name}
+                                          </p>
+                                          <span style={{ fontSize: "10px", opacity: 0.8 }}>
+                                            {formatBytes(msg.attachment.size)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <a
+                                        href={msg.attachment.url}
+                                        download={msg.attachment.name}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          padding: "4px 8px",
+                                          borderRadius: "6px",
+                                          backgroundColor: isUser ? "#ffffff" : "#E6127E",
+                                          color: isUser ? "#E6127E" : "#ffffff",
+                                          fontSize: "11px",
+                                          fontWeight: 700,
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "4px",
+                                          textDecoration: "none",
+                                          flexShrink: 0
+                                        }}
+                                      >
+                                        <Download size={12} />
+                                        <span>Save</span>
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Message Translation Action Pill */}
-                              {msg.translationText && (
+                              {msg.translationText && displayText && (
                                 <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                   <button
                                     type="button"
@@ -4658,8 +4918,39 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                   {/* Message Input & Voice Recording Toolbar */}
                   <div style={{ borderTop: "1px solid rgba(230, 18, 126, 0.12)", backgroundColor: "#ffffff" }}>
+                    {/* Attachment preview strip */}
+                    {selectedAttachment && (
+                      <div style={{ padding: "8px 16px", backgroundColor: "#FFF5F9", borderBottom: "1px solid rgba(230,18,126,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", overflow: "hidden" }}>
+                          {selectedAttachment.type.startsWith("image/") ? (
+                            <img src={selectedAttachment.url} alt="Attachment preview" style={{ width: "32px", height: "32px", objectFit: "cover", borderRadius: "6px" }} />
+                          ) : (
+                            <div style={{ width: "32px", height: "32px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#E6127E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <FileText size={16} />
+                            </div>
+                          )}
+                          <div style={{ overflow: "hidden" }}>
+                            <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "#1E293B", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "260px" }}>
+                              {selectedAttachment.name}
+                            </p>
+                            <span style={{ fontSize: "10px", color: "#64748B" }}>
+                              {formatBytes(selectedAttachment.size)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAttachment(null)}
+                          style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", padding: "4px" }}
+                          title="Remove attachment"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    )}
+
                     {isRecordingVoice ? (
-                      /* ACTIVE VOICE RECORDING CONTROLS */
+                      /* ACTIVE REAL VOICE RECORDING CONTROLS */
                       <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFF5F9" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <span
@@ -4672,7 +4963,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             }}
                           />
                           <div style={{ fontSize: "13px", fontWeight: 800, color: "#991B1B" }}>
-                            Recording Voice Note... 0:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}
+                            Recording Voice Note... {Math.floor(recordingSeconds / 60)}:{recordingSeconds % 60 < 10 ? `0${recordingSeconds % 60}` : recordingSeconds % 60}
                           </div>
                           <span style={{ fontSize: "11px", color: "#64748B" }}>
                             (Speak clearly into your microphone)
@@ -4682,10 +4973,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <button
                             type="button"
-                            onClick={() => {
-                              setIsRecordingVoice(false);
-                              setRecordingSeconds(0);
-                            }}
+                            onClick={handleCancelVoiceRecording}
                             style={{
                               padding: "6px 14px",
                               borderRadius: "8px",
@@ -4701,7 +4989,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           </button>
                           <button
                             type="button"
-                            onClick={handleSendVoiceMessage}
+                            onClick={handleStopAndSendVoiceMessage}
                             className="btn-gradient-magenta"
                             style={{ padding: "6px 16px", fontSize: "12px" }}
                           >
@@ -4716,10 +5004,19 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         onSubmit={handleSendMessage}
                         style={{ padding: "14px 20px", display: "flex", gap: "10px", alignItems: "center" }}
                       >
-                        {/* Paperclip attachment simulation */}
+                        {/* Hidden file input */}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileSelect}
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                          style={{ display: "none" }}
+                        />
+
+                        {/* Paperclip attachment button */}
                         <button
                           type="button"
-                          onClick={() => alert("Attach document or utility bill (PDF/JPG) to send to caseworker.")}
+                          onClick={() => fileInputRef.current?.click()}
                           style={{
                             background: "none",
                             border: "none",
@@ -4750,7 +5047,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         {/* Record Voice Note Button */}
                         <button
                           type="button"
-                          onClick={() => setIsRecordingVoice(true)}
+                          onClick={handleStartVoiceRecording}
                           style={{
                             padding: "10px 14px",
                             borderRadius: "12px",
@@ -4773,8 +5070,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         {/* Send Text Button */}
                         <button
                           type="submit"
+                          disabled={!messageText.trim() && !selectedAttachment}
                           className="btn-gradient-magenta"
-                          style={{ padding: "10px 18px", fontSize: "13px" }}
+                          style={{ padding: "10px 18px", fontSize: "13px", opacity: (!messageText.trim() && !selectedAttachment) ? 0.5 : 1, cursor: (!messageText.trim() && !selectedAttachment) ? "not-allowed" : "pointer" }}
                         >
                           <Send size={15} />
                           <span>Send</span>
