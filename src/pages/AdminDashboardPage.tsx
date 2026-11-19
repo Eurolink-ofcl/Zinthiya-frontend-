@@ -12239,7 +12239,7 @@ export function AdminDashboardPage() {
                           <button
                             type="button"
                             onClick={() => {
-                              const bRecord = beneficiaries.find((b) => b.id === activeCommsThread.beneficiaryId);
+                              const bRecord = beneficiariesList.find((b) => b.id === activeCommsThread.beneficiaryId);
                               if (bRecord) setViewingBeneficiary(bRecord);
                               else api.getBeneficiaryByIdAdmin(activeCommsThread.beneficiaryId).then(setViewingBeneficiary).catch(console.error);
                             }}
@@ -12583,7 +12583,7 @@ export function AdminDashboardPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const bRecord = beneficiaries.find((b) => b.id === activeCommsThread.beneficiaryId);
+                          const bRecord = beneficiariesList.find((b) => b.id === activeCommsThread.beneficiaryId);
                           if (bRecord) setViewingBeneficiary(bRecord);
                           else api.getBeneficiaryByIdAdmin(activeCommsThread.beneficiaryId).then(setViewingBeneficiary).catch(console.error);
                         }}
