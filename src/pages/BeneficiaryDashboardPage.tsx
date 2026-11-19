@@ -664,19 +664,25 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     { id: "logout" as const, label: "Logout", icon: LogOut, isAction: true },
   ];
 
-  const handleLogout = () => {
-    // 1. Purge all authenticated beneficiary session tokens & cached records
-    localStorage.removeItem("beneficiary_token");
-    localStorage.removeItem("beneficiary_email");
-    localStorage.removeItem("beneficiary_user");
-    localStorage.removeItem("beneficiary_session");
-    sessionStorage.clear();
+  const handleLogout = async () => {
+    try {
+      await api.logout("beneficiary");
+    } catch (e) {
+      console.warn("Beneficiary logout error:", e);
+    } finally {
+      // 1. Purge all authenticated beneficiary session tokens & cached records
+      localStorage.removeItem("beneficiary_token");
+      localStorage.removeItem("beneficiary_email");
+      localStorage.removeItem("beneficiary_user");
+      localStorage.removeItem("beneficiary_session");
+      sessionStorage.clear();
 
-    // 2. Dismiss any active modal dialogs
-    setShowLogoutModal(false);
+      // 2. Dismiss any active modal dialogs
+      setShowLogoutModal(false);
 
-    // 3. Securely redirect to beneficiary login page with confirmation flag
-    navigate("/beneficiary/login?loggedOut=true", { replace: true });
+      // 3. Securely redirect to beneficiary login page with confirmation flag
+      navigate("/beneficiary/login?loggedOut=true", { replace: true });
+    }
   };
 
   // Voice recording timer hook

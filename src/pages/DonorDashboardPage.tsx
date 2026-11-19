@@ -266,8 +266,12 @@ export function DonorDashboardPage() {
     }
   }
 
-  function handleLogout() {
-    api.clearSession();
+  async function handleLogout() {
+    try {
+      await api.logout("donor");
+    } catch (e) {
+      console.warn("Donor logout error:", e);
+    }
     navigate("/login");
   }
 

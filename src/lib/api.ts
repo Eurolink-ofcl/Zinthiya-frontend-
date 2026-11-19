@@ -590,8 +590,74 @@ class ApiService {
 
   clearSession(): void {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("zinthiya_token");
-    localStorage.removeItem("zinthiya_donor");
+    try {
+      // General & Donor session items
+      localStorage.removeItem("zinthiya_token");
+      localStorage.removeItem("zinthiya_donor");
+      localStorage.removeItem("token");
+      localStorage.removeItem("donor_token");
+      localStorage.removeItem("current_donor");
+      localStorage.removeItem("user");
+
+      // Admin & Staff session items
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_user");
+
+      // Beneficiary session items
+      localStorage.removeItem("beneficiary_token");
+      localStorage.removeItem("beneficiary_email");
+      localStorage.removeItem("beneficiary_user");
+      localStorage.removeItem("beneficiary_session");
+
+      // Purge any sessionStorage
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn("Error clearing session:", e);
+    }
+  }
+
+  /**
+   * Universal Logout API endpoint caller for all 3 portals (Admin, Donor, Beneficiary).
+   * Dispatches logout request to backend /auth/logout and cleanses all client storage.
+   */
+  async logout(portal?: "admin" | "donor" | "beneficiary"): Promise<{ success: boolean; message: string }> {
+    try {
+      // Check for any stored token across the three portals
+      const token =
+        (typeof window !== "undefined" && (
+          localStorage.getItem("zinthiya_token") ||
+          localStorage.getItem("token") ||
+          localStorage.getItem("admin_token") ||
+          localStorage.getItem("donor_token") ||
+          localStorage.getItem("beneficiary_token")
+        )) || null;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          portal: portal || "universal",
+          timestamp: new Date().toISOString(),
+        }),
+      }).catch((e) => {
+        console.warn("Backend logout notification warning:", e);
+      });
+    } catch (err) {
+      console.warn("Logout execution error:", err);
+    } finally {
+      this.clearSession();
+    }
+
+    return { success: true, message: "Logged out successfully" };
   }
 
   // API Requests

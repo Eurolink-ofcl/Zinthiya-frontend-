@@ -3220,6 +3220,7 @@ export function AdminDashboardPage() {
 
   // Logout Modal State
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState<boolean>(false);
+  const [loggingOut, setLoggingOut] = useState<boolean>(false);
 
   async function loadProfileData() {
     setProfileLoading(true);
@@ -3493,16 +3494,17 @@ export function AdminDashboardPage() {
     }
   }
 
-  function confirmSignOut() {
-    api.clearSession();
+  async function confirmSignOut() {
+    setLoggingOut(true);
     try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("adminUser");
-      localStorage.removeItem("donor_token");
-      localStorage.removeItem("current_donor");
-    } catch (e) {}
-    setShowLogoutConfirmModal(false);
-    navigate("/admin");
+      await api.logout("admin");
+    } catch (e) {
+      console.warn("Logout error:", e);
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutConfirmModal(false);
+      navigate("/admin");
+    }
   }
 
   const getPasswordStrength = (pwd: string) => {
@@ -3823,8 +3825,12 @@ export function AdminDashboardPage() {
     }
   }
 
-  function handleLogout() {
-    api.clearSession();
+  async function handleLogout() {
+    try {
+      await api.logout("admin");
+    } catch (e) {
+      console.warn("Logout error:", e);
+    }
     navigate("/admin");
   }
 
@@ -22370,28 +22376,30 @@ export function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={confirmSignOut}
+                disabled={loggingOut}
                 style={{
                   flex: 1,
                   height: "46px",
                   minHeight: "46px",
                   padding: "0 16px",
                   borderRadius: "12px",
-                  backgroundColor: "#E11D48",
+                  backgroundColor: loggingOut ? "#94A3B8" : "#E11D48",
                   color: "#FFFFFF",
                   fontWeight: 700,
                   fontSize: "13px",
                   border: "none",
-                  cursor: "pointer",
+                  cursor: loggingOut ? "not-allowed" : "pointer",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "8px",
-                  boxShadow: "0 4px 14px rgba(225, 29, 72, 0.35)",
+                  boxShadow: loggingOut ? "none" : "0 4px 14px rgba(225, 29, 72, 0.35)",
                   boxSizing: "border-box",
+                  opacity: loggingOut ? 0.8 : 1,
                 }}
               >
                 <LogOut size={16} />
-                <span>Sign Out</span>
+                <span>{loggingOut ? "Signing Out..." : "Sign Out"}</span>
               </button>
             </div>
           </div>
