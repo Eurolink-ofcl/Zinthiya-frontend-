@@ -102,6 +102,401 @@ function createPlayableAudioUrl(url: string): string {
   }
 }
 
+function downloadAwardLetterPDF(item: any, beneficiary: any) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Please allow pop-ups in your browser to view and print your official Award Letter.");
+    return;
+  }
+
+  const ref = item?.reference || "ZT-ALC-NOTICE";
+  const title = item?.title || "Emergency Hardship Relief Grant";
+  const amount = item?.amountGBP || (item?.allocatedAmount ? `£${item.allocatedAmount}` : "£100.00");
+  const purpose = item?.purpose || "Emergency trustee relief grant allocated directly to verified beneficiary account.";
+  const date = item?.allocationDate || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const status = (item?.status || "Approved").toUpperCase();
+  const caseworker = item?.caseworker || beneficiary?.caseWorker || "Dedicated Crisis Advocate";
+  const funder = item?.funder || "The Zinthiya Trust Community Hardship Fund";
+  const authorizationBody = item?.authorizationBody || "Approved by Zinthiya Trustees Relief Committee";
+  const disbursementMethod = item?.disbursementMethod || "Scheduled BACS / Relief Voucher Dispatch";
+  const usageGuidelines = item?.usageGuidelines || "Restricted to authorized emergency household essentials, utility debt relief, and crisis family welfare.";
+  const validUntil = item?.validUntil || "Current Welfare Period";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Award Letter - ${ref} - The Zinthiya Trust</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding: 30px;
+      background: #ffffff;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    .header-table {
+      width: 100%;
+      border-bottom: 2.5px solid #E6127E;
+      padding-bottom: 16px;
+      margin-bottom: 22px;
+    }
+    .brand-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #E6127E;
+      letter-spacing: -0.5px;
+      margin: 0;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 11px;
+      color: #475569;
+      line-height: 1.45;
+    }
+    .award-banner {
+      background: #FFF5F9;
+      border: 1.5px solid rgba(230, 18, 126, 0.25);
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .award-heading {
+      font-size: 16px;
+      font-weight: 900;
+      color: #241221;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
+    .ref-badge {
+      font-family: monospace;
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #ECFDF5;
+      color: #065F46;
+      border: 1px solid #A7F3D0;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #E6127E;
+      letter-spacing: 0.7px;
+      margin: 18px 0 8px 0;
+      border-bottom: 1px solid #F1F5F9;
+      padding-bottom: 4px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .info-item {
+      padding: 8px 12px;
+      background: #F8FAFC;
+      border-radius: 8px;
+      border: 1px solid #F1F5F9;
+    }
+    .info-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .info-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 2px;
+    }
+    .grant-box {
+      background: #FDF2F8;
+      border: 2px solid #FBCFE8;
+      border-radius: 12px;
+      padding: 16px 20px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .grant-amount {
+      font-size: 32px;
+      font-weight: 900;
+      color: #E6127E;
+      margin: 2px 0;
+    }
+    .terms-box {
+      font-size: 11px;
+      color: #475569;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      line-height: 1.55;
+    }
+    .footer-section {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid #E2E8F0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .signature-area {
+      text-align: right;
+    }
+    .sign-line {
+      width: 180px;
+      border-top: 1.5px solid #0f172a;
+      margin: 28px 0 4px auto;
+    }
+    .print-bar {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .btn-print {
+      background: #E6127E;
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print print-bar">
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+
+  <table class="header-table">
+    <tr>
+      <td style="vertical-align: top;">
+        <h1 class="brand-title">Zinthiya Trust</h1>
+        <div class="brand-sub">Client Care & Welfare Relief Portal • Registered Charity No. 1137350</div>
+      </td>
+      <td class="header-right" style="vertical-align: top;">
+        <strong>The Zinthiya Ganeshpanchan Trust</strong><br>
+        12 Bishop Street, Town Hall Square<br>
+        Leicester LE1 6AF, United Kingdom<br>
+        Casework Desk: 0116 254 5168 | info@zinthiyatrust.org
+      </td>
+    </tr>
+  </table>
+
+  <div class="award-banner">
+    <div>
+      <h2 class="award-heading">Official Support Allocation Notice</h2>
+      <div class="ref-badge">Allocation Reference: ${ref}</div>
+    </div>
+    <div>
+      <span class="status-pill">${status}</span>
+    </div>
+  </div>
+
+  <div class="section-title">Beneficiary Particulars</div>
+  <div class="info-grid">
+    <div class="info-item">
+      <div class="info-label">Beneficiary Full Name</div>
+      <div class="info-val">${beneficiary?.fullName || "Verified Beneficiary"}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Beneficiary Client ID</div>
+      <div class="info-val">${beneficiary?.referenceId || "ZT-BEN-2DA6F"}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Assigned Casework Advocate</div>
+      <div class="info-val">${caseworker}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Registered Welfare Postcode / Area</div>
+      <div class="info-val">${beneficiary?.postcode || beneficiary?.townCity || "Leicester, UK"}</div>
+    </div>
+  </div>
+
+  <div class="grant-box">
+    <div class="info-label" style="color: #9D174D;">Approved Hardship Allocation</div>
+    <div class="grant-amount">${amount}</div>
+    <div style="font-size: 12px; font-weight: 700; color: #701A75; margin-top: 4px;">
+      ${title}
+    </div>
+  </div>
+
+  <div class="section-title">Support Governance & Authorization</div>
+  <div class="info-grid">
+    <div class="info-item">
+      <div class="info-label">Allocation Date</div>
+      <div class="info-val">${date}</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Validity Period</div>
+      <div class="info-val">Valid Through: ${validUntil}</div>
+    </div>
+    <div class="info-item" style="grid-column: span 2;">
+      <div class="info-label">Funding Partner</div>
+      <div class="info-val">${funder}</div>
+    </div>
+    <div class="info-item" style="grid-column: span 2;">
+      <div class="info-label">Trustee Authority Body</div>
+      <div class="info-val">${authorizationBody}</div>
+    </div>
+    <div class="info-item" style="grid-column: span 2;">
+      <div class="info-label">Disbursement Method</div>
+      <div class="info-val">${disbursementMethod}</div>
+    </div>
+    <div class="info-item" style="grid-column: span 2;">
+      <div class="info-label">Purpose of Support Allocation</div>
+      <div class="info-val">${purpose}</div>
+    </div>
+  </div>
+
+  <div class="section-title">Permitted Use & Terms of Relief</div>
+  <div class="terms-box">
+    ${usageGuidelines}
+    <br><br>
+    <em>This award notice is certified under the Zinthiya Trust Client Care Charter, UK Charity Commission regulations, and the Data Protection Act 2018. Unauthorized alteration or misuse of this certificate is strictly prohibited.</em>
+  </div>
+
+  <div class="footer-section">
+    <div>
+      <strong>Certified Official Notice</strong><br>
+      The Zinthiya Ganeshpanchan Trust • Care Charter Certified<br>
+      Issued in Leicester, United Kingdom
+    </div>
+    <div class="signature-area">
+      <div class="sign-line"></div>
+      <strong>Authorized Welfare Officer</strong><br>
+      The Zinthiya Trust Casework Team
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
+  </script>
+</body>
+</html>`;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+function downloadAssistanceHistorySummaryPDF(records: any[], beneficiary: any) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Please allow pop-ups in your browser to view and print your Assistance History Summary.");
+    return;
+  }
+
+  const rows = (records || []).map((r) => `
+    <tr>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-weight: 700;">${r.title || "Support Grant"}</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-family: monospace; font-size: 11px;">${r.reference || "REF"}</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9;">${r.date || r.allocationDate || "Recently"}</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-weight: 800; color: #E6127E;">${r.amountGBP || (r.amount ? '£' + r.amount : '£100.00')}</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9;"><span style="padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 800; background: #ECFDF5; color: #065F46;">${(r.status || "Completed").toUpperCase()}</span></td>
+    </tr>
+  `).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Assistance History Summary - The Zinthiya Trust</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; padding: 30px; margin: 0; font-size: 12px; line-height: 1.5; }
+    .header { border-bottom: 2px solid #E6127E; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; }
+    .title { font-size: 24px; font-weight: 900; color: #E6127E; margin: 0; }
+    .sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+    .print-btn { background: #E6127E; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { text-align: left; padding: 10px 12px; background: #F8FAFC; border-bottom: 2px solid #E2E8F0; font-size: 11px; text-transform: uppercase; color: #475569; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align: right; margin-bottom: 16px;">
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+  <div class="header">
+    <div>
+      <h1 class="title">Zinthiya Trust</h1>
+      <div class="sub">Verified Beneficiary Assistance & Support Distribution Statement</div>
+    </div>
+    <div style="text-align: right; font-size: 11px; color: #64748b;">
+      Charity Reg. No. 1137350<br>
+      Leicester LE1 6AF • Helpline: 0116 254 5168
+    </div>
+  </div>
+  <div style="background: #FDF2F8; border: 1px solid #FBCFE8; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">
+    <strong>Beneficiary:</strong> ${beneficiary?.fullName || "Verified Beneficiary"} (${beneficiary?.referenceId || "ZT-BEN-2DA6F"}) • <strong>Date of Statement:</strong> ${new Date().toLocaleDateString("en-GB")}
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Support Programme</th>
+        <th>Reference</th>
+        <th>Date</th>
+        <th>Amount</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+  <div style="margin-top: 40px; border-top: 1px solid #E2E8F0; padding-top: 12px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+    <div>Certified Official Welfare Record under UK Charity Commission Care Charter</div>
+    <div>The Zinthiya Ganeshpanchan Trust</div>
+  </div>
+  <script>
+    window.onload = function() { setTimeout(function() { window.print(); }, 500); };
+  </script>
+</body>
+</html>`;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
 function ZinthiyaLogo() {
   return (
     <svg
@@ -3207,7 +3602,13 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <button
                     type="button"
                     onClick={() => {
-                      alert("Downloading official Trustee Allocation Certificate & Approved Support Letter (PDF)...");
+                      const firstItem = allocatedSupportRecords[0] || {
+                        reference: beneficiaryUser.referenceId || "ZT-ALC-CERT",
+                        title: "Official Trustee Allocation Certificate",
+                        amountGBP: liveStats.totalAllocated ? `£${liveStats.totalAllocated}` : "£100.00",
+                        purpose: "Consolidated trustee relief grant and crisis advocacy award.",
+                      };
+                      downloadAwardLetterPDF(firstItem, beneficiaryUser);
                     }}
                     style={{
                       padding: "8px 14px",
@@ -3594,9 +3995,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           <div style={{ display: "flex", gap: "8px" }}>
                             <button
                               type="button"
-                              onClick={() => {
-                                alert(`Downloading Official Allocation Notice PDF for ${item.reference}...`);
-                              }}
+                              onClick={() => downloadAwardLetterPDF(item, beneficiaryUser)}
                               style={{
                                 padding: "6px 12px",
                                 borderRadius: "8px",
@@ -3938,9 +4337,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          alert(`Printing certified support allocation notice for ${selectedAllocationDetail.reference}...`);
-                        }}
+                        onClick={() => downloadAwardLetterPDF(selectedAllocationDetail, beneficiaryUser)}
                         className="btn-gradient-magenta"
                         style={{ flex: 1, padding: "10px", fontSize: "12px" }}
                       >
@@ -4035,9 +4432,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                   <button
                     type="button"
-                    onClick={() => {
-                      alert("Downloading complete verified Assistance History Summary (PDF)...");
-                    }}
+                    onClick={() => downloadAssistanceHistorySummaryPDF(allocatedSupportRecords, beneficiaryUser)}
                     style={{
                       padding: "8px 14px",
                       borderRadius: "10px",
@@ -4452,9 +4847,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          alert(`Downloading official voucher / award certificate for ${selectedAssistanceDetail.reference}...`);
-                        }}
+                        onClick={() => downloadAwardLetterPDF(selectedAssistanceDetail, beneficiaryUser)}
                         className="btn-gradient-magenta"
                         style={{ flex: 1, padding: "9px", fontSize: "12px" }}
                       >
