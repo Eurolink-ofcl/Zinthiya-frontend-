@@ -2867,7 +2867,7 @@ export function AdminDashboardPage() {
   const [newsletterChannelFilter, setNewsletterChannelFilter] = useState<string>("ALL");
   const [showComposeNewsletterModal, setShowComposeNewsletterModal] = useState<boolean>(false);
   const [composeSubject, setComposeSubject] = useState("");
-  const [composeChannel, setComposeChannel] = useState("EMAIL");
+  const [composeChannel, setComposeChannel] = useState("EMAIL_AND_PORTAL");
   const [composeBody, setComposeBody] = useState("");
   const [dispatchingNewsletter, setDispatchingNewsletter] = useState(false);
   const [newsletterSuccessMsg, setNewsletterSuccessMsg] = useState("");
@@ -3089,7 +3089,7 @@ export function AdminDashboardPage() {
     try {
       const [n, d] = await Promise.all([
         api.getNewsletterAdmin(),
-        donors.length === 0 ? api.getDonorsAdmin() : Promise.resolve(null),
+        donors.length === 0 ? api.getAllDonorsAdmin() : Promise.resolve(null),
       ]);
       setNewsletterData(n);
       if (d && Array.isArray(d)) {
@@ -10818,16 +10818,17 @@ export function AdminDashboardPage() {
 
                 <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
                   <div className="flex items-center justify-between text-slate-400 mb-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Alternative Channels</span>
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <PhoneCall size={16} />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Portal Community Feed</span>
+                    <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
+                      <Megaphone size={16} />
                     </div>
                   </div>
-                  <div className="text-sm font-extrabold text-slate-900 space-y-1">
-                    <div>SMS: <span className="text-slate-600">{newsletterData?.stats?.smsSubscribers ?? 0}</span></div>
-                    <div>Postal: <span className="text-slate-600">{newsletterData?.stats?.postalSubscribers ?? 0}</span></div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {newsletterData?.campaignsHistory?.length ?? 0}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">Opt-in outreach preferences</div>
+                  <div className="text-[11px] font-semibold text-emerald-600 mt-1">
+                    Live in Donor Portal
+                  </div>
                 </div>
               </div>
 
@@ -10852,8 +10853,7 @@ export function AdminDashboardPage() {
                   >
                     <option value="ALL">All Communication Channels</option>
                     <option value="EMAIL">Email Newsletter Consented</option>
-                    <option value="SMS">SMS Alerts Consented</option>
-                    <option value="POSTAL">Postal Mail Consented</option>
+                    <option value="PORTAL">Portal Feed Viewers</option>
                   </select>
 
                   <button
@@ -10910,8 +10910,7 @@ export function AdminDashboardPage() {
                             if (!matchName && !matchEmail) return false;
                           }
                           if (newsletterChannelFilter === "EMAIL" && !sub.emailNewsletter) return false;
-                          if (newsletterChannelFilter === "SMS" && !sub.smsAlerts) return false;
-                          if (newsletterChannelFilter === "POSTAL" && !sub.postalUpdates) return false;
+                          if (newsletterChannelFilter === "PORTAL" && sub.emailNewsletter) return false;
                           return true;
                         })
                         .map((sub: any) => (
@@ -10935,21 +10934,27 @@ export function AdminDashboardPage() {
                               {new Date(sub.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                             </td>
                             <td className="py-3.5 px-4">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <Check size={10} />
-                                <span>Consent Verified</span>
-                              </span>
+                              {sub.emailNewsletter ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <Check size={10} />
+                                  <span>Email Consent Verified</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  <span>Portal Only (Opted Out)</span>
+                                </span>
+                              )}
                             </td>
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-1.5">
-                                {sub.emailNewsletter && (
-                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700">Email</span>
-                                )}
-                                {sub.smsAlerts && (
-                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700">SMS</span>
-                                )}
-                                {sub.postalUpdates && (
-                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700">Post</span>
+                                {sub.emailNewsletter ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+                                    Email &amp; Portal
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700">
+                                    Donor Portal
+                                  </span>
                                 )}
                               </div>
                             </td>
@@ -20321,58 +20326,109 @@ export function AdminDashboardPage() {
                 />
               </div>
 
-              {/* Channel and Mode Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Dispatch Channel</label>
-                  <select
-                    value={composeChannel}
-                    onChange={(e) => setComposeChannel(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                  >
-                    <option value="EMAIL">Email Newsletter (Standard)</option>
-                    <option value="SMS">SMS Emergency Broadcast</option>
-                    <option value="MULTICHANNEL">Multichannel (Email &amp; SMS)</option>
-                  </select>
-                </div>
+              {/* Dispatch Channel (Email & Portal only, NO SMS) */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Dispatch Channel *
+                </label>
+                <select
+                  value={composeChannel}
+                  onChange={(e) => setComposeChannel(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
+                >
+                  <option value="EMAIL_AND_PORTAL">
+                    Email Newsletter &amp; Donor Portal (Dispatches to Inboxes + Publishes to Portal Feed)
+                  </option>
+                  <option value="EMAIL_ONLY">
+                    Email Newsletter Only (Dispatches to Consented Donor Inboxes)
+                  </option>
+                  <option value="PORTAL_ONLY">
+                    Donor Portal Only (Publishes to Community Announcements Tab)
+                  </option>
+                </select>
+                <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                  <ShieldCheck size={11} className="text-emerald-600" />
+                  <span>The Trust operates via email and portal newsletters only (SMS outreach is not used).</span>
+                </p>
+              </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Targeting Method *</label>
-                  <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setComposeTargetMode("GROUPS")}
-                      className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
-                        composeTargetMode === "GROUPS"
-                          ? "bg-white text-magenta shadow-xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      Groups
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComposeTargetMode("TIERS")}
-                      className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
-                        composeTargetMode === "TIERS"
-                          ? "bg-white text-magenta shadow-xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      Giving Tiers
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setComposeTargetMode("INDIVIDUAL")}
-                      className={`py-1.5 px-2 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
-                        composeTargetMode === "INDIVIDUAL"
-                          ? "bg-white text-magenta shadow-xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      Individual
-                    </button>
-                  </div>
+              {/* Target Audience / Recipient Selection Mode (3 Options) */}
+              <div>
+                <label className="block text-[12px] font-black text-slate-800 mb-1.5">
+                  Target Audience / Select Recipients *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setComposeTargetMode("GROUPS")}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      composeTargetMode === "GROUPS"
+                        ? "bg-pink-50/70 border-magenta shadow-xs ring-1 ring-magenta/30"
+                        : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-xs font-black ${composeTargetMode === "GROUPS" ? "text-magenta" : "text-slate-800"}`}>
+                        1. Specific Donor Groups
+                      </span>
+                      <input
+                        type="radio"
+                        name="targetAudienceMode"
+                        checked={composeTargetMode === "GROUPS"}
+                        onChange={() => setComposeTargetMode("GROUPS")}
+                        className="text-magenta focus:ring-magenta cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">All Donors, Major Donors, or Regular</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setComposeTargetMode("TIERS")}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      composeTargetMode === "TIERS"
+                        ? "bg-pink-50/70 border-magenta shadow-xs ring-1 ring-magenta/30"
+                        : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-xs font-black ${composeTargetMode === "TIERS" ? "text-magenta" : "text-slate-800"}`}>
+                        2. Donation Tiers
+                      </span>
+                      <input
+                        type="radio"
+                        name="targetAudienceMode"
+                        checked={composeTargetMode === "TIERS"}
+                        onChange={() => setComposeTargetMode("TIERS")}
+                        className="text-magenta focus:ring-magenta cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">Target by Giving Tiers (Supporter to Platinum)</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setComposeTargetMode("INDIVIDUAL")}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      composeTargetMode === "INDIVIDUAL"
+                        ? "bg-pink-50/70 border-magenta shadow-xs ring-1 ring-magenta/30"
+                        : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-xs font-black ${composeTargetMode === "INDIVIDUAL" ? "text-magenta" : "text-slate-800"}`}>
+                        3. Individual Donors
+                      </span>
+                      <input
+                        type="radio"
+                        name="targetAudienceMode"
+                        checked={composeTargetMode === "INDIVIDUAL"}
+                        onChange={() => setComposeTargetMode("INDIVIDUAL")}
+                        className="text-magenta focus:ring-magenta cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">Pick specific individual donors</p>
+                  </button>
                 </div>
               </div>
 
