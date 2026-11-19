@@ -1244,6 +1244,8 @@ class ApiService {
       attachment?: ChatAttachment;
       detectedLanguage?: string;
       translationText?: string;
+      sourceLanguage?: string;
+      targetLanguage?: string;
     }
   ): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {
     return this.request<{ message: ChatMessage; messages: ChatMessage[] }>(
@@ -1294,6 +1296,8 @@ class ApiService {
     attachment?: ChatAttachment;
     detectedLanguage?: string;
     translationText?: string;
+    sourceLanguage?: string;
+    targetLanguage?: string;
   }): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {
     const token = typeof window !== "undefined"
       ? (localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token"))

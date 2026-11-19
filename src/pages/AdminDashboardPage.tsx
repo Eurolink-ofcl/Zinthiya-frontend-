@@ -12691,7 +12691,7 @@ export function AdminDashboardPage() {
                                         <div className={`pt-2 border-t text-[11px] italic leading-normal ${
                                           isStaff ? "border-white/20 text-white/95" : "border-slate-100 text-slate-700"
                                         }`}>
-                                          "{isTranslated && msg.translationText ? msg.translationText : msg.voiceTranscript}"
+                                          "{isToggled && msg.translationText ? msg.translationText : msg.voiceTranscript}"
                                         </div>
                                       )}
                                     </div>
