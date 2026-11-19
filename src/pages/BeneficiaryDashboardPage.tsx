@@ -226,38 +226,30 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     bio: "Dedicated casework advocacy team at The Zinthiya Trust supporting Leicestershire families with welfare entitlements, emergency utility energy relief grants, and local authority liaison."
   };
 
-  const conversationThreads = [
-    {
-      id: "thread-1",
-      title: "Winter Fuel & Medical Support Coordination",
-      topic: "Active relief coordination for winter prepayment grant and pediatric medical voucher.",
-      status: "Active Thread",
-      statusColor: "#059669",
-      statusBg: "#ECFDF5",
-      lastMessageTime: "Today, 10:22 AM",
-      unreadCount: 1
-    },
-    {
-      id: "thread-2",
-      title: "School Uniform & Clothing Grant (#ZT-CLO-3392)",
-      topic: "Year 5 uniform voucher collection and clothing support review.",
-      status: "Resolved / Archived",
-      statusColor: "#64748B",
-      statusBg: "#F1F5F9",
-      lastMessageTime: "22 Oct 2026",
-      unreadCount: 0
-    },
-    {
-      id: "thread-3",
-      title: "Initial Welfare Rights & Benefit Intake",
-      topic: "Baseline household welfare check, Council Tax relief, and Universal Credit child elements.",
-      status: "Archived",
-      statusColor: "#64748B",
-      statusBg: "#F1F5F9",
-      lastMessageTime: "12 Sep 2026",
-      unreadCount: 0
-    }
-  ];
+  const [chatThreads, setChatThreads] = useState<{ [key: string]: any[] }>({
+    "thread-1": []
+  });
+
+  const conversationThreads = useMemo(() => {
+    const msgs = chatThreads["thread-1"] || [];
+    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+    const lastTime = lastMsg
+      ? lastMsg.time || "Recently"
+      : "No messages yet";
+
+    return [
+      {
+        id: "thread-1",
+        title: "Casework Advocacy & Direct Messaging",
+        topic: "Direct encrypted casework line with your allocated advocate and welfare team.",
+        status: "Active Thread",
+        statusColor: "#059669",
+        statusBg: "#ECFDF5",
+        lastMessageTime: lastTime,
+        unreadCount: 0
+      }
+    ];
+  }, [chatThreads]);
 
   const [activeConversationId, setActiveConversationId] = useState<string>("thread-1");
   const [showAdvocateProfileModal, setShowAdvocateProfileModal] = useState<boolean>(false);
@@ -269,107 +261,6 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [autoTranslateEnabled, setAutoTranslateEnabled] = useState<boolean>(true);
   const [translatedMessages, setTranslatedMessages] = useState<{ [id: string]: boolean }>({});
   const [isCaseworkerTyping, setIsCaseworkerTyping] = useState<boolean>(false);
-
-  const [chatThreads, setChatThreads] = useState<{ [key: string]: any[] }>({
-    "thread-1": [
-      {
-        id: "m-101",
-        sender: "caseworker",
-        name: beneficiaryUser.caseWorker,
-        time: "Today, 09:30 AM",
-        type: "text",
-        text: "Good morning Sarah, I've reviewed and processed your Winter Warmth grant application. A £250 fuel credit has been sent to your British Gas prepayment key.",
-        detectedLanguage: "English (UK)",
-        translationText: "શુભ પ્રભાત સારાહ, મેં તમારી વિન્ટર વોર્મથ ગ્રાન્ટ અરજીની સમીક્ષા કરી છે અને તેની પ્રક્રિયા કરી છે. તમારી બ્રિટિશ ગેસ પ્રીપેમેન્ટ કી પર £250 ની ઇંધણ સહાય મોકલવામાં આવી છે."
-      },
-      {
-        id: "m-102",
-        sender: "beneficiary",
-        name: beneficiaryUser.fullName,
-        time: "Today, 10:15 AM",
-        type: "text",
-        text: "Thank you so much, this is such a huge relief for me and my family. Does the voucher apply directly when I top up at the Post Office?",
-        detectedLanguage: "English (UK)",
-        translationText: "તમારો ખૂબ ખૂબ આભાર, આ મારા અને પરિવાર માટે ઘણી મોટી રાહત છે."
-      },
-      {
-        id: "m-103",
-        sender: "caseworker",
-        name: beneficiaryUser.caseWorker,
-        time: "Today, 10:20 AM",
-        type: "voice",
-        voiceDuration: "0:24",
-        voiceSeconds: 24,
-        voiceTranscript: "Hi Sarah! Yes, exactly. Just take your regular key card and the voucher code sent to your mobile phone. Remember to top up your electricity key first at any PayPoint or Post Office. Don't forget our casework review on Monday 24 Nov at 11:30 AM.",
-        detectedLanguage: "English (UK)",
-        translationText: "નમસ્તે સારાહ! હા, બરાબર. ફક્ત તમારું સામાન્ય કી કાર્ડ અને તમારા મોબાઇલ પર મોકલેલો વાઉચર કોડ લો. સોમવાર 24 નવેમ્બરે સવારે 11:30 વાગ્યે અમારી સમીક્ષા બેઠક ભૂલશો નહીં."
-      },
-      {
-        id: "m-104",
-        sender: "caseworker",
-        name: beneficiaryUser.caseWorker,
-        time: "Today, 10:22 AM",
-        type: "text",
-        text: "તમારી મેડિકલ સહાય ગ્રાન્ટ (₹10,000 / £1,000) પણ મંજૂર કરવામાં આવી છે. ફાર્મસી વાઉચર આગામી 48 કલાકમાં સક્રિય થઈ જશે.",
-        detectedLanguage: "Gujarati (ગુજરાતી)",
-        translationText: "Your medical assistance grant (₹10,000 / £1,000) has also been approved. The pharmacy voucher will be active within the next 48 hours."
-      }
-    ],
-    "thread-2": [
-      {
-        id: "m-201",
-        sender: "caseworker",
-        name: beneficiaryUser.caseWorker,
-        time: "18 Oct, 11:00 AM",
-        type: "text",
-        text: "Hello Sarah, your school uniform and winter coats grant (#ZT-CLO-3392) for £100 has been approved by the Trustees.",
-        detectedLanguage: "English (UK)",
-        translationText: "નમસ્તે સારાહ, તમારા £100 ની શાળા ગણવેશ અને શિયાળુ કોટ્સ ગ્રાન્ટ ટ્રસ્ટીઓ દ્વારા મંજૂર કરવામાં આવી છે."
-      },
-      {
-        id: "m-202",
-        sender: "beneficiary",
-        name: beneficiaryUser.fullName,
-        time: "18 Oct, 01:25 PM",
-        type: "text",
-        text: "Thank you caseworker, we received the assistance today. The family is so grateful.",
-        detectedLanguage: "English (UK)",
-        translationText: "આભાર, અમે આજે સહાય મેળવી લીધી છે."
-      },
-      {
-        id: "m-203",
-        sender: "caseworker",
-        name: beneficiaryUser.caseWorker,
-        time: "22 Oct, 09:15 AM",
-        type: "text",
-        text: "Wonderful news Sarah! Marking this grant case as completed. Have a wonderful half-term.",
-        detectedLanguage: "English (UK)",
-        translationText: "અદ્ભુત સમાચાર સારાહ! આ કેસ પૂર્ણ તરીકે ચિહ્નિત કરી રહ્યા છીએ."
-      }
-    ],
-    "thread-3": [
-      {
-        id: "m-301",
-        sender: "caseworker",
-        name: beneficiaryUser.caseWorker,
-        time: "12 Sep, 10:00 AM",
-        type: "text",
-        text: "Welcome to The Zinthiya Trust Client Care Portal. I have been assigned as your dedicated family welfare advocate.",
-        detectedLanguage: "English (UK)",
-        translationText: "ઝિન્થિયા ટ્રસ્ટ ક્લાયન્ટ કેર પોર્ટલમાં આપનું સ્વાગત છે. મને તમારા પારિવારિક કલ્યાણ વકીલ તરીકે નિયુક્ત કરવામાં આવ્યા છે."
-      },
-      {
-        id: "m-302",
-        sender: "beneficiary",
-        name: beneficiaryUser.fullName,
-        time: "12 Sep, 10:45 AM",
-        type: "text",
-        text: "Hello, thank you for accepting my referral. I look forward to working with you.",
-        detectedLanguage: "English (UK)",
-        translationText: "નમસ્તે, મારો રેફરલ સ્વીકારવા બદલ આભાર."
-      }
-    ]
-  });
 
   // Language selection state
   const [selectedLanguage, setSelectedLanguage] = useState("en");
@@ -491,8 +382,40 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
 
     fetchPortalData();
+    loadBeneficiaryMessages();
     return () => { isMounted = false; };
   }, []);
+
+  async function loadBeneficiaryMessages() {
+    try {
+      const res = await api.getBeneficiaryMessages();
+      if (res && Array.isArray(res.messages)) {
+        const formatted = res.messages.map((m: any) => ({
+          id: m.id || `m-${Date.now()}`,
+          sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
+          name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : (res.assignedAdvocate || "Caseworker")),
+          time: m.timestamp
+            ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "Just now",
+          type: m.type || "text",
+          text: m.text || "",
+          voiceDuration: m.voiceDuration,
+          voiceTranscript: m.voiceTranscript,
+          detectedLanguage: m.detectedLanguage || "English (UK)",
+          translationText: m.translationText || m.text
+        }));
+        setChatThreads({ "thread-1": formatted });
+      }
+    } catch (err: any) {
+      console.error("Failed to load live messages:", err);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "messages") {
+      loadBeneficiaryMessages();
+    }
+  }, [activeTab]);
 
   // Request Support Modal State & Handler
   const [requestCategory, setRequestCategory] = useState<string>("");
@@ -701,7 +624,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     };
   }, [isRecordingVoice]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim()) return;
 
@@ -714,87 +637,77 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       ? "Urdu (اردو)"
       : "English (UK)";
 
-    const newMsg = {
-      id: "m-" + Date.now(),
-      sender: "beneficiary" as const,
-      name: beneficiaryUser.fullName,
-      time: "Just now",
-      type: "text" as const,
-      text: messageText.trim(),
-      detectedLanguage: detected,
-      translationText: "Message from " + beneficiaryUser.fullName + ": " + messageText.trim()
-    };
-
-    setChatThreads((prev) => ({
-      ...prev,
-      [activeConversationId]: [...(prev[activeConversationId] || []), newMsg]
-    }));
+    const textToSend = messageText.trim();
     setMessageText("");
 
-    // Simulate caseworker reply with typing status
-    setIsCaseworkerTyping(true);
-    setTimeout(() => {
-      setIsCaseworkerTyping(false);
-      const replyMsg = {
-        id: "m-" + (Date.now() + 1),
-        sender: "caseworker" as const,
-        name: beneficiaryUser.caseWorker,
-        time: "Just now",
-        type: "text" as const,
-        text: "Thank you for updating me, " + (beneficiaryUser.preferredName || "Client") + "! I have logged this into your case record. If you have any questions regarding your active relief support or our upcoming check-in, feel free to drop a message or call.",
-        detectedLanguage: "English (UK)",
-        translationText: "મને અપડેટ કરવા બદલ આભાર! મેં તમારા કેસ રેકોર્ડમાં આ નોંધી લીધું છે."
-      };
-      setChatThreads((prev) => ({
-        ...prev,
-        [activeConversationId]: [...(prev[activeConversationId] || []), replyMsg]
-      }));
-    }, 1800);
+    try {
+      const res = await api.sendBeneficiaryMessage({
+        text: textToSend,
+        type: "text",
+        detectedLanguage: detected,
+        translationText: `Message from ${beneficiaryUser.fullName}: ${textToSend}`
+      });
+
+      if (res && Array.isArray(res.messages)) {
+        const formatted = res.messages.map((m: any) => ({
+          id: m.id || `m-${Date.now()}`,
+          sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
+          name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : "Caseworker"),
+          time: m.timestamp
+            ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "Just now",
+          type: m.type || "text",
+          text: m.text || "",
+          voiceDuration: m.voiceDuration,
+          voiceTranscript: m.voiceTranscript,
+          detectedLanguage: m.detectedLanguage || "English (UK)",
+          translationText: m.translationText || m.text
+        }));
+        setChatThreads({ "thread-1": formatted });
+      }
+    } catch (err: any) {
+      console.error("Failed to send message:", err);
+      alert(err.message || "Unable to send message to casework team.");
+    }
   };
 
-  const handleSendVoiceMessage = () => {
+  const handleSendVoiceMessage = async () => {
     if (!isRecordingVoice) return;
     const dur = recordingSeconds || 4;
-    const newVoiceMsg = {
-      id: "m-" + Date.now(),
-      sender: "beneficiary" as const,
-      name: beneficiaryUser.fullName,
-      time: "Just now",
-      type: "voice" as const,
-      voiceDuration: `0:${dur < 10 ? "0" : ""}${dur}`,
-      voiceSeconds: dur,
-      voiceTranscript: "Voice message from " + beneficiaryUser.fullName + " regarding support assistance check-in.",
-      detectedLanguage: "English (UK)",
-      translationText: "ક્લાયન્ટ તરફથી વૉઇસ સંદેશ."
-    };
-
-    setChatThreads((prev) => ({
-      ...prev,
-      [activeConversationId]: [...(prev[activeConversationId] || []), newVoiceMsg]
-    }));
-
     setIsRecordingVoice(false);
     setRecordingSeconds(0);
 
-    // Simulate caseworker reply to voice note
-    setIsCaseworkerTyping(true);
-    setTimeout(() => {
-      setIsCaseworkerTyping(false);
-      const replyMsg = {
-        id: "m-" + (Date.now() + 1),
-        sender: "caseworker" as const,
-        name: beneficiaryUser.caseWorker,
-        time: "Just now",
-        type: "text" as const,
-        text: "Audio message received loud and clear Sarah! Everything is in order for your file. I will see you at the community hub on Monday.",
+    try {
+      const res = await api.sendBeneficiaryMessage({
+        text: `[Voice Note 0:${dur < 10 ? "0" : ""}${dur}]`,
+        type: "voice",
+        voiceDuration: `0:${dur < 10 ? "0" : ""}${dur}`,
+        voiceTranscript: `Voice message from ${beneficiaryUser.fullName} regarding casework update.`,
         detectedLanguage: "English (UK)",
-        translationText: "ઓડિયો સંદેશ સ્પષ્ટપણે મળ્યો સારાહ! તમારી ફાઇલ માટે બધું બરાબર છે."
-      };
-      setChatThreads((prev) => ({
-        ...prev,
-        [activeConversationId]: [...(prev[activeConversationId] || []), replyMsg]
-      }));
-    }, 2000);
+        translationText: "Voice casework message from beneficiary."
+      });
+
+      if (res && Array.isArray(res.messages)) {
+        const formatted = res.messages.map((m: any) => ({
+          id: m.id || `m-${Date.now()}`,
+          sender: m.sender === "beneficiary" ? ("beneficiary" as const) : ("caseworker" as const),
+          name: m.name || (m.sender === "beneficiary" ? beneficiaryUser.fullName : "Caseworker"),
+          time: m.timestamp
+            ? new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "Just now",
+          type: m.type || "text",
+          text: m.text || "",
+          voiceDuration: m.voiceDuration,
+          voiceTranscript: m.voiceTranscript,
+          detectedLanguage: m.detectedLanguage || "English (UK)",
+          translationText: m.translationText || m.text
+        }));
+        setChatThreads({ "thread-1": formatted });
+      }
+    } catch (err: any) {
+      console.error("Failed to send voice message:", err);
+      alert(err.message || "Unable to send voice message.");
+    }
   };
 
   const handleTogglePlayVoice = (id: string | number) => {
@@ -4517,22 +4430,35 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </span>
                     </div>
 
-                    {(chatThreads[activeConversationId] || []).map((msg: any) => {
-                      const isUser = msg.sender === "beneficiary";
-                      const isTranslated = !!translatedMessages[msg.id];
-                      const displayText = isTranslated ? msg.translationText : msg.text;
+                    {(chatThreads[activeConversationId] || []).length === 0 ? (
+                      <div style={{ padding: "48px 24px", textAlign: "center", color: "#64748B", margin: "auto 0" }}>
+                        <div style={{ width: "48px", height: "48px", borderRadius: "50%", backgroundColor: "#FCE8F3", color: "#E6127E", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                          <MessagesSquare size={24} />
+                        </div>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#241221", marginBottom: "4px" }}>
+                          No messages yet
+                        </div>
+                        <div style={{ fontSize: "12px", maxWidth: "340px", margin: "0 auto", color: "#6A5364" }}>
+                          Send a text or voice note below to start communicating directly with your assigned advocate and casework team.
+                        </div>
+                      </div>
+                    ) : (
+                      (chatThreads[activeConversationId] || []).map((msg: any) => {
+                        const isUser = msg.sender === "beneficiary";
+                        const isTranslated = !!translatedMessages[msg.id];
+                        const displayText = isTranslated ? msg.translationText : msg.text;
 
-                      return (
-                        <div
-                          key={msg.id}
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: isUser ? "flex-end" : "flex-start",
-                            maxWidth: "85%",
-                            alignSelf: isUser ? "flex-end" : "flex-start"
-                          }}
-                        >
+                        return (
+                          <div
+                            key={msg.id}
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: isUser ? "flex-end" : "flex-start",
+                              maxWidth: "85%",
+                              alignSelf: isUser ? "flex-end" : "flex-start"
+                            }}
+                          >
                           {/* Sender Metadata & Automatic Language Detection */}
                           <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "10.5px", color: "#8E7287", marginBottom: "3px" }}>
                             <span>{msg.name}</span>
@@ -4691,7 +4617,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           )}
                         </div>
                       );
-                    })}
+                    }))}
 
                     {/* Caseworker Typing Indicator */}
                     {isCaseworkerTyping && (

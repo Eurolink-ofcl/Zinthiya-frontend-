@@ -244,6 +244,43 @@ export interface BeneficiaryRecord {
   beneficiaryRequests: AdminBeneficiaryRequest[];
 }
 
+export interface ChatMessage {
+  id: string;
+  isChatMessage?: boolean;
+  sender: 'beneficiary' | 'staff';
+  senderId?: string;
+  name: string;
+  text: string;
+  type?: 'text' | 'voice';
+  voiceDuration?: string | null;
+  voiceTranscript?: string | null;
+  detectedLanguage?: string | null;
+  translationText?: string | null;
+  timestamp: string;
+  read?: boolean;
+}
+
+export interface CommunicationThread {
+  beneficiaryId: string;
+  beneficiaryName: string;
+  beneficiaryEmail: string;
+  beneficiaryPhone?: string | null;
+  townCity?: string;
+  postcode?: string | null;
+  assignedAdvocate?: string | null;
+  active: boolean;
+  registeredDate: string;
+  latestRequest?: {
+    id: string;
+    serviceType: string;
+    status: string;
+    urgency: string;
+  } | null;
+  messages: ChatMessage[];
+  lastMessage?: ChatMessage | null;
+  unreadCount: number;
+}
+
 export interface SupportCategoryRecord {
   id: string;
   name: string;
@@ -1168,6 +1205,72 @@ class ApiService {
     return this.request<any>(`/admin/beneficiaries/${id}`, {
       method: "DELETE",
       headers: this.getHeaders(false),
+    });
+  }
+
+  // --- Live Staff & Beneficiary Communications API ---
+  async getCommunicationThreadsAdmin(): Promise<CommunicationThread[]> {
+    return this.request<CommunicationThread[]>("/admin/communications/threads", {
+      method: "GET",
+      headers: this.getHeaders(false),
+    });
+  }
+
+  async sendBeneficiaryMessageAdmin(
+    beneficiaryId: string,
+    payload: {
+      text: string;
+      type?: 'text' | 'voice';
+      voiceDuration?: string;
+      voiceTranscript?: string;
+      detectedLanguage?: string;
+      translationText?: string;
+    }
+  ): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {
+    return this.request<{ message: ChatMessage; messages: ChatMessage[] }>(
+      `/admin/beneficiaries/${beneficiaryId}/messages`,
+      {
+        method: "POST",
+        headers: this.getHeaders(false),
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async markThreadAsReadAdmin(beneficiaryId: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/admin/beneficiaries/${beneficiaryId}/messages/read`, {
+      method: "PATCH",
+      headers: this.getHeaders(false),
+    });
+  }
+
+  async getBeneficiaryMessages(): Promise<{
+    beneficiaryId: string;
+    assignedAdvocate?: string | null;
+    messages: ChatMessage[];
+  }> {
+    return this.request<{
+      beneficiaryId: string;
+      assignedAdvocate?: string | null;
+      messages: ChatMessage[];
+    }>("/auth/beneficiary/messages", {
+      method: "GET",
+      headers: this.getHeaders(true),
+    });
+  }
+
+  async sendBeneficiaryMessage(payload: {
+    text: string;
+    type?: 'text' | 'voice';
+    voiceDuration?: string;
+    voiceTranscript?: string;
+    detectedLanguage?: string;
+    translationText?: string;
+  }): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {
+    return this.request<{ message: ChatMessage; messages: ChatMessage[] }>("/auth/beneficiary/messages", {
+      method: "POST",
+      headers: this.getHeaders(true),
+      body: JSON.stringify(payload),
     });
   }
 

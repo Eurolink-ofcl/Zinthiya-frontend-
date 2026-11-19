@@ -28,7 +28,9 @@ import {
   StaffResponse,
   AuditLogRecord,
   AuditLogsResponse,
-  RolesPermissionsResponse
+  RolesPermissionsResponse,
+  CommunicationThread,
+  ChatMessage
 } from "../lib/api";
 import {
   LayoutDashboard,
@@ -87,7 +89,14 @@ import {
   Building,
   Building2,
   Award,
-  Target
+  Target,
+  MessagesSquare,
+  Languages,
+  Send,
+  Mic,
+  Play,
+  Pause,
+  Volume2
 } from "../components/Icons";
 
 function ZinthiyaLogo() {
@@ -296,6 +305,14 @@ export const PERMISSION_MODULES = [
     icon: TrendingUp,
     items: [
       { key: "reports:view", label: "View Charity Analytics & Exports", desc: "Access Charity Commission compliance reports and export CSV summaries" },
+    ],
+  },
+  {
+    module: "Communications",
+    id: "comms",
+    icon: MessagesSquare,
+    items: [
+      { key: "comms:read", label: "Casework Messaging & Voice Inbox", desc: "Interact with beneficiaries, review transcripts, and provide multilingual casework support" },
     ],
   },
   {
@@ -3419,6 +3436,170 @@ export function AdminDashboardPage() {
   // Modal to view broadcast content
   const [viewingBroadcast, setViewingBroadcast] = useState<any | null>(null);
 
+  // ==========================================
+  // COMMUNICATIONS & CASEWORK MESSAGING STATE
+  // ==========================================
+  const [commsThreads, setCommsThreads] = useState<CommunicationThread[]>([]);
+  const [commsLoading, setCommsLoading] = useState<boolean>(false);
+  const [commsSearch, setCommsSearch] = useState<string>("");
+  const [commsFilter, setCommsFilter] = useState<"ALL" | "UNREAD" | "ASSIGNED_ME" | "UNASSIGNED">("ALL");
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [commsMessageText, setCommsMessageText] = useState<string>("");
+  const [commsSending, setCommsSending] = useState<boolean>(false);
+  const [commsRecordingVoice, setCommsRecordingVoice] = useState<boolean>(false);
+  const [commsVoiceSeconds, setCommsVoiceSeconds] = useState<number>(0);
+  const [commsPlayingAudioId, setCommsPlayingAudioId] = useState<string | null>(null);
+  const [commsTranslatedIds, setCommsTranslatedIds] = useState<{ [id: string]: boolean }>({});
+  const [commsErrorMsg, setCommsErrorMsg] = useState<string>("");
+
+  useEffect(() => {
+    let interval: any = null;
+    if (commsRecordingVoice) {
+      interval = setInterval(() => {
+        setCommsVoiceSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setCommsVoiceSeconds(0);
+      if (interval) clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [commsRecordingVoice]);
+
+  async function loadCommunicationsData() {
+    setCommsLoading(true);
+    setCommsErrorMsg("");
+    try {
+      const threads = await api.getCommunicationThreadsAdmin();
+      setCommsThreads(threads);
+      if (threads.length > 0) {
+        setSelectedThreadId((prev) => {
+          if (prev && threads.some((t) => t.beneficiaryId === prev)) return prev;
+          return threads[0].beneficiaryId;
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to load communications threads:", err);
+      setCommsErrorMsg(err.message || "Failed to load communications inbox");
+    } finally {
+      setCommsLoading(false);
+    }
+  }
+
+  async function handleSelectCommsThread(beneficiaryId: string) {
+    setSelectedThreadId(beneficiaryId);
+    const target = commsThreads.find((t) => t.beneficiaryId === beneficiaryId);
+    if (target && target.unreadCount > 0) {
+      api.markThreadAsReadAdmin(beneficiaryId).catch(console.error);
+      setCommsThreads((prev) =>
+        prev.map((t) =>
+          t.beneficiaryId === beneficiaryId
+            ? {
+                ...t,
+                unreadCount: 0,
+                messages: t.messages.map((m) => ({ ...m, read: true })),
+              }
+            : t
+        )
+      );
+    }
+  }
+
+  async function handleSendCommsMessage() {
+    if (!selectedThreadId || (!commsMessageText.trim() && !commsRecordingVoice)) return;
+    setCommsSending(true);
+    try {
+      let payload: any = {
+        text: commsMessageText.trim(),
+        type: "text",
+        detectedLanguage: "English (UK)",
+      };
+
+      if (commsRecordingVoice) {
+        const dur = commsVoiceSeconds || 5;
+        payload = {
+          text: `[Voice Note 0:${dur < 10 ? "0" : ""}${dur}]`,
+          type: "voice",
+          voiceDuration: `0:${dur < 10 ? "0" : ""}${dur}`,
+          voiceTranscript: "Voice casework note from Trust advocacy staff regarding beneficiary inquiry.",
+          detectedLanguage: "English (UK)",
+        };
+        setCommsRecordingVoice(false);
+        setCommsVoiceSeconds(0);
+      }
+
+      const res = await api.sendBeneficiaryMessageAdmin(selectedThreadId, payload);
+      setCommsMessageText("");
+
+      setCommsThreads((prev) =>
+        prev.map((t) => {
+          if (t.beneficiaryId === selectedThreadId) {
+            return {
+              ...t,
+              messages: res.messages,
+              lastMessage: res.message,
+            };
+          }
+          return t;
+        })
+      );
+    } catch (err: any) {
+      alert(err.message || "Failed to send message to beneficiary.");
+    } finally {
+      setCommsSending(false);
+    }
+  }
+
+  const handleToggleCommsAudio = (id: string) => {
+    if (commsPlayingAudioId === id) {
+      setCommsPlayingAudioId(null);
+    } else {
+      setCommsPlayingAudioId(id);
+      setTimeout(() => {
+        setCommsPlayingAudioId((curr) => (curr === id ? null : curr));
+      }, 4000);
+    }
+  };
+
+  const handleToggleCommsTranslate = (id: string) => {
+    setCommsTranslatedIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const filteredCommsThreads = useMemo(() => {
+    let result = commsThreads;
+
+    if (commsFilter === "UNREAD") {
+      result = result.filter((t) => t.unreadCount > 0);
+    } else if (commsFilter === "ASSIGNED_ME") {
+      const myName = (currentUser?.fullName || "").toLowerCase();
+      result = result.filter((t) => (t.assignedAdvocate || "").toLowerCase().includes(myName));
+    } else if (commsFilter === "UNASSIGNED") {
+      result = result.filter((t) => !t.assignedAdvocate || t.assignedAdvocate === "Unassigned");
+    }
+
+    if (commsSearch.trim()) {
+      const q = commsSearch.toLowerCase().trim();
+      result = result.filter(
+        (t) =>
+          t.beneficiaryName.toLowerCase().includes(q) ||
+          t.beneficiaryEmail.toLowerCase().includes(q) ||
+          (t.assignedAdvocate || "").toLowerCase().includes(q) ||
+          (t.townCity || "").toLowerCase().includes(q) ||
+          t.messages.some((m) => (m.text || "").toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [commsThreads, commsFilter, commsSearch, currentUser]);
+
+  const activeCommsThread = useMemo(() => {
+    return commsThreads.find((t) => t.beneficiaryId === selectedThreadId) || null;
+  }, [commsThreads, selectedThreadId]);
+
   // Live calculation of target recipients & GDPR communication consent
   const composeTargetDonors = useMemo(() => {
     if (composeTargetMode === "GROUPS") {
@@ -3830,6 +4011,10 @@ export function AdminDashboardPage() {
     } else if (activeTab === "allocations") {
       loadAllocationsData();
       loadStaffData();
+    } else if (activeTab === "comms") {
+      loadCommunicationsData();
+      loadStaffData();
+      loadBeneficiariesData();
     } else if (activeTab === "newsletter") {
       loadNewsletterData();
     } else if (activeTab === "reports") {
@@ -4135,10 +4320,10 @@ export function AdminDashboardPage() {
     { id: "donations", label: "Donation Management", icon: CreditCard },
     { id: "beneficiaries", label: "Beneficiary Management", icon: HeartHandshake },
     { id: "allocations", label: "Fund Allocation & Distribution", icon: Landmark },
+    { id: "comms", label: "Communications", icon: MessagesSquare },
     { id: "newsletter", label: "Newsletter Management", icon: Mail },
     { id: "reports", label: "Reports & Analytics", icon: TrendingUp },
     { id: "staff", label: "Staff & Activity Logs", icon: History },
-    { id: "settings", label: "Settings", icon: Settings },
     { id: "profile", label: "My Profile", icon: User },
   ];
 
@@ -4146,6 +4331,7 @@ export function AdminDashboardPage() {
   const visibleSidebarNav = useMemo(() => {
     return sidebarNav.filter((tab) => {
       if (tab.id === "profile") return true; // Profile is always accessible
+      if (tab.id === "comms") return true; // Communications is accessible to staff
       if (isSuperAdmin) return true; // Super Admin sees all modules
 
       switch (tab.id) {
@@ -5269,7 +5455,7 @@ export function AdminDashboardPage() {
               <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 font-medium ml-1">
                 <span>/</span>
                 <span className="text-slate-800 font-bold capitalize">
-                  {activeTab === "donors" ? "Donor Management" : activeTab === "campaigns" ? "Campaign Management" : activeTab === "donations" ? "Donation Management" : activeTab === "beneficiaries" ? "Beneficiary Management" : activeTab === "allocations" ? "Fund Allocation & Distribution" : activeTab === "newsletter" ? "Newsletter Management" : activeTab === "reports" ? "Reports & Analytics" : activeTab === "staff" ? "Staff & Activity Logs" : activeTab === "settings" ? "Settings" : activeTab === "profile" ? "My Profile" : "Dashboard"}
+                  {activeTab === "donors" ? "Donor Management" : activeTab === "campaigns" ? "Campaign Management" : activeTab === "donations" ? "Donation Management" : activeTab === "beneficiaries" ? "Beneficiary Management" : activeTab === "allocations" ? "Fund Allocation & Distribution" : activeTab === "comms" ? "Communications" : activeTab === "newsletter" ? "Newsletter Management" : activeTab === "reports" ? "Reports & Analytics" : activeTab === "staff" ? "Staff & Activity Logs" : activeTab === "settings" ? "Settings" : activeTab === "profile" ? "My Profile" : "Dashboard"}
                 </span>
               </div>
             </div>
@@ -5297,6 +5483,21 @@ export function AdminDashboardPage() {
               >
                 <RefreshCw size={13} className={loading || donorsLoading ? "animate-spin text-magenta" : "text-slate-500"} />
                 <span className="hidden md:inline">Refresh</span>
+              </button>
+
+              {/* Quick Settings Access */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("settings")}
+                title="Platform Governance & System Settings"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                  activeTab === "settings"
+                    ? "bg-[#FCE8F3] text-magenta border-[#F1B5D8]"
+                    : "border-slate-200 text-slate-700 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <Settings size={13} className={activeTab === "settings" ? "text-magenta" : "text-slate-500"} />
+                <span className="hidden md:inline">Settings</span>
               </button>
 
               {/* Administrator Profile Pill */}
@@ -11770,7 +11971,647 @@ export function AdminDashboardPage() {
           )}
 
 
-          
+          {/* ========================================================================= */}
+          {/* TAB: COMMUNICATIONS (STAFF MESSAGING & CASEWORK INBOX)                     */}
+          {/* ========================================================================= */}
+          {activeTab === "comms" && (
+            <div className="space-y-4">
+              {/* Header Strip */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#FCE8F3] text-magenta flex items-center justify-center font-bold">
+                      <MessagesSquare size={18} />
+                    </div>
+                    <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                      Casework Communications Centre
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FCE8F3] text-magenta border border-[#F1B5D8]">
+                      {commsThreads.length} Beneficiaries
+                    </span>
+                    {commsThreads.reduce((acc, t) => acc + (t.unreadCount || 0), 0) > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500 text-white animate-pulse">
+                        {commsThreads.reduce((acc, t) => acc + (t.unreadCount || 0), 0)} Unread
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Unified bidirectional messaging with registered beneficiaries. Supports text, encrypted voice notes, automated language detection, and English translations.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={loadCommunicationsData}
+                    disabled={commsLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw size={13} className={commsLoading ? "animate-spin text-magenta" : "text-slate-500"} />
+                    <span>Sync Threads</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3-Panel Messaging Hub Container */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col lg:flex-row h-[740px]">
+                
+                {/* ----------------------------------------------------------------- */}
+                {/* PANEL A: LEFT CONVERSATION LIST (320px - 360px)                   */}
+                {/* ----------------------------------------------------------------- */}
+                <div className="w-full lg:w-84 xl:w-96 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white flex-shrink-0">
+                  {/* Search & Filter Bar */}
+                  <div className="p-3.5 border-b border-slate-100 space-y-2.5 bg-slate-50/50">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={commsSearch}
+                        onChange={(e) => setCommsSearch(e.target.value)}
+                        placeholder="Search beneficiary, advocate, city..."
+                        className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta text-slate-900"
+                      />
+                      {commsSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setCommsSearch("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-semibold no-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => setCommsFilter("ALL")}
+                        className={`px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                          commsFilter === "ALL"
+                            ? "bg-slate-900 text-white"
+                            : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                        }`}
+                      >
+                        All ({commsThreads.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCommsFilter("UNREAD")}
+                        className={`px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1 ${
+                          commsFilter === "UNREAD"
+                            ? "bg-rose-600 text-white"
+                            : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                        }`}
+                      >
+                        <span>Unread</span>
+                        {commsThreads.filter((t) => t.unreadCount > 0).length > 0 && (
+                          <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${
+                            commsFilter === "UNREAD" ? "bg-white text-rose-600" : "bg-rose-100 text-rose-700"
+                          }`}>
+                            {commsThreads.filter((t) => t.unreadCount > 0).length}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCommsFilter("ASSIGNED_ME")}
+                        className={`px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                          commsFilter === "ASSIGNED_ME"
+                            ? "bg-slate-900 text-white"
+                            : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                        }`}
+                      >
+                        Assigned to Me
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCommsFilter("UNASSIGNED")}
+                        className={`px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                          commsFilter === "UNASSIGNED"
+                            ? "bg-slate-900 text-white"
+                            : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                        }`}
+                      >
+                        Unassigned
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Thread Roster */}
+                  <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                    {commsLoading ? (
+                      <div className="p-8 text-center text-slate-400">
+                        <RefreshCw size={24} className="animate-spin text-magenta mx-auto mb-2" />
+                        <span className="text-xs">Loading conversations...</span>
+                      </div>
+                    ) : filteredCommsThreads.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400">
+                        <MessagesSquare size={28} className="mx-auto mb-2 text-slate-300" />
+                        <p className="text-xs font-bold text-slate-700">No conversations found</p>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          {commsSearch ? "Try adjusting your search criteria" : "Beneficiary casework conversations will appear here"}
+                        </p>
+                      </div>
+                    ) : (
+                      filteredCommsThreads.map((thread) => {
+                        const isSelected = selectedThreadId === thread.beneficiaryId;
+                        const lastMsg = thread.lastMessage;
+                        const initial = thread.beneficiaryName?.charAt(0) || "B";
+
+                        return (
+                          <button
+                            key={thread.beneficiaryId}
+                            type="button"
+                            onClick={() => handleSelectCommsThread(thread.beneficiaryId)}
+                            className={`w-full text-left p-3.5 flex items-start gap-3 transition-all cursor-pointer relative ${
+                              isSelected
+                                ? "bg-[#FFF5F9] border-l-4 border-magenta"
+                                : "hover:bg-slate-50 border-l-4 border-transparent"
+                            }`}
+                          >
+                            {/* Avatar */}
+                            <div className="relative flex-shrink-0">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                                isSelected
+                                  ? "bg-gradient-to-tr from-[#E6127E] to-[#FF5FA0] text-white shadow-sm"
+                                  : "bg-[#FCE8F3] text-magenta"
+                              }`}>
+                                {initial}
+                              </div>
+                              <span
+                                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                                  thread.active ? "bg-emerald-500" : "bg-slate-400"
+                                }`}
+                                title={thread.active ? "Portal Access Active" : "Portal Access Disabled"}
+                              />
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1 mb-0.5">
+                                <span className={`text-xs truncate ${isSelected ? "font-extrabold text-slate-900" : "font-bold text-slate-800"}`}>
+                                  {thread.beneficiaryName}
+                                </span>
+                                <span className="text-[10px] text-slate-400 flex-shrink-0 font-medium">
+                                  {lastMsg?.timestamp ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "New"}
+                                </span>
+                              </div>
+
+                              {/* Last message preview */}
+                              <p className="text-[11px] text-slate-500 truncate mb-1.5 leading-snug">
+                                {lastMsg ? (
+                                  lastMsg.type === "voice" ? (
+                                    <span className="inline-flex items-center gap-1 text-magenta font-semibold">
+                                      <Mic size={11} />
+                                      <span>Voice Note ({lastMsg.voiceDuration || "0:15"})</span>
+                                    </span>
+                                  ) : (
+                                    lastMsg.text || "Attached casework message"
+                                  )
+                                ) : (
+                                  <span className="italic text-slate-400">No message history yet</span>
+                                )}
+                              </p>
+
+                              {/* Advocate & Unread Badges */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold truncate ${
+                                  thread.assignedAdvocate
+                                    ? "bg-slate-100 text-slate-700"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200/60"
+                                }`}>
+                                  👤 {thread.assignedAdvocate || "Unassigned"}
+                                </span>
+
+                                {thread.unreadCount > 0 && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#E6127E] text-white animate-pulse">
+                                    {thread.unreadCount} new
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* ----------------------------------------------------------------- */}
+                {/* PANEL B: MIDDLE CHAT STREAM & INPUT                               */}
+                {/* ----------------------------------------------------------------- */}
+                <div className="flex-1 flex flex-col min-w-0 bg-[#FAF9FB]">
+                  {activeCommsThread ? (
+                    <>
+                      {/* Thread Top Bar */}
+                      <div className="p-4 bg-white border-b border-slate-200 flex items-center justify-between gap-3 flex-shrink-0 shadow-xs">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E6127E] to-[#FF5FA0] text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">
+                            {activeCommsThread.beneficiaryName?.charAt(0) || "B"}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-sm font-extrabold text-slate-900 truncate">
+                                {activeCommsThread.beneficiaryName}
+                              </h3>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#FCE8F3] text-magenta">
+                                Ref: ZT-BEN-{activeCommsThread.beneficiaryId.substring(0, 6).toUpperCase()}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                activeCommsThread.active
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                              }`}>
+                                {activeCommsThread.active ? "● Portal Active" : "● Access Disabled"}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                              <span>Advocate: <strong className="text-slate-700">{activeCommsThread.assignedAdvocate || "Unassigned"}</strong></span>
+                              <span>•</span>
+                              <span>{activeCommsThread.townCity || "Leicester"}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Action in Header */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const bRecord = beneficiaries.find((b) => b.id === activeCommsThread.beneficiaryId);
+                              if (bRecord) setViewingBeneficiary(bRecord);
+                              else api.getBeneficiaryByIdAdmin(activeCommsThread.beneficiaryId).then(setViewingBeneficiary).catch(console.error);
+                            }}
+                            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                          >
+                            <User size={13} className="text-magenta" />
+                            <span>View Case Profile</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Messages Stream Viewport */}
+                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {/* Security & GDPR Badge */}
+                        <div className="text-center my-1">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            <Lock size={10} className="text-emerald-600" />
+                            <span>UK GDPR Certified Casework Thread • End-to-end recorded in Trust audit ledger</span>
+                          </span>
+                        </div>
+
+                        {activeCommsThread.messages.length === 0 ? (
+                          <div className="py-20 text-center text-slate-400">
+                            <div className="w-12 h-12 rounded-2xl bg-[#FCE8F3] text-magenta flex items-center justify-center mx-auto mb-3">
+                              <MessagesSquare size={22} />
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-800">No message history</h4>
+                            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                              No prior messages recorded for {activeCommsThread.beneficiaryName}. Type a casework update or record a voice note below to initiate direct communication.
+                            </p>
+                          </div>
+                        ) : (
+                          activeCommsThread.messages.map((msg) => {
+                            const isStaff = msg.sender === "staff";
+                            const isTranslated = !!commsTranslatedIds[msg.id];
+                            const displayText = isTranslated && msg.translationText ? msg.translationText : msg.text;
+
+                            return (
+                              <div
+                                key={msg.id}
+                                className={`flex flex-col ${isStaff ? "items-end" : "items-start"}`}
+                              >
+                                {/* Metadata line */}
+                                <div className="flex items-center gap-1.5 text-[10.5px] text-slate-400 mb-1 px-1">
+                                  <span className="font-semibold text-slate-700">{msg.name || (isStaff ? "Staff Advocate" : activeCommsThread.beneficiaryName)}</span>
+                                  <span>•</span>
+                                  <span>{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Recently"}</span>
+                                  {msg.detectedLanguage && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-blue-600 font-semibold inline-flex items-center gap-0.5">
+                                        <Globe size={10} />
+                                        <span>{msg.detectedLanguage}</span>
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Bubble content */}
+                                <div
+                                  className={`max-w-[85%] rounded-2xl p-3.5 shadow-xs text-xs leading-relaxed ${
+                                    isStaff
+                                      ? "bg-gradient-to-r from-[#E6127E] to-[#FF4B93] text-white rounded-tr-xs"
+                                      : "bg-white border border-slate-200/90 text-slate-900 rounded-tl-xs"
+                                  }`}
+                                >
+                                  {msg.type === "voice" ? (
+                                    /* Voice Message Player */
+                                    <div className="space-y-2 min-w-[240px]">
+                                      <div className="flex items-center gap-3">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleCommsAudio(msg.id)}
+                                          className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-transform hover:scale-105 flex-shrink-0 ${
+                                            isStaff ? "bg-white text-magenta" : "bg-magenta text-white"
+                                          }`}
+                                        >
+                                          {commsPlayingAudioId === msg.id ? <Pause size={15} /> : <Play size={15} className="ml-0.5" />}
+                                        </button>
+
+                                        {/* Waveform visual */}
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-0.5 h-6">
+                                            {[14, 22, 10, 26, 16, 28, 12, 24, 18, 14, 22, 12, 18, 24, 16].map((h, i) => (
+                                              <span
+                                                key={i}
+                                                style={{
+                                                  height: commsPlayingAudioId === msg.id ? `${Math.max(6, (h * (i % 2 === 0 ? 1.2 : 0.8)))}px` : `${h}px`,
+                                                  backgroundColor: isStaff ? "rgba(255,255,255,0.75)" : "#E6127E",
+                                                }}
+                                                className="w-1 rounded-sm transition-all duration-200"
+                                              />
+                                            ))}
+                                          </div>
+                                          <div className={`flex items-center justify-between text-[10px] mt-0.5 ${
+                                            isStaff ? "text-white/80" : "text-slate-500"
+                                          }`}>
+                                            <span>{commsPlayingAudioId === msg.id ? "Playing casework audio..." : "Voice Note"}</span>
+                                            <span>{msg.voiceDuration || "0:15"}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Audio Transcript */}
+                                      {msg.voiceTranscript && (
+                                        <div className={`pt-2 border-t text-[11px] italic leading-normal ${
+                                          isStaff ? "border-white/20 text-white/95" : "border-slate-100 text-slate-700"
+                                        }`}>
+                                          "{isTranslated && msg.translationText ? msg.translationText : msg.voiceTranscript}"
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    /* Text Message Body */
+                                    <div className="whitespace-pre-wrap">
+                                      {displayText}
+                                    </div>
+                                  )}
+
+                                  {/* 1-Click Translation for Staff */}
+                                  {!isStaff && (msg.translationText || msg.detectedLanguage?.toLowerCase().includes("gujarati") || msg.detectedLanguage?.toLowerCase().includes("hindi") || msg.detectedLanguage?.toLowerCase().includes("punjabi") || msg.detectedLanguage?.toLowerCase().includes("urdu")) && (
+                                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleCommsTranslate(msg.id)}
+                                        className="text-[10px] font-extrabold text-magenta hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <Languages size={11} />
+                                        <span>{isTranslated ? "Show Original Beneficiary Text" : "Translate into English for Staff"}</span>
+                                      </button>
+                                      {isTranslated && (
+                                        <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                          Translated to English
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Chat Input & Voice Toolbar */}
+                      <div className="p-3 bg-white border-t border-slate-200 flex-shrink-0">
+                        {commsRecordingVoice ? (
+                          /* Active Voice Recording Controls */
+                          <div className="p-3 rounded-xl bg-[#FFF5F9] border border-magenta/20 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
+                              <span className="text-xs font-bold text-slate-800">
+                                Recording Voice Casework Note: <span className="text-magenta font-extrabold">0:{commsVoiceSeconds < 10 ? "0" : ""}{commsVoiceSeconds}</span>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCommsRecordingVoice(false);
+                                  setCommsVoiceSeconds(0);
+                                }}
+                                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSendCommsMessage}
+                                disabled={commsSending}
+                                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#E6127E] to-[#FF5FA0] text-white text-xs font-bold hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                              >
+                                <Send size={13} />
+                                <span>Stop & Send Voice Note</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Normal Text Input Form */
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleSendCommsMessage();
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <input
+                              type="text"
+                              value={commsMessageText}
+                              onChange={(e) => setCommsMessageText(e.target.value)}
+                              placeholder={`Type a casework message to ${activeCommsThread.beneficiaryName}...`}
+                              className="flex-1 py-2.5 px-3.5 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta text-slate-900 transition-colors"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCommsRecordingVoice(true);
+                                setCommsVoiceSeconds(0);
+                              }}
+                              title="Record Voice Casework Note"
+                              className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-magenta hover:bg-[#FCE8F3]/60 transition-colors cursor-pointer"
+                            >
+                              <Mic size={17} />
+                            </button>
+
+                            <button
+                              type="submit"
+                              disabled={!commsMessageText.trim() || commsSending}
+                              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#E6127E] to-[#FF5FA0] text-white text-xs font-bold hover:shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                            >
+                              <Send size={14} />
+                              <span className="hidden sm:inline">Send</span>
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                      <MessagesSquare size={36} className="text-slate-300 mb-2" />
+                      <h4 className="text-sm font-bold text-slate-700">Select a Conversation</h4>
+                      <p className="text-xs text-slate-400 max-w-xs mt-1">
+                        Choose a beneficiary from the left roster to view their casework communication history.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ----------------------------------------------------------------- */}
+                {/* PANEL C: RIGHT BENEFICIARY INFORMATION DOSSIER                    */}
+                {/* ----------------------------------------------------------------- */}
+                {activeCommsThread && (
+                  <div className="hidden xl:flex flex-col w-80 lg:w-84 border-l border-slate-200 bg-white p-4 overflow-y-auto space-y-4 flex-shrink-0">
+                    {/* Header Title */}
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                        Beneficiary Dossier
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-[#FCE8F3] text-magenta">
+                        Case File
+                      </span>
+                    </div>
+
+                    {/* Profile Card */}
+                    <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#E6127E] to-[#FF5FA0] text-white flex items-center justify-center font-black text-xl mx-auto shadow-sm mb-2">
+                        {activeCommsThread.beneficiaryName?.charAt(0) || "B"}
+                      </div>
+                      <h4 className="text-sm font-extrabold text-slate-900 leading-tight">
+                        {activeCommsThread.beneficiaryName}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        ZT-BEN-{activeCommsThread.beneficiaryId.substring(0, 6).toUpperCase()}
+                      </p>
+                      <div className="mt-2.5 flex items-center justify-center gap-1.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          activeCommsThread.active
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {activeCommsThread.active ? "Portal Access Active" : "Portal Access Disabled"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="space-y-2 text-xs">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Contact Details
+                      </div>
+
+                      <div className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 space-y-2">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-400">Email:</span>
+                          <a
+                            href={`mailto:${activeCommsThread.beneficiaryEmail}`}
+                            className="font-semibold text-slate-800 hover:text-magenta truncate max-w-[170px]"
+                            title={activeCommsThread.beneficiaryEmail}
+                          >
+                            {activeCommsThread.beneficiaryEmail}
+                          </a>
+                        </div>
+
+                        {activeCommsThread.beneficiaryPhone && (
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="text-slate-400">Phone:</span>
+                            <a
+                              href={`tel:${activeCommsThread.beneficiaryPhone}`}
+                              className="font-semibold text-slate-800 hover:text-magenta"
+                            >
+                              {activeCommsThread.beneficiaryPhone}
+                            </a>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-400">Location:</span>
+                          <span className="font-semibold text-slate-800">
+                            {activeCommsThread.townCity}{activeCommsThread.postcode ? `, ${activeCommsThread.postcode}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Casework & Advocate Info */}
+                    <div className="space-y-2 text-xs">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        Casework Allocation
+                      </div>
+
+                      <div className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 space-y-2">
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-400">Assigned Advocate:</span>
+                          <span className="font-bold text-slate-900">
+                            {activeCommsThread.assignedAdvocate || "None (Unassigned)"}
+                          </span>
+                        </div>
+
+                        {activeCommsThread.latestRequest && (
+                          <div className="pt-2 border-t border-slate-200/60 space-y-1">
+                            <div className="text-[10px] text-slate-400 font-semibold">Latest Relief Request:</div>
+                            <div className="font-bold text-slate-800 text-[11px]">
+                              {activeCommsThread.latestRequest.serviceType}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-100 text-blue-800">
+                                {activeCommsThread.latestRequest.status}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 text-amber-800">
+                                {activeCommsThread.latestRequest.urgency}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Direct Actions */}
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const bRecord = beneficiaries.find((b) => b.id === activeCommsThread.beneficiaryId);
+                          if (bRecord) setViewingBeneficiary(bRecord);
+                          else api.getBeneficiaryByIdAdmin(activeCommsThread.beneficiaryId).then(setViewingBeneficiary).catch(console.error);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <User size={13} />
+                        <span>Open Full Case File</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab("allocations");
+                        }}
+                        className="w-full py-2 px-3 rounded-xl border border-magenta/30 text-magenta bg-[#FFF5F9] text-xs font-bold hover:bg-[#FCE8F3] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Landmark size={13} />
+                        <span>Allocate Relief Funds</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
+
+
           {/* ========================================================================= */}
           {/* TAB 7: NEWSLETTER MANAGEMENT                                             */}
           {/* ========================================================================= */}
@@ -12369,15 +13210,26 @@ export function AdminDashboardPage() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={loadProfileData}
-                  disabled={profileLoading}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 cursor-pointer self-start sm:self-auto"
-                >
-                  <RefreshCw size={13} className={profileLoading ? "animate-spin text-magenta" : ""} />
-                  <span>Refresh Profile</span>
-                </button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("settings")}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer shadow-xs"
+                  >
+                    <Settings size={13} className="text-amber-400" />
+                    <span>Platform Settings</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={loadProfileData}
+                    disabled={profileLoading}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 cursor-pointer"
+                  >
+                    <RefreshCw size={13} className={profileLoading ? "animate-spin text-magenta" : ""} />
+                    <span>Refresh Profile</span>
+                  </button>
+                </div>
               </div>
 
               {/* Two Column Layout */}
