@@ -3102,6 +3102,109 @@ export function AdminDashboardPage() {
   const [editingDonor, setEditingDonor] = useState<CrmDonor | null>(null);
   const [recordingDonationDonor, setRecordingDonationDonor] = useState<CrmDonor | null>(null);
 
+  // Custom Giving Tier Modal State (Section 5 CRM Spec)
+  const [showAddCustomTierModal, setShowAddCustomTierModal] = useState<boolean>(false);
+  const [tierModalName, setTierModalName] = useState<string>("");
+  const [tierModalAmount, setTierModalAmount] = useState<string>("");
+  const [tierModalColor, setTierModalColor] = useState<string>("emerald");
+  const [tierModalDescription, setTierModalDescription] = useState<string>("");
+  const [tierModalSaving, setTierModalSaving] = useState<boolean>(false);
+  const [tierModalError, setTierModalError] = useState<string>("");
+
+  async function handleSaveCustomTier(e?: React.FormEvent) {
+    if (e && e.preventDefault) e.preventDefault();
+    setTierModalError("");
+    if (!tierModalName.trim()) {
+      setTierModalError("Please enter a name for the giving tier (e.g. Bronze Supporter, Major Patron).");
+      return;
+    }
+    const amt = parseFloat(tierModalAmount);
+    if (isNaN(amt) || amt < 0) {
+      setTierModalError("Please enter a valid minimum donation amount in GBP (£).");
+      return;
+    }
+
+    setTierModalSaving(true);
+    try {
+      const newTier: DonationTierConfig = {
+        id: `TIER_${Date.now()}`,
+        name: tierModalName.trim(),
+        minAmount: amt,
+        color: tierModalColor || "emerald",
+        description: tierModalDescription.trim() || `Donors contributing £${amt.toFixed(2)} or more`,
+      };
+
+      const updatedTiers = [...settingDonationTiers, newTier].sort(
+        (a, b) => Number(a.minAmount) - Number(b.minAmount)
+      );
+
+      setSettingDonationTiers(updatedTiers);
+
+      // Persist to backend system_settings
+      const currentPayload = {
+        ...(systemSettings || {}),
+        donationTiers: updatedTiers,
+      };
+      try {
+        localStorage.setItem("zinthiya_system_settings", JSON.stringify(currentPayload));
+      } catch {}
+
+      await api.updateSystemSettings(currentPayload);
+
+      setActionSuccessMsg(`Giving Tier "${newTier.name}" (£${amt.toFixed(2)}+) added successfully!`);
+      setShowAddCustomTierModal(false);
+      setTierModalName("");
+      setTierModalAmount("");
+      setTierModalDescription("");
+      setTierModalColor("emerald");
+    } catch (err: any) {
+      setTierModalError(err.message || "Failed to save custom giving tier.");
+    } finally {
+      setTierModalSaving(false);
+    }
+  }
+
+  async function handleDeleteCustomTier(tierId: string) {
+    if (settingDonationTiers.length <= 1) {
+      alert("At least one base giving tier must be retained in the system.");
+      return;
+    }
+    const target = settingDonationTiers.find((t) => t.id === tierId);
+    if (!window.confirm(`Are you sure you want to delete the giving tier "${target?.name || tierId}"?`)) {
+      return;
+    }
+
+    const updatedTiers = settingDonationTiers.filter((t) => t.id !== tierId);
+    setSettingDonationTiers(updatedTiers);
+
+    const currentPayload = {
+      ...(systemSettings || {}),
+      donationTiers: updatedTiers,
+    };
+    try {
+      localStorage.setItem("zinthiya_system_settings", JSON.stringify(currentPayload));
+      await api.updateSystemSettings(currentPayload);
+    } catch {}
+
+    setActionSuccessMsg(`Giving tier "${target?.name || tierId}" deleted.`);
+  }
+
+  async function handleResetDefaultTiers() {
+    if (!window.confirm("Reset all giving tiers back to standard defaults (Supporter, Bronze, Silver, Gold, Platinum)?")) {
+      return;
+    }
+    setSettingDonationTiers(DEFAULT_DONATION_TIERS);
+    const currentPayload = {
+      ...(systemSettings || {}),
+      donationTiers: DEFAULT_DONATION_TIERS,
+    };
+    try {
+      localStorage.setItem("zinthiya_system_settings", JSON.stringify(currentPayload));
+      await api.updateSystemSettings(currentPayload);
+    } catch {}
+    setActionSuccessMsg("Giving tiers reset to standard defaults.");
+  }
+
   // Add Donor Form State (Matches Donor Registration + Admin Email/Password Assignment)
   const [newDonorName, setNewDonorName] = useState("");
   const [newDonorEmail, setNewDonorEmail] = useState("");
@@ -5733,9 +5836,32 @@ export function AdminDashboardPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
+                    gap: "0.75rem",
                     marginLeft: "auto"
                   }}
                 >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTierModalName("");
+                      setTierModalAmount("");
+                      setTierModalDescription("");
+                      setTierModalColor("emerald");
+                      setTierModalError("");
+                      setShowAddCustomTierModal(true);
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-2 shadow-xs cursor-pointer transition-all"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <Award size={15} className="text-magenta" />
+                    <span>Add Custom Tier</span>
+                  </button>
+
                   {canWriteDonors && (
                     <button
                       type="button"
@@ -5794,8 +5920,24 @@ export function AdminDashboardPage() {
                 </div>
 
                 <div className="admin-card p-4">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Active Giving Tiers Breakdown
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      Active Giving Tiers Breakdown
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTierModalName("");
+                        setTierModalAmount("");
+                        setTierModalDescription("");
+                        setTierModalColor("emerald");
+                        setTierModalError("");
+                        setShowAddCustomTierModal(true);
+                      }}
+                      className="text-[10px] font-bold text-magenta hover:underline cursor-pointer"
+                    >
+                      + Manage
+                    </button>
                   </div>
                   <div className="text-xs font-bold text-slate-700 mt-1.5 flex flex-wrap gap-1.5">
                     {settingDonationTiers.map((tier) => {
@@ -11981,211 +12123,6 @@ export function AdminDashboardPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Section 2: Donor Giving Tiers & Recognition Thresholds (Admin Configurable) */}
-                <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-3">
-                    <div className="flex items-center gap-2">
-                      <Award size={20} className="text-magenta" />
-                      <div>
-                        <h2 className="text-sm font-black text-slate-900">Donor Giving Tiers &amp; Recognition Thresholds</h2>
-                        <p className="text-[11px] text-slate-400">
-                          Custom tier names, minimum cumulative donation amounts in GBP (£), and badge styling decided by the Trust. Donors are automatically categorized into these tiers.
-                        </p>
-                      </div>
-                    </div>
-
-                    {canManageSettings && (
-                      <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const maxAmt = settingDonationTiers.length > 0
-                              ? Math.max(...settingDonationTiers.map((t) => Number(t.minAmount) || 0))
-                              : 500;
-                            const nextAmount = maxAmt >= 1000 ? maxAmt + 1000 : maxAmt + 250;
-                            const newTier: DonationTierConfig = {
-                              id: `TIER_${Date.now()}`,
-                              name: `Custom Tier ${settingDonationTiers.length + 1}`,
-                              minAmount: nextAmount,
-                              color: "emerald",
-                              description: `Donors contributing £${nextAmount} or more`,
-                            };
-                            setSettingDonationTiers([...settingDonationTiers, newTier]);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-magenta/30 bg-magenta/5 text-magenta hover:bg-magenta/10 text-xs font-bold transition-all cursor-pointer"
-                        >
-                          <Plus size={13} />
-                          <span>Add Custom Tier</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm("Reset all giving tiers back to standard defaults (Supporter, Bronze, Silver, Gold, Platinum)?")) {
-                              setSettingDonationTiers(DEFAULT_DONATION_TIERS);
-                            }
-                          }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-all cursor-pointer"
-                        >
-                          <RefreshCw size={12} />
-                          <span>Reset Defaults</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Tiers List / Editor */}
-                  <div className="space-y-3">
-                    {settingDonationTiers.map((tier, index) => (
-                      <div
-                        key={tier.id || index}
-                        className="p-4 rounded-2xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-all flex flex-col lg:flex-row lg:items-center gap-4 justify-between"
-                      >
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 flex-1 items-center">
-                          {/* Order / Index & Tier Name */}
-                          <div className="sm:col-span-3 flex items-center gap-3">
-                            <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 text-[11px] font-black flex items-center justify-center flex-shrink-0">
-                              #{index + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                                Tier Name *
-                              </label>
-                              <input
-                                type="text"
-                                value={tier.name}
-                                disabled={!canManageSettings}
-                                onChange={(e) => {
-                                  const updated = [...settingDonationTiers];
-                                  updated[index] = { ...updated[index], name: e.target.value };
-                                  setSettingDonationTiers(updated);
-                                }}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                                placeholder="e.g. Bronze Supporter"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Min Amount in GBP */}
-                          <div className="sm:col-span-3">
-                            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                              Minimum Giving (£) *
-                            </label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">£</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={tier.minAmount}
-                                disabled={!canManageSettings}
-                                onChange={(e) => {
-                                  const updated = [...settingDonationTiers];
-                                  updated[index] = { ...updated[index], minAmount: Math.max(0, Number(e.target.value) || 0) };
-                                  setSettingDonationTiers(updated);
-                                }}
-                                className="w-full pl-7 pr-3 py-2 bg-white border border-slate-200 rounded-xl font-bold font-mono text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                                placeholder="100"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Badge Color Style */}
-                          <div className="sm:col-span-3">
-                            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                              Badge Style Theme
-                            </label>
-                            <select
-                              value={tier.color || "slate"}
-                              disabled={!canManageSettings}
-                              onChange={(e) => {
-                                const updated = [...settingDonationTiers];
-                                updated[index] = { ...updated[index], color: e.target.value };
-                                setSettingDonationTiers(updated);
-                              }}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                            >
-                              <option value="slate">Slate (Supporter / Base)</option>
-                              <option value="amber">Amber / Bronze</option>
-                              <option value="sky">Sky / Silver</option>
-                              <option value="yellow">Yellow / Gold</option>
-                              <option value="purple">Purple / Platinum</option>
-                              <option value="emerald">Emerald / Green</option>
-                              <option value="rose">Rose / Magenta</option>
-                            </select>
-                          </div>
-
-                          {/* Description / Perks */}
-                          <div className="sm:col-span-3">
-                            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                              Recognition / Perks
-                            </label>
-                            <input
-                              type="text"
-                              value={tier.description || ""}
-                              disabled={!canManageSettings}
-                              onChange={(e) => {
-                                const updated = [...settingDonationTiers];
-                                updated[index] = { ...updated[index], description: e.target.value };
-                                setSettingDonationTiers(updated);
-                              }}
-                              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-700 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
-                              placeholder="e.g. Major supporter recognition"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Live Badge Preview & Delete button */}
-                        <div className="flex items-center gap-3 self-end lg:self-center">
-                          <DonorTierBadge tier={tier.name} tiers={settingDonationTiers} />
-                          {canManageSettings && (
-                            <button
-                              type="button"
-                              disabled={settingDonationTiers.length <= 1}
-                              onClick={() => {
-                                if (window.confirm(`Delete giving tier "${tier.name}"?`)) {
-                                  setSettingDonationTiers(settingDonationTiers.filter((_, i) => i !== index));
-                                }
-                              }}
-                              title="Delete this tier"
-                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Save Button for Section 2 */}
-                  {canManageSettings && (
-                    <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <p className="text-[11px] text-slate-500">
-                        Changes to giving tiers and amounts take effect immediately across Donor CRM, newsletter segmentation, and donation reports.
-                      </p>
-                      <button
-                        type="submit"
-                        disabled={settingsSaving}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50 hover:opacity-95 transition-all"
-                        style={{ background: "linear-gradient(90deg, #E6127E 0%, #FF5FA0 100%)" }}
-                      >
-                        {settingsSaving ? (
-                          <>
-                            <RefreshCw size={14} className="animate-spin" />
-                            <span>Saving Settings...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Check size={14} />
-                            <span>Save Giving Tiers &amp; Settings</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
               </form>
             </div>
           )}
@@ -12844,6 +12781,273 @@ export function AdminDashboardPage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 1.5: ADD / MANAGE CUSTOM GIVING TIERS (CRM SPEC)                    */}
+      {/* ========================================================================= */}
+      {showAddCustomTierModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem"
+          }}
+          onClick={() => setShowAddCustomTierModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full max-h-[92vh] overflow-y-auto border border-pink-100 shadow-2xl relative"
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: "1.5rem",
+              padding: "2rem",
+              maxWidth: "38rem",
+              width: "100%",
+              maxHeight: "92vh",
+              overflowY: "auto",
+              position: "relative",
+              border: "1px solid #FCE7F3",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.3)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Close Button */}
+            <button
+              onClick={() => setShowAddCustomTierModal(false)}
+              type="button"
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
+                border: "1.5px solid #CBD5E1",
+                backgroundColor: "#F8FAFC",
+                color: "#475569",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 20
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Header */}
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-pink-50 text-magenta flex items-center justify-center mx-auto mb-2">
+                <Award size={24} />
+              </div>
+              <h2 className="text-xl font-black text-gray-900">Add Custom Giving Tier</h2>
+              <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+                Define the tier title, minimum cumulative donation threshold in GBP (£), and badge styling. Donors are automatically categorized when their giving reaches this level.
+              </p>
+            </div>
+
+            {tierModalError && (
+              <div className="p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
+                <AlertCircle size={16} className="flex-shrink-0" />
+                <span>{tierModalError}</span>
+              </div>
+            )}
+
+            {/* New Tier Form */}
+            <form onSubmit={handleSaveCustomTier} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Tier Name */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Giving Tier Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Silver Patron or Champion"
+                    value={tierModalName}
+                    onChange={(e) => setTierModalName(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-bold text-gray-900 text-xs outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition-all shadow-xs"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Visible on donor profiles, badges &amp; reports.</p>
+                </div>
+
+                {/* Minimum Donation Amount */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Minimum Cumulative Giving (£) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">£</span>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      step="any"
+                      placeholder="e.g. 250"
+                      value={tierModalAmount}
+                      onChange={(e) => setTierModalAmount(e.target.value)}
+                      className="w-full h-11 pl-8 pr-3.5 rounded-xl border border-gray-200 font-mono font-bold text-gray-900 text-xs outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition-all shadow-xs"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Donors reach this tier once giving ≥ £{tierModalAmount || "0"}.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                {/* Badge Color Theme */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Badge Theme Color
+                  </label>
+                  <select
+                    value={tierModalColor}
+                    onChange={(e) => setTierModalColor(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-semibold text-gray-800 text-xs outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition-all shadow-xs"
+                  >
+                    <option value="emerald">Emerald / Green (Special Patron)</option>
+                    <option value="amber">Amber / Bronze (£100+ style)</option>
+                    <option value="sky">Sky / Silver (£250+ style)</option>
+                    <option value="yellow">Yellow / Gold (£500+ style)</option>
+                    <option value="purple">Purple / Platinum (£1,000+ style)</option>
+                    <option value="rose">Rose / Magenta (Trust Champion)</option>
+                    <option value="slate">Slate (Standard Supporter)</option>
+                  </select>
+                </div>
+
+                {/* Live Badge Preview */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Live Badge Preview
+                  </label>
+                  <div className="h-11 px-3.5 rounded-xl border border-dashed border-gray-200 bg-gray-50 flex items-center justify-between">
+                    <span className="text-[11px] text-gray-400 font-medium">Preview:</span>
+                    <DonorTierBadge
+                      tier={tierModalName.trim() || "NEW TIER"}
+                      tiers={[
+                        ...settingDonationTiers,
+                        {
+                          id: "preview",
+                          name: tierModalName.trim() || "NEW TIER",
+                          minAmount: Number(tierModalAmount) || 0,
+                          color: tierModalColor,
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Description / Recognition Perks */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Recognition &amp; Perks Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Listed in annual impact report, complimentary gala invitation"
+                  value={tierModalDescription}
+                  onChange={(e) => setTierModalDescription(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-medium text-gray-800 text-xs outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition-all shadow-xs"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustomTierModal(false)}
+                  className="px-5 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={tierModalSaving}
+                  className="btn-3d-magenta px-6 py-2.5 rounded-xl text-xs font-black text-white shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                >
+                  {tierModalSaving ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Saving Tier...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>Save &amp; Apply Giving Tier</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Active Tiers Roster */}
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-gray-900">Current Active Giving Tiers</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gray-100 text-gray-600">
+                    {settingDonationTiers.length} Tiers
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetDefaultTiers}
+                  className="text-[10px] font-bold text-gray-500 hover:text-magenta hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <RefreshCw size={11} />
+                  <span>Restore Defaults</span>
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {settingDonationTiers.map((tier) => {
+                  const donorCount = donors.filter(
+                    (d) => getDonorTierConfig(d, settingDonationTiers).id === tier.id
+                  ).length;
+
+                  return (
+                    <div
+                      key={tier.id}
+                      className="p-2.5 rounded-xl border border-gray-100 bg-gray-50/70 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <DonorTierBadge tier={tier.name} tiers={settingDonationTiers} />
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-gray-900 truncate">{tier.name}</div>
+                          <div className="text-[10px] text-gray-400">
+                            Min giving: <strong className="text-gray-700">£{tier.minAmount}+</strong> • {donorCount} active {donorCount === 1 ? "donor" : "donors"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={settingDonationTiers.length <= 1}
+                        onClick={() => handleDeleteCustomTier(tier.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed"
+                        title="Delete giving tier"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
