@@ -41,8 +41,25 @@ import {
   Play,
   Pause,
   Volume2,
-  Globe
+  Globe,
+  RefreshCw
 } from "../components/Icons";
+
+const LANGUAGE_LABELS: { [code: string]: string } = {
+  en: "English (UK)",
+  ml: "മലയാളം (Malayalam)",
+  hi: "हिन्दी (Hindi)",
+  ta: "தமிழ் (Tamil)",
+  ar: "العربية (Arabic)",
+  gu: "ગુજરાતી (Gujarati)",
+  ur: "اردو (Urdu)",
+  pa: "ਪੰਜਾਬੀ (Punjabi)",
+  bn: "বাংলা (Bengali)",
+  so: "Af-Soomaali (Somali)",
+  pl: "Polski (Polish)",
+  fr: "Français (French)",
+  es: "Español (Spanish)",
+};
 
 function formatBytes(bytes: number, decimals = 1): string {
   if (!bytes || bytes === 0) return "0 B";
@@ -314,6 +331,19 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [chatTranslationTarget, setChatTranslationTarget] = useState<string>("en");
   const [autoTranslateEnabled, setAutoTranslateEnabled] = useState<boolean>(true);
   const [translatedMessages, setTranslatedMessages] = useState<{ [id: string]: boolean }>({});
+  const [translationsCache, setTranslationsCache] = useState<{ [msgId: string]: { [lang: string]: string } }>({});
+  const [isTranslatingThread, setIsTranslatingThread] = useState<boolean>(false);
+  const [translatingMsgIds, setTranslatingMsgIds] = useState<{ [msgId: string]: boolean }>({});
+
+  const chatTranslationTargetRef = useRef<string>("en");
+  chatTranslationTargetRef.current = chatTranslationTarget;
+
+  const autoTranslateEnabledRef = useRef<boolean>(true);
+  autoTranslateEnabledRef.current = autoTranslateEnabled;
+
+  const translationsCacheRef = useRef<{ [msgId: string]: { [lang: string]: string } }>({});
+  translationsCacheRef.current = translationsCache;
+
   const [isCaseworkerTyping, setIsCaseworkerTyping] = useState<boolean>(false);
 
   // Language selection state
@@ -491,6 +521,39 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           translationText: m.translationText || null
         }));
         setChatThreads({ "thread-1": formatted });
+
+        const currentTarget = chatTranslationTargetRef.current;
+        const currentAuto = autoTranslateEnabledRef.current;
+        if (currentAuto && currentTarget && currentTarget !== "en") {
+          const cache = translationsCacheRef.current;
+          formatted.forEach(async (m: any) => {
+            const rawText = (m.text || m.voiceTranscript || "").trim();
+            if (rawText && !cache[m.id]?.[currentTarget]) {
+              try {
+                const tr = await api.translateMessage({
+                  message: rawText,
+                  sourceLanguage: "auto",
+                  targetLanguage: currentTarget,
+                });
+                if (tr && tr.translatedMessage) {
+                  setTranslationsCache((prev) => ({
+                    ...prev,
+                    [m.id]: {
+                      ...(prev[m.id] || {}),
+                      [currentTarget]: tr.translatedMessage,
+                    },
+                  }));
+                  setTranslatedMessages((prev) => ({
+                    ...prev,
+                    [m.id]: true,
+                  }));
+                }
+              } catch (e) {
+                // Background translate fail-safe
+              }
+            }
+          });
+        }
       }
     } catch (err: any) {
       console.error("Failed to load live messages:", err);
@@ -1024,31 +1087,118 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     }
   };
 
+  const handleTranslateThread = async (targetLang: string) => {
+    setChatTranslationTarget(targetLang);
+
+    // If English is selected, revert all messages back to original English view
+    if (!targetLang || targetLang === "en") {
+      setTranslatedMessages({});
+      return;
+    }
+
+    const currentThread = chatThreads[activeConversationId] || [];
+    if (currentThread.length === 0) return;
+
+    setIsTranslatingThread(true);
+    try {
+      const needTranslation = currentThread.filter((m: any) => {
+        const text = (m.text || m.voiceTranscript || "").trim();
+        if (!text) return false;
+        if (translationsCache[m.id]?.[targetLang]) return false;
+        return true;
+      });
+
+      if (needTranslation.length > 0) {
+        const results = await Promise.all(
+          needTranslation.map(async (m: any) => {
+            const text = (m.text || m.voiceTranscript || "").trim();
+            try {
+              const res = await api.translateMessage({
+                message: text,
+                sourceLanguage: "auto",
+                targetLanguage: targetLang,
+              });
+              return {
+                id: m.id,
+                translatedText: res?.translatedMessage || text,
+                detectedLanguage: res?.detectedLanguage,
+              };
+            } catch (err) {
+              console.warn("Translation failed for message", m.id, err);
+              return { id: m.id, translatedText: text };
+            }
+          })
+        );
+
+        setTranslationsCache((prev) => {
+          const updated = { ...prev };
+          results.forEach((r) => {
+            if (!updated[r.id]) updated[r.id] = {};
+            updated[r.id][targetLang] = r.translatedText;
+          });
+          return updated;
+        });
+      }
+
+      // Mark all messages as translated to display translated text
+      const toggledMap: { [id: string]: boolean } = {};
+      currentThread.forEach((m: any) => {
+        toggledMap[m.id] = true;
+      });
+      setTranslatedMessages(toggledMap);
+    } catch (err) {
+      console.error("Batch thread translation failed:", err);
+    } finally {
+      setIsTranslatingThread(false);
+    }
+  };
+
   const handleToggleTranslate = async (msgId: string | number) => {
     const thread = chatThreads[activeConversationId] || [];
     const msg = thread.find((m: any) => String(m.id) === String(msgId));
+    if (!msg) return;
 
-    if (msg && !msg.translationText && msg.text) {
+    const isCurrentlyShowing = !!translatedMessages[msgId];
+
+    // If currently translated, clicking toggles back to original English
+    if (isCurrentlyShowing) {
+      setTranslatedMessages((prev) => ({ ...prev, [msgId]: false }));
+      return;
+    }
+
+    // Determine target language: use current dropdown selection if not "en", otherwise default to Hindi "hi"
+    let target = chatTranslationTarget;
+    if (!target || target === "en") {
+      target = "hi";
+      setChatTranslationTarget("hi");
+    }
+
+    const textToTranslate = (msg.text || msg.voiceTranscript || "").trim();
+    if (textToTranslate && !translationsCache[msgId]?.[target]) {
+      setTranslatingMsgIds((prev) => ({ ...prev, [msgId]: true }));
       try {
-        const target = chatTranslationTarget || "en";
         const res = await api.translateMessage({
-          message: msg.text,
+          message: textToTranslate,
           sourceLanguage: "auto",
           targetLanguage: target,
         });
         if (res && res.translatedMessage) {
-          msg.translationText = res.translatedMessage;
-          msg.detectedLanguage = res.detectedLanguage;
+          setTranslationsCache((prev) => ({
+            ...prev,
+            [msgId]: {
+              ...(prev[msgId] || {}),
+              [target]: res.translatedMessage,
+            },
+          }));
         }
       } catch (err) {
-        console.error("Dynamic translation failed:", err);
+        console.error("Dynamic single message translation failed:", err);
+      } finally {
+        setTranslatingMsgIds((prev) => ({ ...prev, [msgId]: false }));
       }
     }
 
-    setTranslatedMessages((prev) => ({
-      ...prev,
-      [msgId]: !prev[msgId]
-    }));
+    setTranslatedMessages((prev) => ({ ...prev, [msgId]: true }));
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -4511,7 +4661,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </label>
                     <select
                       value={chatTranslationTarget}
-                      onChange={(e) => setChatTranslationTarget(e.target.value)}
+                      onChange={(e) => handleTranslateThread(e.target.value)}
                       style={{
                         padding: "5px 10px",
                         borderRadius: "8px",
@@ -4520,7 +4670,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         fontWeight: 600,
                         backgroundColor: "#ffffff",
                         color: "#1E293B",
-                        outline: "none"
+                        outline: "none",
+                        cursor: "pointer"
                       }}
                     >
                       <option value="en">English (UK)</option>
@@ -4543,11 +4694,26 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     <input
                       type="checkbox"
                       checked={autoTranslateEnabled}
-                      onChange={(e) => setAutoTranslateEnabled(e.target.checked)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setAutoTranslateEnabled(checked);
+                        if (checked && chatTranslationTarget !== "en") {
+                          handleTranslateThread(chatTranslationTarget);
+                        } else if (!checked) {
+                          setTranslatedMessages({});
+                        }
+                      }}
                       style={{ accentColor: "#E6127E" }}
                     />
                     <span>Auto-Translate</span>
                   </label>
+
+                  {isTranslatingThread && (
+                    <span style={{ fontSize: "11px", color: "#E6127E", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px", borderRadius: "6px", backgroundColor: "#FCE8F3" }}>
+                      <RefreshCw size={12} className="animate-spin text-magenta" />
+                      <span>Translating thread into {LANGUAGE_LABELS[chatTranslationTarget] || chatTranslationTarget}...</span>
+                    </span>
+                  )}
 
                   <button
                     type="button"
@@ -4772,15 +4938,31 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     ) : (
                       (chatThreads[activeConversationId] || []).map((msg: any) => {
                         const isUser = msg.sender === "beneficiary";
-                        const isShowingTranslation = !!translatedMessages[msg.id];
-                        const isToggled = isShowingTranslation;
-                        const hasTranslation = !!msg.translationText && msg.translationText.trim() !== (msg.text || "").trim();
+                        const targetLang = chatTranslationTarget;
+                        const targetLangLabel = LANGUAGE_LABELS[targetLang] || targetLang;
 
-                        const displayText = (isShowingTranslation && hasTranslation) ? msg.translationText : msg.text;
+                        // Check translation cache for current target language
+                        const cachedTrans = (targetLang !== "en" && translationsCache[msg.id]?.[targetLang])
+                          ? translationsCache[msg.id][targetLang]
+                          : null;
+
+                        // Fallback to backend pre-translated text if target matches
+                        const backendTrans = (targetLang !== "en" && msg.translatedLanguage === targetLang && msg.translationText)
+                          ? msg.translationText
+                          : null;
+
+                        const effectiveTranslation = cachedTrans || backendTrans;
+                        const hasTranslation = !!effectiveTranslation && effectiveTranslation.trim().toLowerCase() !== (msg.text || "").trim().toLowerCase();
+
+                        // Active translation display
+                        const isShowingTranslation = !!translatedMessages[msg.id] && hasTranslation;
+                        const isTranslatingThis = !!translatingMsgIds[msg.id];
+
+                        const displayText = isShowingTranslation ? effectiveTranslation : msg.text;
                         const showToggleOption = !!(msg.text || msg.voiceTranscript);
                         const toggleBtnLabel = isShowingTranslation
                           ? (isUser ? "Show Original Message" : "Show Original (English)")
-                          : (isUser ? "Show Translated for Advocate" : "Translate Message");
+                          : (targetLang !== "en" ? `Translate into ${targetLangLabel}` : "Translate Message");
 
                         return (
                           <div
@@ -4873,20 +5055,21 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               {msg.voiceTranscript && (
                                 <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #F1F5F9" }}>
                                   <div style={{ fontSize: "11px", fontStyle: "italic", lineHeight: "1.4", color: isUser ? "rgba(255,255,255,0.95)" : "#475569" }}>
-                                    "{isShowingTranslation && msg.translationText ? msg.translationText : msg.voiceTranscript}"
+                                    "{isShowingTranslation && effectiveTranslation ? effectiveTranslation : msg.voiceTranscript}"
                                   </div>
 
                                   {/* Translation for Voice Transcript */}
                                   <button
                                     type="button"
                                     onClick={() => handleToggleTranslate(msg.id)}
+                                    disabled={isTranslatingThis}
                                     style={{
                                       background: "none",
                                       border: "none",
                                       color: isUser ? "#ffffff" : "#E6127E",
                                       fontSize: "10px",
                                       fontWeight: 800,
-                                      cursor: "pointer",
+                                      cursor: isTranslatingThis ? "wait" : "pointer",
                                       marginTop: "4px",
                                       padding: "0",
                                       textDecoration: "underline",
@@ -4895,8 +5078,17 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                       gap: "3px"
                                     }}
                                   >
-                                    <Languages size={11} />
-                                    <span>{isShowingTranslation ? "Show Original Audio Transcript" : "Translate Audio Transcript"}</span>
+                                    {isTranslatingThis ? (
+                                      <>
+                                        <RefreshCw size={11} className="animate-spin" />
+                                        <span>Translating...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Languages size={11} />
+                                        <span>{isShowingTranslation ? "Show Original Audio Transcript" : (targetLang !== "en" ? `Translate Audio Transcript into ${targetLangLabel}` : "Translate Audio Transcript")}</span>
+                                      </>
+                                    )}
                                   </button>
                                 </div>
                               )}
@@ -4986,30 +5178,40 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                               {/* Message Translation Action Pill */}
                               {showToggleOption && displayText && (
-                                <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: isUser ? "1px solid rgba(255,255,255,0.2)" : "1px solid #F1F5F9", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
                                   <button
                                     type="button"
                                     onClick={() => handleToggleTranslate(msg.id)}
+                                    disabled={isTranslatingThis}
                                     style={{
                                       background: "none",
                                       border: "none",
                                       color: isUser ? "#ffffff" : "#E6127E",
                                       fontSize: "10.5px",
                                       fontWeight: 800,
-                                      cursor: "pointer",
+                                      cursor: isTranslatingThis ? "wait" : "pointer",
                                       padding: "0",
                                       display: "inline-flex",
                                       alignItems: "center",
                                       gap: "4px"
                                     }}
                                   >
-                                    <Languages size={11} />
-                                    <span>{toggleBtnLabel}</span>
+                                    {isTranslatingThis ? (
+                                      <>
+                                        <RefreshCw size={11} className="animate-spin" />
+                                        <span>Translating...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Languages size={11} />
+                                        <span>{toggleBtnLabel}</span>
+                                      </>
+                                    )}
                                   </button>
 
-                                  {hasTranslation && (
-                                    <span style={{ fontSize: "9.5px", color: isUser ? "rgba(255,255,255,0.7)" : "#94A3B8" }}>
-                                      {isShowingTranslation ? "⚡ AI Neural Translation" : ""}
+                                  {isShowingTranslation && (
+                                    <span style={{ fontSize: "9.5px", color: isUser ? "rgba(255,255,255,0.85)" : "#2563EB", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                      <span>⚡ Translated to {targetLangLabel}</span>
                                     </span>
                                   )}
                                 </div>
