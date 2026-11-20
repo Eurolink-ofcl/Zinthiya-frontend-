@@ -839,6 +839,7 @@ class ApiService {
     user: any;
     requests: any[];
     allocations: any[];
+    notifications?: any[];
     categories?: any[];
     stats: {
       totalAllocated: number;

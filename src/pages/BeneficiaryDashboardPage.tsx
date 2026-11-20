@@ -781,41 +781,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     return getBeneficiaryText(key, selectedLanguage, fallback);
   };
 
-  // Notification state
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Winter Warmth Grant Awarded (£250.00)",
-      body: "Your prepayment fuel grant has been confirmed and credited with British Gas.",
-      time: "Today, 09:30 AM",
-      unread: true,
-      tag: "Grant"
-    },
-    {
-      id: 2,
-      title: "New Caseworker Message from " + beneficiaryUser.caseWorker,
-      body: "Caseworker update regarding your account, active grants, and upcoming consultation.",
-      time: "Yesterday, 10:20 AM",
-      unread: true,
-      tag: "Message"
-    },
-    {
-      id: 3,
-      title: "Upcoming Appointment Scheduled",
-      body: "Casework Review: Monday 24 Nov at 11:30 AM at the Leicester Community Centre.",
-      time: "3 days ago",
-      unread: false,
-      tag: "Appointment"
-    },
-    {
-      id: 4,
-      title: "Emergency Food & Hygiene Hamper Ready",
-      body: "Your bi-weekly family parcel is ready for collection at the Zinthiya Pantry.",
-      time: "5 days ago",
-      unread: false,
-      tag: "Relief"
-    }
-  ]);
+  // Notification state - strictly zero mock/hardcoded/default values
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const [liveRequests, setLiveRequests] = useState<any[]>([]);
   const [liveAllocations, setLiveAllocations] = useState<any[]>([]);
@@ -915,6 +882,50 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           }
         }
         if (data && data.stats) setLiveStats(data.stats);
+
+        // Zero hardcoded/mock notifications: populate strictly from real database records
+        if (data && Array.isArray(data.notifications) && data.notifications.length > 0) {
+          setNotifications(data.notifications);
+        } else {
+          const realNotifs: any[] = [];
+          const allocList = data?.allocations || [];
+          const reqList = data?.requests || [];
+
+          allocList.forEach((a: any) => {
+            const amountStr = `£${Number(a.allocatedAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const isDistributed = a.status === 'DISTRIBUTED' || a.status === 'PAID';
+            realNotifs.push({
+              id: `alloc-${a.id}`,
+              title: isDistributed
+                ? `${a.category || 'Relief'} Assistance Distributed (${amountStr})`
+                : `${a.category || 'Assistance'} Grant Awarded (${amountStr})`,
+              body: isDistributed
+                ? `Official disbursement of ${amountStr} for ${a.purpose || 'authorized community assistance'} via ${a.disbursementMethod || 'bank transfer'} has been completed.`
+                : `Trustee relief grant (Ref: ${a.referenceNumber || a.id}) of ${amountStr} has been approved and scheduled for payout.`,
+              time: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
+              timestamp: a.createdAt ? new Date(a.createdAt).getTime() : 0,
+              unread: !isDistributed,
+              tag: isDistributed ? 'Disbursement' : 'Grant',
+            });
+          });
+
+          reqList.forEach((req: any) => {
+            const isPending = req.status === 'PENDING';
+            const statusLabel = req.status === 'APPROVED' ? 'Approved' : isPending ? 'Under Assessment' : req.status === 'COMPLETED' ? 'Completed' : req.status;
+            realNotifs.push({
+              id: `req-${req.id}`,
+              title: `Support Application: ${req.serviceType} – ${statusLabel}`,
+              body: `Your application for ${req.serviceType} (Urgency: ${req.urgency || 'Standard'}) is ${isPending ? 'under active assessment by your assigned advocate.' : `marked as ${statusLabel.toLowerCase()}.`}`,
+              time: req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
+              timestamp: req.createdAt ? new Date(req.createdAt).getTime() : 0,
+              unread: isPending,
+              tag: 'Application',
+            });
+          });
+
+          realNotifs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          setNotifications(realNotifs);
+        }
       } catch (err: any) {
         console.error("Failed to load live beneficiary portal data:", err);
         if (err.status === 401 || err.status === 403) {
@@ -1036,6 +1047,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         if (refreshed.requests) setLiveRequests(refreshed.requests);
         if (refreshed.allocations) setLiveAllocations(refreshed.allocations);
         if (refreshed.stats) setLiveStats(refreshed.stats);
+        if (refreshed.notifications) setNotifications(refreshed.notifications);
       }
     } catch (err: any) {
       alert("Support request submitted. Caseworker has been alerted.");
@@ -2578,7 +2590,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           borderBottom: dashNoticeTab === "notifications" ? "2px solid #E6127E" : "2px solid transparent"
                         }}
                       >
-                        Notifications ({assistanceRecords.length})
+                        Notifications ({notifications.length})
                       </button>
                     </div>
 
@@ -2642,39 +2654,34 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <div
-                        style={{
-                          padding: "12px",
-                          borderRadius: "12px",
-                          backgroundColor: "#FFF5F9",
-                          border: "1px solid rgba(230, 18, 126, 0.12)"
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#E6127E" }} />
-                          <strong style={{ fontSize: "12px", color: "#241221" }}>Medical assistance – Approved</strong>
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: "16px", borderRadius: "12px", backgroundColor: "#FBF7F9", border: "1px dashed #CBD5E1", fontSize: "12px", color: "#64748B", textAlign: "center" }}>
+                          No active notifications recorded.
                         </div>
-                        <p style={{ fontSize: "11px", color: "#64748B", margin: "4px 0 0 12px" }}>
-                          Your emergency healthcare support has been approved by the trust casework committee.
-                        </p>
-                      </div>
-
-                      <div
-                        style={{
-                          padding: "12px",
-                          borderRadius: "12px",
-                          backgroundColor: "#FBF7F9",
-                          border: "1px solid #F1F5F9"
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#3B82F6" }} />
-                          <strong style={{ fontSize: "12px", color: "#241221" }}>Education support – Received</strong>
-                        </div>
-                        <p style={{ fontSize: "11px", color: "#64748B", margin: "4px 0 0 12px" }}>
-                          School supplies and uniform grant credited to your nominated account.
-                        </p>
-                      </div>
+                      ) : (
+                        notifications.slice(0, 3).map((notif) => (
+                          <div
+                            key={notif.id}
+                            style={{
+                              padding: "12px",
+                              borderRadius: "12px",
+                              backgroundColor: notif.unread ? "#FFF5F9" : "#FBF7F9",
+                              border: notif.unread ? "1px solid rgba(230, 18, 126, 0.2)" : "1px solid #F1F5F9"
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: notif.unread ? "#E6127E" : "#3B82F6" }} />
+                                <strong style={{ fontSize: "12px", color: "#241221" }}>{notif.title}</strong>
+                              </div>
+                              <span style={{ fontSize: "10px", color: "#8E7287" }}>{notif.time}</span>
+                            </div>
+                            <p style={{ fontSize: "11px", color: "#64748B", margin: "4px 0 0 12px", lineHeight: "1.4" }}>
+                              {notif.body}
+                            </p>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
@@ -6044,42 +6051,56 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: "12px",
-                      backgroundColor: notif.unread ? "#FFF5F9" : "#FBF7F9",
-                      border: notif.unread ? "1px solid rgba(230, 18, 126, 0.25)" : "1px solid #F1F5F9",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      justifyContent: "space-between",
-                      gap: "12px"
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 800, color: notif.unread ? "#E6127E" : "#241221" }}>
-                          {notif.title}
-                        </span>
-                        <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#B80C64" }}>
-                          {notif.tag}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: "12px", color: "#475569", margin: "4px 0 0 0", lineHeight: "1.5" }}>
-                        {notif.body}
-                      </p>
-                      <div style={{ fontSize: "10px", color: "#8E7287", marginTop: "4px" }}>
-                        {notif.time}
-                      </div>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: "48px 24px", textAlign: "center", color: "#64748B", backgroundColor: "#FBF7F9", borderRadius: "16px", border: "1px dashed #CBD5E1" }}>
+                    <div style={{ width: "48px", height: "48px", borderRadius: "50%", backgroundColor: "#FCE8F3", color: "#E6127E", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                      <Bell size={24} />
                     </div>
-
-                    {notif.unread && (
-                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#E6127E", marginTop: "4px", flexShrink: 0 }} />
-                    )}
+                    <div style={{ fontSize: "14px", fontWeight: 800, color: "#241221", marginBottom: "4px" }}>
+                      {t("no_notifications", "No new notifications")}
+                    </div>
+                    <div style={{ fontSize: "12px", maxWidth: "360px", margin: "0 auto", color: "#6A5364" }}>
+                      {t("no_notifications_sub", "You have no active alerts. Verified updates regarding your emergency grants, applications, and caseworker messages will appear here in real-time.")}
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: "12px",
+                        backgroundColor: notif.unread ? "#FFF5F9" : "#FBF7F9",
+                        border: notif.unread ? "1px solid rgba(230, 18, 126, 0.25)" : "1px solid #F1F5F9",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
+                        gap: "12px"
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontSize: "13px", fontWeight: 800, color: notif.unread ? "#E6127E" : "#241221" }}>
+                            {notif.title}
+                          </span>
+                          <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#B80C64" }}>
+                            {notif.tag}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: "12px", color: "#475569", margin: "4px 0 0 0", lineHeight: "1.5" }}>
+                          {notif.body}
+                        </p>
+                        <div style={{ fontSize: "10px", color: "#8E7287", marginTop: "4px" }}>
+                          {notif.time}
+                        </div>
+                      </div>
+
+                      {notif.unread && (
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#E6127E", marginTop: "4px", flexShrink: 0 }} />
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
