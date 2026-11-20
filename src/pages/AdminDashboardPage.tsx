@@ -568,13 +568,15 @@ export function AdminDashboardPage() {
     setEditCampImageUrl(campaign.imageUrl || "");
     setEditCampStartDate(campaign.startDate ? campaign.startDate.slice(0, 10) : "");
     setEditCampEndDate(campaign.endDate ? campaign.endDate.slice(0, 10) : "");
-    const initialStatus =
-      campaign.active && campaign.status === "DRAFT"
-        ? "ACTIVE"
-        : campaign.status || (campaign.archived ? "ARCHIVED" : campaign.active ? "ACTIVE" : "DRAFT");
+    const isCurrentlyArchived = !campaign.active && (Boolean(campaign.archived) || campaign.status === "ARCHIVED");
+    const initialStatus = campaign.active
+      ? "ACTIVE"
+      : isCurrentlyArchived
+      ? "ARCHIVED"
+      : campaign.status || "DRAFT";
     setEditCampStatus(initialStatus as any);
     setEditCampActive(campaign.active);
-    setEditCampArchived(Boolean(campaign.archived));
+    setEditCampArchived(isCurrentlyArchived);
     setEditCampCorporateSponsor(campaign.corporateSponsor || "");
     setEditCampFundraisingPageId(campaign.fundraisingPageId || "");
     setEditCampFundraisingPageName(campaign.fundraisingPageName || "");
@@ -606,7 +608,7 @@ export function AdminDashboardPage() {
     setSubmittingEditCampaign(true);
     setEditCampaignError("");
     const isNowActive = editCampStatus === "ACTIVE";
-    const isNowArchived = editCampStatus === "ARCHIVED" || editCampArchived;
+    const isNowArchived = editCampStatus === "ARCHIVED";
 
     try {
       await api.updateCampaignAdmin(editingCampaign.id, {
@@ -680,7 +682,12 @@ export function AdminDashboardPage() {
       setCampaigns((prev) =>
         prev.map((c) =>
           c.id === campaign.id
-            ? { ...c, active: newActive, status: newStatus }
+            ? {
+                ...c,
+                active: newActive,
+                status: newStatus,
+                archived: newActive ? false : c.archived,
+              }
             : c
         )
       );
@@ -695,9 +702,20 @@ export function AdminDashboardPage() {
   async function handleArchiveCampaign(campaign: CampaignRecord, archived: boolean) {
     try {
       await api.archiveCampaignAdmin(campaign.id, archived);
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === campaign.id
+            ? {
+                ...c,
+                archived,
+                active: archived ? false : true,
+                status: archived ? "ARCHIVED" : "ACTIVE",
+              }
+            : c
+        )
+      );
       setActionSuccessMsg(`Campaign "${campaign.title}" has been ${archived ? "archived" : "restored"}.`);
-      await loadCampaignsData();
-      await loadDashboardData();
+      await Promise.all([loadCampaignsData(), loadDashboardData()]);
       setTimeout(() => setActionSuccessMsg(""), 3500);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to update archive status.");
@@ -4734,9 +4752,9 @@ export function AdminDashboardPage() {
       const type = c.campaignType || "INTERNAL";
       const matchType = campaignTypeFilter === "ALL" ? true : type === campaignTypeFilter;
 
-      const isArchived = Boolean(c.archived) || c.status === "ARCHIVED";
-      const isActive = (c.active || c.status === "ACTIVE") && !isArchived && c.status !== "COMPLETED";
-      const isDraft = c.status === "DRAFT" && !c.active;
+      const isActive = (c.active || c.status === "ACTIVE") && c.status !== "COMPLETED";
+      const isArchived = !isActive && (Boolean(c.archived) || c.status === "ARCHIVED");
+      const isDraft = !isActive && !isArchived && c.status === "DRAFT";
       const isCompleted = c.status === "COMPLETED";
       const matchStatus =
         campaignStatusFilter === "ALL"
@@ -4828,7 +4846,7 @@ export function AdminDashboardPage() {
     .filter((dn) => dn.status === "COMPLETED" && dn.giftAid)
     .reduce((sum, dn) => sum + Number(dn.amount || 0) * 0.25, 0);
 
-  const totalActiveCampaigns = campaigns.filter((c) => (c.active || c.status === "ACTIVE") && !c.archived && c.status !== "ARCHIVED" && c.status !== "COMPLETED").length;
+  const totalActiveCampaigns = campaigns.filter((c) => (c.active || c.status === "ACTIVE") && c.status !== "COMPLETED").length;
   const internalCampaignsCount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL" && !c.archived && c.status !== "ARCHIVED").length;
   const externalCampaignsCount = campaigns.filter((c) => c.campaignType === "EXTERNAL" && !c.archived && c.status !== "ARCHIVED").length;
   const internalRaisedAmount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL" && !c.archived && c.status !== "ARCHIVED").reduce((sum, c) => sum + Number(c.raisedAmount || 0), 0);
@@ -9259,7 +9277,7 @@ export function AdminDashboardPage() {
                     const target = Number(camp.targetAmount || 0);
                     const raised = Number(camp.raisedAmount || 0);
                     const progress = target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : 0;
-                    const isArchived = Boolean(camp.archived);
+                    const isArchived = !camp.active && (Boolean(camp.archived) || camp.status === "ARCHIVED");
 
                     return (
                       <div key={camp.id} className="admin-campaign-card">
@@ -9295,18 +9313,18 @@ export function AdminDashboardPage() {
                               </span>
                             )}
 
-                            {isArchived || camp.status === "ARCHIVED" ? (
+                            {camp.active || camp.status === "ACTIVE" ? (
+                              <span className="admin-badge-active px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shadow-sm flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>Active</span>
+                              </span>
+                            ) : isArchived || camp.status === "ARCHIVED" ? (
                               <span className="admin-badge-archived px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shadow-sm">
                                 Archived
                               </span>
                             ) : camp.status === "COMPLETED" ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800">
                                 Completed
-                              </span>
-                            ) : camp.active || camp.status === "ACTIVE" ? (
-                              <span className="admin-badge-active px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shadow-sm flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>Active</span>
                               </span>
                             ) : camp.status === "DRAFT" ? (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800">
