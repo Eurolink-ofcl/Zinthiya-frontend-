@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, DonorUser, DonorStats, DonationRecord, CampaignRecord } from "../lib/api";
 import { downloadReceiptPdf } from "../lib/pdfReceipt";
@@ -123,6 +123,42 @@ export function DonorDashboardPage() {
   const [newslettersLoading, setNewslettersLoading] = useState(false);
   const [viewingNewsletterModal, setViewingNewsletterModal] = useState<any | null>(null);
 
+  // Dynamic Admin-Configured Giving Tier calculation
+  const [configuredTiers, setConfiguredTiers] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem("zinthiya_system_settings");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.donationTiers) && parsed.donationTiers.length > 0) {
+          return parsed.donationTiers;
+        }
+      }
+    } catch {}
+    return [];
+  });
+
+  const donorGivingTier = useMemo(() => {
+    const total = Number(stats?.totalDonated ?? donor?.totalDonated ?? 0);
+    const tiers = configuredTiers && configuredTiers.length > 0
+      ? configuredTiers
+      : ((stats as any)?.configuredTiers || []);
+
+    if (Array.isArray(tiers) && tiers.length > 0) {
+      const sorted = [...tiers].sort((a: any, b: any) => Number(b.minAmount) - Number(a.minAmount));
+      const matched = sorted.find((t: any) => total >= Number(t.minAmount));
+      if (matched) return matched.name;
+      const lowest = sorted[sorted.length - 1];
+      return lowest?.name || "Supporter";
+    }
+
+    if ((stats as any)?.tierName) return (stats as any).tierName;
+    const fallbackTier = stats?.donationTier || donor?.donationTier;
+    if (fallbackTier && fallbackTier !== "GOLD" && fallbackTier !== "PLATINUM" && fallbackTier !== "SILVER" && fallbackTier !== "BRONZE") {
+      return fallbackTier;
+    }
+    return "Supporter";
+  }, [stats, donor, configuredTiers]);
+
   // Loading & Error State
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -209,12 +245,13 @@ export function DonorDashboardPage() {
 
     try {
       // Parallel fetch of real database entities
-      const [profileRes, statsRes, donationsRes, campaignsRes, newslettersRes] = await Promise.all([
+      const [profileRes, statsRes, donationsRes, campaignsRes, newslettersRes, tiersRes] = await Promise.all([
         api.getDonorProfile(),
         api.getDonorStats(),
         api.getMyDonations(),
         api.getCampaigns(),
         api.getDonorNewsletters().catch(() => ({ newsletters: [], donorConsent: { emailNewsletter: true, email: "" } })),
+        api.getGivingTiers().catch(() => []),
       ]);
 
       setDonor(profileRes);
@@ -222,6 +259,13 @@ export function DonorDashboardPage() {
       setDonations(donationsRes);
       setCampaigns(campaignsRes);
       setNewsletters(newslettersRes?.newsletters || []);
+
+      const activeTiers = (statsRes?.configuredTiers && statsRes.configuredTiers.length > 0)
+        ? statsRes.configuredTiers
+        : (tiersRes && tiersRes.length > 0 ? tiersRes : []);
+      if (activeTiers.length > 0) {
+        setConfiguredTiers(activeTiers);
+      }
 
       // Populate profile form fields
       setProfileName(profileRes.fullName || "");
@@ -771,7 +815,7 @@ export function DonorDashboardPage() {
                       borderRadius: "9999px"
                     }}
                   >
-                    {stats?.donationTier || donor.donationTier || "SUPPORTER"}
+                    {donorGivingTier}
                   </span>
                 </div>
               </div>
@@ -1032,7 +1076,7 @@ export function DonorDashboardPage() {
                             borderRadius: "9999px"
                           }}
                         >
-                          {stats?.donationTier || "SUPPORTER"}
+                          {donorGivingTier}
                         </span>
                       </div>
                     </div>
@@ -2537,7 +2581,7 @@ export function DonorDashboardPage() {
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", backgroundColor: "#ECFDF5", borderRadius: "14px", border: "1px solid #A7F3D0", marginBottom: "20px" }}>
                           <ShieldCheck size={20} style={{ color: "#059669", flexShrink: 0 }} />
                           <div style={{ fontSize: "12px", color: "#065F46" }}>
-                            <strong>Account Verified:</strong> Logged in as <strong>{donor?.fullName || "Supporter"}</strong> ({donor?.email}) • Giving Tier: <strong>{donor?.donationTier || "SUPPORTER"}</strong>. This gift will be linked directly to your donor record.
+                            <strong>Account Verified:</strong> Logged in as <strong>{donor?.fullName || "Supporter"}</strong> ({donor?.email}) • Giving Tier: <strong>{donorGivingTier}</strong>. This gift will be linked directly to your donor record.
                           </div>
                         </div>
 
@@ -2963,7 +3007,7 @@ export function DonorDashboardPage() {
                               Giving Tier
                             </div>
                             <div style={{ fontSize: "24px", fontWeight: 800, color: "#E6127E", marginTop: "2px" }}>
-                              {stats?.donationTier || "SUPPORTER"}
+                              {donorGivingTier}
                             </div>
                             <div style={{ fontSize: "11px", color: "#8E7287", marginTop: "4px" }}>
                               Verified Donor Status

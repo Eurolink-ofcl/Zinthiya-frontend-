@@ -65,6 +65,9 @@ export interface LoginPayload {
 export interface DonorStats {
   totalDonated: number | string;
   donationTier: string;
+  tierName?: string;
+  tierColor?: string;
+  configuredTiers?: any[];
   totalDonations: number;
   lastDonationDate: string | null;
 }
@@ -887,6 +890,28 @@ class ApiService {
   }
 
   // --- Donor Portal Endpoints ---
+  async getGivingTiers(): Promise<any[]> {
+    try {
+      const res = await this.request<any[]>("/donors/giving-tiers", {
+        method: "GET",
+        headers: this.getHeaders(true),
+      });
+      if (Array.isArray(res) && res.length > 0) return res;
+    } catch (e) {
+      // Fallback to cached settings
+    }
+    try {
+      const cached = localStorage.getItem("zinthiya_system_settings");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.donationTiers) && parsed.donationTiers.length > 0) {
+          return parsed.donationTiers;
+        }
+      }
+    } catch (e) {}
+    return [];
+  }
+
   async getDonorStats(): Promise<DonorStats> {
     return this.request<DonorStats>("/donors/stats", {
       method: "GET",
