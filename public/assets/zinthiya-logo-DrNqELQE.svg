@@ -26,8 +26,7 @@
     <!-- "ya" -->
     <text x="325" y="90" font-family="'Baloo 2', cursive, sans-serif" font-weight="700" font-size="96" fill="#E6127E" letter-spacing="-2">ya</text>
 
-    <!-- Subtitle: "Ganeshpanchan       Trust" -->
-    <text x="65" y="125" font-family="'Nunito Sans', sans-serif" font-weight="600" font-size="28" fill="#E6127E" letter-spacing="1">Ganeshpanchan</text>
+    <!-- Subtitle: "Trust" -->
     <text x="350" y="125" font-family="'Nunito Sans', sans-serif" font-weight="600" font-size="28" fill="#E6127E" letter-spacing="2">Trust</text>
   </g>
 </svg>

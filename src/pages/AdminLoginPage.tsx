@@ -58,17 +58,6 @@ function ZinthiyaLogo() {
         </text>
 
         <text
-          x="65"
-          y="125"
-          fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
-          fontWeight="700"
-          fontSize="26"
-          fill="#E6127E"
-          letterSpacing="1"
-        >
-          Ganeshpanchan
-        </text>
-        <text
           x="350"
           y="125"
           fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
@@ -579,7 +568,7 @@ export function AdminLoginPage() {
               </div>
 
               <p style={{ lineHeight: "1.4" }}>
-                Restricted to authorized staff of The Zinthiya Ganeshpanchan Trust (Charity #1137350). All access attempts are monitored and recorded.
+                Restricted to authorized staff of The Zinthiya Trust (Charity #1137350). All access attempts are monitored and recorded.
               </p>
             </div>
           </div>
@@ -781,7 +770,7 @@ export function AdminLoginPage() {
         }}
       >
         <p>
-          © 2026 The Zinthiya Ganeshpanchan Trust • Registered Charity No. 1137350 • All Rights Reserved.
+          © 2026 The Zinthiya Trust • Registered Charity No. 1137350 • All Rights Reserved.
         </p>
       </footer>
     </div>

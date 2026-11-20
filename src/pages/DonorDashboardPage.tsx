@@ -75,17 +75,6 @@ function ZinthiyaLogo() {
         </text>
 
         <text
-          x="65"
-          y="125"
-          fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
-          fontWeight="700"
-          fontSize="26"
-          fill="#E6127E"
-          letterSpacing="1"
-        >
-          Ganeshpanchan
-        </text>
-        <text
           x="350"
           y="125"
           fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
@@ -4260,7 +4249,7 @@ export function DonorDashboardPage() {
                 Official Charitable Gift Receipt
               </div>
               <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#241221", marginTop: "4px" }}>
-                The Zinthiya Ganeshpanchan Trust
+                The Zinthiya Trust
               </h2>
               <p style={{ fontSize: "11px", color: "#5C475A", marginTop: "4px", lineHeight: "1.5" }}>
                 UK Registered Charity No. <strong>1137350</strong> (England &amp; Wales)<br />
@@ -4422,7 +4411,7 @@ export function DonorDashboardPage() {
               <div style={{ fontWeight: 700, color: "#374151", marginBottom: "2px" }}>
                 Official Donor Receipt Notice
               </div>
-              The Zinthiya Ganeshpanchan Trust is a registered charity in England &amp; Wales (#1137350). Please retain this receipt for your personal tax or accounting records.
+              The Zinthiya Trust is a registered charity in England &amp; Wales (#1137350). Please retain this receipt for your personal tax or accounting records.
             </div>
 
             {/* Action Buttons */}

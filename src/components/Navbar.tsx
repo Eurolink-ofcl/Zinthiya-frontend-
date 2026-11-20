@@ -103,7 +103,7 @@ export function Navbar() {
             className="flex items-center justify-center shrink-0 transition-transform hover:scale-105 my-1"
           >
             <img
-              alt="The Zinthiya Ganeshpanchan Trust Logo"
+              alt="The Zinthiya Trust Logo"
               className="h-10 sm:h-12 nav:h-14 w-auto object-contain drop-shadow-sm"
               src={zinthiyaLogo}
             />

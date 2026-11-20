@@ -1,6 +1,6 @@
 # Zinthiya Trust - Frontend Application
 
-Official frontend web portal for **The Zinthiya Ganeshpanchan Trust** (Charity #1137350), supporting crisis intervention, poverty alleviation, women & children refuge support, and charitable grant distribution in Leicestershire.
+Official frontend web portal for **The Zinthiya Trust** (Charity #1137350), supporting crisis intervention, poverty alleviation, women & children refuge support, and charitable grant distribution in Leicestershire.
 
 ## Features
 

@@ -314,7 +314,7 @@ function downloadAwardLetterPDF(item: any, beneficiary: any) {
         <div class="brand-sub">Client Care & Welfare Relief Portal • Registered Charity No. 1137350</div>
       </td>
       <td class="header-right" style="vertical-align: top;">
-        <strong>The Zinthiya Ganeshpanchan Trust</strong><br>
+        <strong>The Zinthiya Trust</strong><br>
         12 Bishop Street, Town Hall Square<br>
         Leicester LE1 6AF, United Kingdom<br>
         Casework Desk: 0116 254 5168 | info@zinthiyatrust.org
@@ -398,7 +398,7 @@ function downloadAwardLetterPDF(item: any, beneficiary: any) {
   <div class="footer-section">
     <div>
       <strong>Certified Official Notice</strong><br>
-      The Zinthiya Ganeshpanchan Trust • Care Charter Certified<br>
+      The Zinthiya Trust • Care Charter Certified<br>
       Issued in Leicester, United Kingdom
     </div>
     <div class="signature-area">
@@ -490,7 +490,7 @@ function downloadAssistanceHistorySummaryPDF(records: any[], beneficiary: any) {
   </table>
   <div style="margin-top: 40px; border-top: 1px solid #E2E8F0; padding-top: 12px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
     <div>Certified Official Welfare Record under UK Charity Commission Care Charter</div>
-    <div>The Zinthiya Ganeshpanchan Trust</div>
+    <div>The Zinthiya Trust</div>
   </div>
   <script>
     window.onload = function() { setTimeout(function() { window.print(); }, 500); };
@@ -562,15 +562,15 @@ function ZinthiyaLogo() {
           ya
         </text>
         <text
-          x="5"
+          x="140"
           y="118"
           fontFamily="'Inter', sans-serif"
-          fontWeight="500"
+          fontWeight="600"
           fontSize="22"
           fill="#8E7287"
           letterSpacing="4"
         >
-          GANESHPANCHAN TRUST
+          TRUST
         </text>
       </g>
     </svg>

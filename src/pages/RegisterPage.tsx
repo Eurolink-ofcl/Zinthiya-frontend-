@@ -58,17 +58,6 @@ function ZinthiyaLogo() {
         </text>
 
         <text
-          x="65"
-          y="125"
-          fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
-          fontWeight="700"
-          fontSize="26"
-          fill="#E6127E"
-          letterSpacing="1"
-        >
-          Ganeshpanchan
-        </text>
-        <text
           x="350"
           y="125"
           fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"

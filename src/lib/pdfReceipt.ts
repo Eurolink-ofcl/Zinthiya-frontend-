@@ -50,7 +50,7 @@ export function generateReceiptPdfBlob(donation: any, donor?: DonorUser | null):
     "/F2 20 Tf",
     "0.902 0.071 0.494 rg", // Magenta #E6127E
     "50 782 Td",
-    `(${escapePdfText("THE ZINTHIYA GANESHPANCHAN TRUST")}) Tj`,
+    `(${escapePdfText("THE ZINTHIYA TRUST")}) Tj`,
     "ET",
 
     // Organization Subheader
@@ -275,7 +275,7 @@ export function generateReceiptPdfBlob(donation: any, donor?: DonorUser | null):
     "/F1 8.5 Tf",
     "0.4 0.35 0.4 rg",
     "66 322 Td",
-    `(${escapePdfText("The Zinthiya Ganeshpanchan Trust is a charitable trust registered under charity number 1137350.")}) Tj`,
+    `(${escapePdfText("The Zinthiya Trust is a charitable trust registered under charity number 1137350.")}) Tj`,
     "ET",
     "BT",
     "/F1 8.5 Tf",
@@ -311,7 +311,7 @@ export function generateReceiptPdfBlob(donation: any, donor?: DonorUser | null):
     "/F1 8.5 Tf",
     "0.5 0.45 0.5 rg",
     "360 152 Td",
-    `(${escapePdfText("The Zinthiya Ganeshpanchan Trust")}) Tj`,
+    `(${escapePdfText("The Zinthiya Trust")}) Tj`,
     "ET",
 
     // BOTTOM FOOTER WATERMARK

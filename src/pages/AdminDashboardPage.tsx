@@ -182,17 +182,6 @@ function ZinthiyaLogo() {
         </text>
 
         <text
-          x="65"
-          y="125"
-          fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
-          fontWeight="700"
-          fontSize="26"
-          fill="#E6127E"
-          letterSpacing="1"
-        >
-          Ganeshpanchan
-        </text>
-        <text
           x="350"
           y="125"
           fontFamily="'Plus Jakarta Sans', 'Inter', sans-serif"
@@ -2338,7 +2327,7 @@ export function AdminDashboardPage() {
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:html="http://www.w3.org/TR/REC-html40">
  <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
-  <Author>The Zinthiya Ganeshpanchan Trust</Author>
+  <Author>The Zinthiya Trust</Author>
   <Company>Zinthiya Trust</Company>
   <Created>${new Date().toISOString()}</Created>
  </DocumentProperties>
@@ -3415,7 +3404,7 @@ export function AdminDashboardPage() {
   const [settingsSuccessMsg, setSettingsSuccessMsg] = useState<string>("");
   const [settingsErrorMsg, setSettingsErrorMsg] = useState<string>("");
 
-  const [settingCharityName, setSettingCharityName] = useState("The Zinthiya Ganeshpanchan Trust");
+  const [settingCharityName, setSettingCharityName] = useState("The Zinthiya Trust");
   const [settingRegNumber, setSettingRegNumber] = useState("1137350");
   const [settingCompanyNumber, setSettingCompanyNumber] = useState("07258327");
   const [settingOfficialAddress, setSettingOfficialAddress] = useState("12 New Walk, Leicester, LE1 6TF, United Kingdom");
@@ -11962,7 +11951,7 @@ export function AdminDashboardPage() {
                       </p>
                       <div className="pt-2 border-t border-gray-100 text-[11px] text-gray-600 space-y-1">
                         <div className="font-bold text-slate-800">Assigned Team Members:</div>
-                        <div>• Zinthiya Ganeshpanchan (Founder &amp; CEO)</div>
+                        <div>• Zinthiya (Founder &amp; CEO)</div>
                         <div>• System Administrator</div>
                       </div>
                     </div>
@@ -13488,7 +13477,7 @@ export function AdminDashboardPage() {
                         value={settingCharityName}
                         onChange={(e) => setSettingCharityName(e.target.value)}
                         className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all"
-                        placeholder="The Zinthiya Ganeshpanchan Trust"
+                        placeholder="The Zinthiya Trust"
                       />
                     </div>
 
@@ -17294,7 +17283,7 @@ export function AdminDashboardPage() {
 
               {/* Receipt Footer */}
               <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-400">
-                <p>Thank you for your generous support of The Zinthiya Ganeshpanchan Trust.</p>
+                <p>Thank you for your generous support of The Zinthiya Trust.</p>
                 <p className="mt-0.5 font-medium">This document serves as an official confirmation of charitable giving.</p>
               </div>
             </div>
@@ -22129,7 +22118,7 @@ export function AdminDashboardPage() {
                 <ZinthiyaLogo />
               </div>
               <h2 className="text-sm font-black uppercase tracking-wider text-slate-900">
-                Zinthiya Ganeshpanchan Trust
+                Zinthiya Trust
               </h2>
               <div className="text-[10px] text-slate-500 font-medium">
                 Registered UK Charity No. 1137350 &bull; 12 Bishop Street, Leicester LE1 6AF

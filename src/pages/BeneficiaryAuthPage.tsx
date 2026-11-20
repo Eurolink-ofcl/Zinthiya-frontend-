@@ -86,15 +86,15 @@ function ZinthiyaLogo() {
           ya
         </text>
         <text
-          x="5"
+          x="140"
           y="118"
           fontFamily="'Inter', sans-serif"
-          fontWeight="500"
+          fontWeight="600"
           fontSize="22"
           fill="#8E7287"
           letterSpacing="4"
         >
-          GANESHPANCHAN TRUST
+          TRUST
         </text>
       </g>
     </svg>
@@ -2150,7 +2150,7 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
           backgroundColor: "#FFFFFF",
         }}
       >
-        The Zinthiya Ganeshpanchan Trust • Registered Charity #1137350 • All Client Data Confidential &amp; UK GDPR Protected
+        The Zinthiya Trust • Registered Charity #1137350 • All Client Data Confidential &amp; UK GDPR Protected
       </footer>
     </div>
   );
