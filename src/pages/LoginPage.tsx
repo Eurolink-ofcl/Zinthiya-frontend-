@@ -116,9 +116,20 @@ export function LoginPage() {
       const res = await api.login({
         email: email.trim(),
         password,
+        portal: "donor",
       });
 
       if (res?.data?.user && res?.data?.auth?.accessToken) {
+        if (res.data.user.role !== "DONOR") {
+          setLoading(false);
+          if (res.data.user.role === "BENEFICIARY") {
+            setErrorMsg("Access Denied: Beneficiary accounts cannot log into the Donor Portal. Please sign in via the Beneficiary Portal (/beneficiary/login).");
+          } else {
+            setErrorMsg("Access Denied: Staff accounts must sign in via the Admin Portal (/admin/login).");
+          }
+          return;
+        }
+
         api.setSession(res.data.user, res.data.auth.accessToken);
         setDonor(res.data.user);
 
@@ -136,7 +147,7 @@ export function LoginPage() {
       setSubmitted(true);
     } catch (err: any) {
       setLoading(false);
-      setErrorMsg(err.message || "Invalid email or password. Please verify your credentials.");
+      setErrorMsg(err?.data?.message || err.message || "Invalid email or password. Please verify your credentials.");
     }
   }
 

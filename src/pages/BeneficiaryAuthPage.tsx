@@ -387,9 +387,20 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
       const res = await api.login({
         email: effectiveEmail,
         password: loginPassword,
+        portal: "beneficiary",
       });
 
       if (res.data?.auth?.accessToken) {
+        if (res.data?.user && res.data.user.role !== "BENEFICIARY") {
+          setLoading(false);
+          if (res.data.user.role === "DONOR") {
+            setErrorMessage("Access Denied: Donor accounts cannot log into the Beneficiary Portal. Please sign in via the Donor Portal (/login).");
+          } else {
+            setErrorMessage("Access Denied: Staff accounts must sign in via the Admin Portal (/admin/login).");
+          }
+          return;
+        }
+
         localStorage.setItem("beneficiary_token", res.data.auth.accessToken);
         localStorage.setItem("beneficiary_email", effectiveEmail);
         if (res.data?.user) {
@@ -400,9 +411,12 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
         setErrorMessage("Unexpected login response. Please try again.");
       }
     } catch (err: any) {
-      const msg = err.message || "";
-      if (
-        err.error === "PortalAccessDisabled" ||
+      const msg = err?.data?.message || err.message || "";
+      const errCode = err?.data?.error || err.error || "";
+      if (errCode === "WrongPortalAccess" || msg.includes("Access Denied")) {
+        setErrorMessage(msg);
+      } else if (
+        errCode === "PortalAccessDisabled" ||
         msg.toLowerCase().includes("portal access") ||
         msg.toLowerCase().includes("cannot sign in") ||
         msg.toLowerCase().includes("disabled by administrator")
@@ -414,14 +428,15 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
       } else if (
         msg.toLowerCase().includes("under review") ||
         msg.toLowerCase().includes("approves") ||
-        err.error === "AccountPendingApproval" ||
-        err.statusCode === 403
+        errCode === "AccountPendingApproval" ||
+        err.statusCode === 403 ||
+        err.status === 403
       ) {
         setPendingApprovalNotice(
           "Your application is currently under review by the Zinthiya Trust team. You will be able to log in once an administrator approves your application."
         );
       } else {
-        setErrorMessage("Invalid email or password. Please verify your credentials.");
+        setErrorMessage(msg || "Invalid email or password. Please verify your credentials.");
       }
     } finally {
       setLoading(false);

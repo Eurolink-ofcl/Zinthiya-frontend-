@@ -207,8 +207,10 @@ export function DonorDashboardPage() {
   }, []);
 
   async function loadDashboardData() {
-    const token = api.getToken();
-    if (!token) {
+    const token = api.getDonorToken();
+    const currentDonor = api.getCurrentDonor();
+    if (!token || !currentDonor || currentDonor.role !== "DONOR") {
+      api.clearDonorSession();
       navigate("/login");
       return;
     }
@@ -255,8 +257,8 @@ export function DonorDashboardPage() {
         if (!pageDonateCampaignId) setPageDonateCampaignId(campaignsRes[0].id);
       }
     } catch (err: any) {
-      if (err.status === 401) {
-        api.clearSession();
+      if (err.status === 401 || err.status === 403) {
+        api.clearDonorSession();
         navigate("/login");
       } else {
         setErrorMsg(err.message || "Unable to fetch donor dashboard data.");

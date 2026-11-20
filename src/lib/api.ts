@@ -59,6 +59,7 @@ export interface RegisterDonorPayload {
 export interface LoginPayload {
   email: string;
   password: string;
+  portal?: "donor" | "beneficiary" | "admin" | string;
 }
 
 export interface DonorStats {
@@ -618,7 +619,33 @@ class ApiService {
   // Token & Session Storage
   getToken(): string | null {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token");
+    return (
+      localStorage.getItem("zinthiya_token") ||
+      localStorage.getItem("donor_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("admin_token")
+    );
+  }
+
+  getDonorToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return (
+      localStorage.getItem("zinthiya_token") ||
+      localStorage.getItem("donor_token")
+    );
+  }
+
+  getBeneficiaryToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("beneficiary_token");
+  }
+
+  getAdminToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return (
+      localStorage.getItem("admin_token") ||
+      localStorage.getItem("zinthiya_token")
+    );
   }
 
   setSession(user: DonorUser, token: string): void {
@@ -640,6 +667,43 @@ class ApiService {
 
   getUser(): DonorUser | null {
     return this.getCurrentDonor();
+  }
+
+  clearDonorSession(): void {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.removeItem("zinthiya_token");
+      localStorage.removeItem("zinthiya_donor");
+      localStorage.removeItem("donor_token");
+      localStorage.removeItem("current_donor");
+    } catch (e) {
+      console.warn("Error clearing donor session:", e);
+    }
+  }
+
+  clearBeneficiarySession(): void {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.removeItem("beneficiary_token");
+      localStorage.removeItem("beneficiary_email");
+      localStorage.removeItem("beneficiary_user");
+      localStorage.removeItem("beneficiary_session");
+    } catch (e) {
+      console.warn("Error clearing beneficiary session:", e);
+    }
+  }
+
+  clearAdminSession(): void {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("admin_user");
+      localStorage.removeItem("zinthiya_token");
+      localStorage.removeItem("zinthiya_donor");
+    } catch (e) {
+      console.warn("Error clearing admin session:", e);
+    }
   }
 
   clearSession(): void {
@@ -1270,9 +1334,7 @@ class ApiService {
     assignedAdvocate?: string | null;
     messages: ChatMessage[];
   }> {
-    const token = typeof window !== "undefined"
-      ? (localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token"))
-      : null;
+    const token = this.getBeneficiaryToken();
     return this.request<{
       beneficiaryId: string;
       assignedAdvocate?: string | null;
@@ -1299,9 +1361,7 @@ class ApiService {
     sourceLanguage?: string;
     targetLanguage?: string;
   }): Promise<{ message: ChatMessage; messages: ChatMessage[] }> {
-    const token = typeof window !== "undefined"
-      ? (localStorage.getItem("beneficiary_token") || localStorage.getItem("zinthiya_token"))
-      : null;
+    const token = this.getBeneficiaryToken();
     return this.request<{ message: ChatMessage; messages: ChatMessage[] }>("/auth/beneficiary/messages", {
       method: "POST",
       headers: {

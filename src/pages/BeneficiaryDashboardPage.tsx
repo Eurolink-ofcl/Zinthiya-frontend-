@@ -597,6 +597,26 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       setActiveTab(initialTab);
     }
   }, [queryTab, initialTab]);
+
+  // Session guard: Strictly restricted to authenticated Beneficiary accounts
+  useEffect(() => {
+    const bToken = localStorage.getItem("beneficiary_token");
+    const bUserStr = localStorage.getItem("beneficiary_user");
+    if (!bToken) {
+      navigate("/beneficiary/login");
+      return;
+    }
+    if (bUserStr) {
+      try {
+        const parsed = JSON.parse(bUserStr);
+        if (parsed.role && parsed.role !== "BENEFICIARY") {
+          api.clearBeneficiarySession();
+          navigate("/beneficiary/login");
+          return;
+        }
+      } catch {}
+    }
+  }, [navigate]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -881,6 +901,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         if (data && data.stats) setLiveStats(data.stats);
       } catch (err: any) {
         console.error("Failed to load live beneficiary portal data:", err);
+        if (err.status === 401 || err.status === 403) {
+          api.clearBeneficiarySession();
+          navigate("/beneficiary/login");
+        }
       } finally {
         if (isMounted) setPortalLoading(false);
       }
@@ -952,6 +976,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       }
     } catch (err: any) {
       console.error("Failed to load live messages:", err);
+      if (err.status === 401 || err.status === 403) {
+        api.clearBeneficiarySession();
+        navigate("/beneficiary/login");
+      }
     }
   }
 

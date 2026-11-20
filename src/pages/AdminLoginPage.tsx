@@ -129,6 +129,7 @@ export function AdminLoginPage() {
       const res = await api.login({
         email: email.trim(),
         password,
+        portal: "admin",
       });
 
       const user = res?.data?.user;
@@ -155,7 +156,7 @@ export function AdminLoginPage() {
       api.setSession(user, token);
       navigate("/admin/dashboard");
     } catch (err: any) {
-      setErrorMsg(err.message || "Invalid administrator credentials. Please check your email and password.");
+      setErrorMsg(err?.data?.message || err.message || "Invalid administrator credentials. Please check your email and password.");
     } finally {
       setLoading(false);
     }
