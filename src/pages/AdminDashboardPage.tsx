@@ -3544,6 +3544,20 @@ export function AdminDashboardPage() {
   const [commsTranslatedIds, setCommsTranslatedIds] = useState<{ [id: string]: boolean }>({});
   const [commsErrorMsg, setCommsErrorMsg] = useState<string>("");
 
+  // Independent scrolling & smart auto-scroll refs for Communications chat stream
+  const commsMessagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const commsIsNearBottomRef = useRef<boolean>(true);
+  const commsPrevMessagesCountRef = useRef<number>(0);
+  const commsPrevThreadIdRef = useRef<string | null>(null);
+
+  const handleCommsMessagesScroll = () => {
+    const el = commsMessagesContainerRef.current;
+    if (!el) return;
+    const threshold = 120;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+    commsIsNearBottomRef.current = isNearBottom;
+  };
+
   useEffect(() => {
     return () => {
       if (commsAudioPlayerRef.current) {
@@ -3669,6 +3683,16 @@ export function AdminDashboardPage() {
           return t;
         })
       );
+
+      commsIsNearBottomRef.current = true;
+      setTimeout(() => {
+        if (commsMessagesContainerRef.current) {
+          commsMessagesContainerRef.current.scrollTo({
+            top: commsMessagesContainerRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }, 50);
     } catch (err: any) {
       alert(err.message || "Failed to send message to beneficiary.");
     } finally {
@@ -3805,6 +3829,16 @@ export function AdminDashboardPage() {
                 return t;
               })
             );
+
+            commsIsNearBottomRef.current = true;
+            setTimeout(() => {
+              if (commsMessagesContainerRef.current) {
+                commsMessagesContainerRef.current.scrollTo({
+                  top: commsMessagesContainerRef.current.scrollHeight,
+                  behavior: "smooth",
+                });
+              }
+            }, 50);
           } catch (err: any) {
             console.error("Failed to send voice note:", err);
             alert(err.message || "Failed to send voice note.");
@@ -3955,6 +3989,50 @@ export function AdminDashboardPage() {
   const activeCommsThread = useMemo(() => {
     return commsThreads.find((t) => t.beneficiaryId === selectedThreadId) || null;
   }, [commsThreads, selectedThreadId]);
+
+  // Smart auto-scroll for Communications chat:
+  // - On switching threads: jump directly to bottom
+  // - On new messages: auto-scroll to bottom only if user was already near the bottom
+  // - If user is scrolling up reading history: preserve their scroll position without jumping
+  useEffect(() => {
+    const el = commsMessagesContainerRef.current;
+    if (!el) return;
+
+    const currentThreadId = selectedThreadId;
+    const currentMessagesCount = activeCommsThread?.messages?.length || 0;
+    const isDifferentThread = commsPrevThreadIdRef.current !== currentThreadId;
+    const hasNewMessages = currentMessagesCount > commsPrevMessagesCountRef.current;
+
+    commsPrevThreadIdRef.current = currentThreadId;
+    commsPrevMessagesCountRef.current = currentMessagesCount;
+
+    if (isDifferentThread) {
+      el.scrollTop = el.scrollHeight;
+      commsIsNearBottomRef.current = true;
+      return;
+    }
+
+    if (hasNewMessages) {
+      if (commsIsNearBottomRef.current) {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [activeTab, selectedThreadId, activeCommsThread?.messages]);
+
+  // Lock outer window scroll when Communications tab is active so workspace stays fixed in viewport
+  useEffect(() => {
+    if (activeTab === "comms") {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [activeTab]);
 
   // Live calculation of target recipients & GDPR communication consent
   const composeTargetDonors = useMemo(() => {
@@ -4852,7 +4930,15 @@ export function AdminDashboardPage() {
   const newsletterPercentage = donors.length > 0 ? Math.round((totalCrmNewsletterOptIn / donors.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen text-slate-900 bg-slate-50 relative" style={{ backgroundColor: "#F8FAFC" }}>
+    <div
+      className={`min-h-screen text-slate-900 bg-slate-50 relative ${
+        activeTab === "comms" ? "h-screen max-h-screen overflow-hidden" : ""
+      }`}
+      style={{
+        backgroundColor: "#F8FAFC",
+        ...(activeTab === "comms" ? { height: "100vh", maxHeight: "100vh", overflow: "hidden" } : {}),
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -4866,6 +4952,27 @@ export function AdminDashboardPage() {
         body {
           background-color: #F8FAFC !important;
           color: #0F172A !important;
+        }
+
+        .admin-main-wrapper.comms-active {
+          height: 100vh !important;
+          max-height: 100vh !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+        }
+
+        .admin-chat-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
+        .admin-chat-scroll::-webkit-scrollbar-thumb {
+          background-color: #CBD5E1;
+          border-radius: 6px;
+        }
+        .admin-chat-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: #94A3B8;
+        }
+        .admin-chat-scroll::-webkit-scrollbar-track {
+          background: transparent;
         }
 
         /* Fixed Full-Height Executive Sidebar */
@@ -5773,7 +5880,12 @@ export function AdminDashboardPage() {
       </aside>
 
       {/* Main Content Area (Offset by Sidebar Width) */}
-      <div className="admin-main-wrapper flex flex-col min-h-screen">
+      <div
+        className={`admin-main-wrapper flex flex-col ${
+          activeTab === "comms" ? "comms-active h-screen max-h-screen overflow-hidden" : "min-h-screen"
+        }`}
+        style={activeTab === "comms" ? { height: "100vh", maxHeight: "100vh", overflow: "hidden" } : {}}
+      >
         {/* Top Sticky Header */}
         <header
           className="w-full border-b bg-white flex-shrink-0 sticky top-0 z-40"
@@ -5882,11 +5994,25 @@ export function AdminDashboardPage() {
         </header>
 
         {/* Dashboard Main View Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0" style={{ maxWidth: "1600px", width: "100%", margin: "0 auto" }}>
+        <main
+          className={`flex-1 min-w-0 ${
+            activeTab === "comms"
+              ? "flex flex-col min-h-0 overflow-hidden p-3 sm:p-4 lg:p-5"
+              : "p-4 sm:p-6 lg:p-8"
+          }`}
+          style={{
+            maxWidth: "1600px",
+            width: "100%",
+            margin: "0 auto",
+            ...(activeTab === "comms"
+              ? { height: "calc(100vh - 56px)", maxHeight: "calc(100vh - 56px)", overflow: "hidden" }
+              : {}),
+          }}
+        >
           {/* Action Success Toast */}
           {actionSuccessMsg && (
             <div
-              className="mb-5 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 border shadow-sm animate-fade-in"
+              className="mb-3 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 border shadow-sm animate-fade-in flex-shrink-0"
               style={{ backgroundColor: "#ECFDF5", borderColor: "#A7F3D0", color: "#065F46" }}
             >
               <Check size={16} className="text-emerald-600" />
@@ -5897,7 +6023,7 @@ export function AdminDashboardPage() {
           {/* Global Error Banner */}
           {errorMsg && (
             <div
-              className="mb-5 p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between border shadow-sm"
+              className="mb-3 p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between border shadow-sm flex-shrink-0"
               style={{ backgroundColor: "#FEF2F2", borderColor: "#FCA5A5", color: "#B91C1C" }}
             >
               <div className="flex items-center gap-2">
@@ -12244,9 +12370,9 @@ export function AdminDashboardPage() {
           {/* TAB: COMMUNICATIONS (STAFF MESSAGING & CASEWORK INBOX)                     */}
           {/* ========================================================================= */}
           {activeTab === "comms" && (
-            <div className="space-y-4">
+            <div className="flex-1 flex flex-col min-h-0 h-full gap-3 overflow-hidden">
               {/* Header Strip */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200 shadow-sm flex-shrink-0">
                 <div>
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-[#FCE8F3] text-magenta flex items-center justify-center font-bold">
@@ -12269,7 +12395,7 @@ export function AdminDashboardPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     type="button"
                     onClick={loadCommunicationsData}
@@ -12283,14 +12409,14 @@ export function AdminDashboardPage() {
               </div>
 
               {/* 3-Panel Messaging Hub Container */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col lg:flex-row h-[740px]">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col lg:flex-row flex-1 min-h-0 w-full">
                 
                 {/* ----------------------------------------------------------------- */}
                 {/* PANEL A: LEFT CONVERSATION LIST (320px - 360px)                   */}
                 {/* ----------------------------------------------------------------- */}
-                <div className="w-full lg:w-84 xl:w-96 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white flex-shrink-0">
+                <div className="w-full lg:w-84 xl:w-96 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white flex-shrink-0 h-64 sm:h-72 lg:h-full min-h-0">
                   {/* Search & Filter Bar */}
-                  <div className="p-3.5 border-b border-slate-100 space-y-2.5 bg-slate-50/50">
+                  <div className="p-3.5 border-b border-slate-100 space-y-2.5 bg-slate-50/50 flex-shrink-0">
                     <div className="relative">
                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
@@ -12368,7 +12494,7 @@ export function AdminDashboardPage() {
                   </div>
 
                   {/* Thread Roster */}
-                  <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                  <div className="flex-1 overflow-y-auto divide-y divide-slate-100 min-h-0 admin-chat-scroll">
                     {commsLoading ? (
                       <div className="p-8 text-center text-slate-400">
                         <RefreshCw size={24} className="animate-spin text-magenta mx-auto mb-2" />
@@ -12475,7 +12601,7 @@ export function AdminDashboardPage() {
                 {/* ----------------------------------------------------------------- */}
                 {/* PANEL B: MIDDLE CHAT STREAM & INPUT                               */}
                 {/* ----------------------------------------------------------------- */}
-                <div className="flex-1 flex flex-col min-w-0 bg-[#FAF9FB]">
+                <div className="flex-1 flex flex-col min-w-0 bg-[#FAF9FB] h-full min-h-0">
                   {activeCommsThread ? (
                     <>
                       {/* Thread Top Bar */}
@@ -12526,7 +12652,11 @@ export function AdminDashboardPage() {
                       </div>
 
                       {/* Messages Stream Viewport */}
-                      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      <div
+                        ref={commsMessagesContainerRef}
+                        onScroll={handleCommsMessagesScroll}
+                        className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 admin-chat-scroll"
+                      >
                         {/* Security & GDPR Badge */}
                         <div className="text-center my-1">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
@@ -12854,7 +12984,7 @@ export function AdminDashboardPage() {
                 {/* PANEL C: RIGHT BENEFICIARY INFORMATION DOSSIER                    */}
                 {/* ----------------------------------------------------------------- */}
                 {activeCommsThread && (
-                  <div className="hidden xl:flex flex-col w-80 lg:w-84 border-l border-slate-200 bg-white p-4 overflow-y-auto space-y-4 flex-shrink-0">
+                  <div className="hidden xl:flex flex-col w-80 lg:w-84 border-l border-slate-200 bg-white p-4 overflow-y-auto space-y-4 flex-shrink-0 h-full min-h-0 admin-chat-scroll">
                     {/* Header Title */}
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
@@ -13976,7 +14106,7 @@ export function AdminDashboardPage() {
           )}
 
 
-          {activeTab !== "dashboard" && activeTab !== "donors" && activeTab !== "campaigns" && activeTab !== "donations" && activeTab !== "beneficiaries" && activeTab !== "allocations" && activeTab !== "reports" && activeTab !== "staff" && activeTab !== "newsletter" && activeTab !== "settings" && activeTab !== "profile" && (
+          {activeTab !== "dashboard" && activeTab !== "donors" && activeTab !== "campaigns" && activeTab !== "donations" && activeTab !== "beneficiaries" && activeTab !== "allocations" && activeTab !== "comms" && activeTab !== "reports" && activeTab !== "staff" && activeTab !== "newsletter" && activeTab !== "settings" && activeTab !== "profile" && (
             <div className="p-12 text-center bg-white rounded-3xl border border-gray-200">
               <h2 className="text-xl font-extrabold text-gray-900 capitalize mb-2">
                 {activeTab} Management
