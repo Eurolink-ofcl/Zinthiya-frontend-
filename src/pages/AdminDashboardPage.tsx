@@ -206,11 +206,7 @@ export interface DonationTierConfig {
 }
 
 export const DEFAULT_DONATION_TIERS: DonationTierConfig[] = [
-  { id: "SUPPORTER", name: "Supporter", minAmount: 0, color: "slate", description: "General supporters giving up to £99" },
-  { id: "BRONZE", name: "Bronze Supporter", minAmount: 100, color: "amber", description: "Contributors giving £100 or more" },
-  { id: "SILVER", name: "Silver Patron", minAmount: 250, color: "sky", description: "Supporters giving £250 or more" },
-  { id: "GOLD", name: "Gold Benefactor", minAmount: 500, color: "yellow", description: "Major supporters giving £500 or more" },
-  { id: "PLATINUM", name: "Platinum Guardian", minAmount: 1000, color: "purple", description: "Principal donors giving £1,000 or more" },
+  { id: "SUPPORTER", name: "Supporter", minAmount: 0, color: "slate", description: "General supporters" },
 ];
 
 export function getDonorTierConfig(
@@ -220,12 +216,12 @@ export function getDonorTierConfig(
   const activeTiers = tiers && tiers.length > 0 ? tiers : DEFAULT_DONATION_TIERS;
   const total = Number(donor?.totalDonated || 0);
 
-  // Match by minimum amount (sorted descending)
+  // Match by minimum amount against active database tiers (sorted descending)
   const sorted = [...activeTiers].sort((a, b) => Number(b.minAmount) - Number(a.minAmount));
   const matched = sorted.find((t) => total >= Number(t.minAmount));
   if (matched) return matched;
 
-  // Fallback match by id / name if present
+  // Fallback match by id / name if present in active database tiers
   if (donor?.tierName || donor?.donationTier) {
     const key = (donor.tierName || donor.donationTier || "").toUpperCase();
     const byId = activeTiers.find((t) => t.id.toUpperCase() === key || t.name.toUpperCase() === key);
@@ -245,23 +241,22 @@ function DonorTierBadge({
   tiers?: DonationTierConfig[];
 }) {
   const activeTiers = tiers && tiers.length > 0 ? tiers : DEFAULT_DONATION_TIERS;
-  const cfg = donor
-    ? getDonorTierConfig(donor, activeTiers)
-    : activeTiers.find(
-        (t) => t.id === tier || t.name.toUpperCase() === (tier || "").toUpperCase()
-      ) || {
-        id: tier || "SUPPORTER",
-        name: tier || "Supporter",
-        minAmount: 0,
-        color: "slate",
-      };
+  const sorted = [...activeTiers].sort((a, b) => Number(b.minAmount) - Number(a.minAmount));
 
-  const colorKey = cfg.color || (
-    cfg.id === "PLATINUM" ? "purple" :
-    cfg.id === "GOLD" ? "yellow" :
-    cfg.id === "SILVER" ? "sky" :
-    cfg.id === "BRONZE" ? "amber" : "slate"
-  );
+  let cfg: DonationTierConfig;
+  if (donor) {
+    cfg = getDonorTierConfig(donor, activeTiers);
+  } else {
+    // Only match against tiers that actually exist in the database-configured active tiers
+    const found = activeTiers.find(
+      (t) => t.id.toUpperCase() === (tier || "").toUpperCase() || t.name.toUpperCase() === (tier || "").toUpperCase()
+    );
+    // Never show an unknown tier (such as "Platinum Guardian") that does not exist in the database;
+    // fall back strictly to the configured tier in the database
+    cfg = found || sorted[sorted.length - 1] || DEFAULT_DONATION_TIERS[0];
+  }
+
+  const colorKey = cfg.color || "slate";
 
   return (
     <span
@@ -3385,7 +3380,7 @@ export function AdminDashboardPage() {
   const [newDonorAddress, setNewDonorAddress] = useState("");
   const [newDonorCity, setNewDonorCity] = useState("Leicester");
   const [newDonorPostcode, setNewDonorPostcode] = useState("");
-  const [newDonorTier, setNewDonorTier] = useState<"SUPPORTER" | "BRONZE" | "SILVER" | "GOLD" | "PLATINUM">("SUPPORTER");
+  const [newDonorTier, setNewDonorTier] = useState<string>("SUPPORTER");
   const [newDonorNewsletter, setNewDonorNewsletter] = useState(true);
   const [newDonorConsent, setNewDonorConsent] = useState(true);
   const [newDonorSms, setNewDonorSms] = useState(false);
@@ -3408,7 +3403,7 @@ export function AdminDashboardPage() {
   const [editDonorAddress, setEditDonorAddress] = useState("");
   const [editDonorCity, setEditDonorCity] = useState("");
   const [editDonorPostcode, setEditDonorPostcode] = useState("");
-  const [editDonorTier, setEditDonorTier] = useState<"SUPPORTER" | "BRONZE" | "SILVER" | "GOLD" | "PLATINUM">("SUPPORTER");
+  const [editDonorTier, setEditDonorTier] = useState<string>("SUPPORTER");
   const [editDonorNewsletter, setEditDonorNewsletter] = useState(true);
   const [editDonorConsent, setEditDonorConsent] = useState(true);
   const [editDonorSms, setEditDonorSms] = useState(false);
@@ -9859,7 +9854,7 @@ export function AdminDashboardPage() {
                           const donorName = dn.user?.fullName || dn.donorName || "Anonymous Supporter";
                           const donorEmail = dn.user?.email || dn.donorEmail || "";
                           const initial = donorName.charAt(0).toUpperCase() || "D";
-                          const tier = dn.user?.donationTier || "SUPPORTER";
+                          const tier = dn.user?.tierName || dn.user?.donationTier || "SUPPORTER";
                           const amt = Number(dn.amount || 0);
 
                           return (
@@ -9894,7 +9889,11 @@ export function AdminDashboardPage() {
                                       {donorEmail || "Offline Donor"}
                                     </div>
                                     <div className="mt-1">
-                                      <DonorTierBadge tier={tier} />
+                                      <DonorTierBadge
+                                        tier={tier}
+                                        donor={dn.user ? { ...dn.user, totalDonated: dn.user.totalDonated ?? dn.amount } : undefined}
+                                        tiers={settingDonationTiers}
+                                      />
                                     </div>
                                   </div>
                                 </div>
@@ -14157,7 +14156,11 @@ export function AdminDashboardPage() {
                   <h2 className="text-xl font-extrabold text-gray-900">
                     {viewingDonor.fullName}
                   </h2>
-                  <DonorTierBadge tier={viewingDonor.donationTier || "SUPPORTER"} />
+                  <DonorTierBadge
+                    tier={viewingDonor.tierName || viewingDonor.donationTier || "SUPPORTER"}
+                    donor={viewingDonor}
+                    tiers={settingDonationTiers}
+                  />
                 </div>
                 <div className="text-xs text-gray-500 font-mono mt-0.5">
                   {viewingDonor.email}
@@ -14777,14 +14780,14 @@ export function AdminDashboardPage() {
                   <label className="block font-bold text-gray-700 mb-1">Initial Giving Tier</label>
                   <select
                     value={newDonorTier}
-                    onChange={(e) => setNewDonorTier(e.target.value as any)}
+                    onChange={(e) => setNewDonorTier(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 outline-none focus:border-magenta font-bold"
                   >
-                    <option value="SUPPORTER">Supporter (&lt;£100)</option>
-                    <option value="BRONZE">Bronze (£100+)</option>
-                    <option value="SILVER">Silver (£250+)</option>
-                    <option value="GOLD">Gold (£500+)</option>
-                    <option value="PLATINUM">Platinum (£1,000+)</option>
+                    {settingDonationTiers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} (£{t.minAmount}+)
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -14996,14 +14999,14 @@ export function AdminDashboardPage() {
                   <label className="block font-bold text-gray-700 mb-1">Assigned Giving Tier</label>
                   <select
                     value={editDonorTier}
-                    onChange={(e) => setEditDonorTier(e.target.value as any)}
+                    onChange={(e) => setEditDonorTier(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 outline-none focus:border-magenta font-extrabold"
                   >
-                    <option value="SUPPORTER">Supporter (&lt;£100)</option>
-                    <option value="BRONZE">Bronze (£100+)</option>
-                    <option value="SILVER">Silver (£250+)</option>
-                    <option value="GOLD">Gold (£500+)</option>
-                    <option value="PLATINUM">Platinum (£1,000+)</option>
+                    {settingDonationTiers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} (£{t.minAmount}+)
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -15134,7 +15137,11 @@ export function AdminDashboardPage() {
 
                 <div className="text-right">
                   <div className="text-[10px] text-gray-400 font-extrabold uppercase">Current Tier</div>
-                  <DonorTierBadge tier={recordingDonationDonor.donationTier || "SUPPORTER"} />
+                  <DonorTierBadge
+                    tier={recordingDonationDonor.tierName || recordingDonationDonor.donationTier || "SUPPORTER"}
+                    donor={recordingDonationDonor}
+                    tiers={settingDonationTiers}
+                  />
                 </div>
               </div>
 

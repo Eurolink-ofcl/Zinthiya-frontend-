@@ -102,6 +102,9 @@ export interface DonationRecord {
     postcode?: string;
     country?: string;
     donationTier?: string;
+    totalDonated?: number | string;
+    tierName?: string;
+    tierColor?: string;
   } | null;
 }
 
@@ -404,7 +407,9 @@ export interface CrmDonor {
   smsAlerts: boolean;
   postalUpdates: boolean;
   totalDonated: number;
-  donationTier: "SUPPORTER" | "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
+  donationTier: string;
+  tierName?: string;
+  tierColor?: string;
   lastDonationDate: string | null;
   createdAt: string;
   updatedAt: string;
