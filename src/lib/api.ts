@@ -115,7 +115,7 @@ export interface CampaignRecord {
   raisedAmount: number | string;
   imageUrl?: string | null;
   campaignUrl?: string | null;
-  status?: "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+  status?: "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED" | "PAUSED" | string;
   active: boolean;
   startDate?: string | null;
   endDate?: string | null;
