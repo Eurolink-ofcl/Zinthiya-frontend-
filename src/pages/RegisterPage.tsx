@@ -744,7 +744,7 @@ export function RegisterPage() {
                       Address
                     </label>
                     <span className="text-[11px] font-medium" style={{ color: "#8E7287" }}>
-                      Optional (for Gift Aid / Receipts)
+                      Optional (for Receipts)
                     </span>
                   </div>
                   <div style={{ position: "relative", width: "100%", display: "flex", alignItems: "center" }}>

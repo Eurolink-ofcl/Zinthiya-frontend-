@@ -174,7 +174,7 @@ export function DonorDashboardPage() {
   const [donateAmount, setDonateAmount] = useState<number>(25);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [donateType, setDonateType] = useState<"ONE_OFF" | "RECURRING">("ONE_OFF");
-  const [giftAid, setGiftAid] = useState(true);
+  const [giftAid, setGiftAid] = useState(false);
   const [submittingDonation, setSubmittingDonation] = useState(false);
   const [donationSuccessMsg, setDonationSuccessMsg] = useState("");
 
@@ -184,7 +184,7 @@ export function DonorDashboardPage() {
   const [pageCustomAmount, setPageCustomAmount] = useState<string>("");
   const [pageDonateType, setPageDonateType] = useState<"ONE_OFF" | "RECURRING">("ONE_OFF");
   const [pageRecurringFrequency, setPageRecurringFrequency] = useState<"MONTHLY" | "QUARTERLY" | "ANNUALLY">("MONTHLY");
-  const [pageGiftAid, setPageGiftAid] = useState<boolean>(true);
+  const [pageGiftAid, setPageGiftAid] = useState<boolean>(false);
   const [showSwitchCampaign, setShowSwitchCampaign] = useState<boolean>(false);
 
   // Donor Confirmation Details
@@ -339,7 +339,7 @@ export function DonorDashboardPage() {
       await api.makeDonation({
         amount: finalAmount,
         type: donateType,
-        giftAid,
+        giftAid: false,
         campaignId: selectedCampaignId || undefined,
         paymentMethod: "Credit/Debit Card",
       });
@@ -390,7 +390,7 @@ export function DonorDashboardPage() {
         amount: finalAmount,
         type: pageDonateType,
         frequency: pageDonateType === "RECURRING" ? pageRecurringFrequency : undefined,
-        giftAid: pageGiftAid,
+        giftAid: false,
         campaignId: targetCampId || undefined,
         paymentMethod:
           paymentMethod === "CARD"
@@ -431,7 +431,7 @@ export function DonorDashboardPage() {
         amount: finalAmount,
         type: pageDonateType,
         frequency: pageDonateType === "RECURRING" ? pageRecurringFrequency : undefined,
-        giftAid: pageGiftAid,
+        giftAid: false,
         campaignTitle: selectedCamp?.title || "shelter",
         campaignDescription: selectedCamp?.description || "shelter for homeless people",
         donorName: donorNameConfirm || donor?.fullName || "Valued Supporter",
@@ -552,8 +552,6 @@ export function DonorDashboardPage() {
 
   // Calculate live amount for the Make a Donation Page
   const currentDonationAmount = pageCustomAmount ? parseFloat(pageCustomAmount) || 0 : pageDonateAmount;
-  const currentGiftAidAmount = pageGiftAid ? currentDonationAmount * 0.25 : 0;
-  const currentTotalCharityValue = currentDonationAmount + currentGiftAidAmount;
 
   return (
     <div
@@ -1437,7 +1435,6 @@ export function DonorDashboardPage() {
                               <th style={{ padding: "12px 14px" }}>Reference</th>
                               <th style={{ padding: "12px 14px" }}>Cause / Campaign</th>
                               <th style={{ padding: "12px 14px" }}>Type</th>
-                              <th style={{ padding: "12px 14px" }}>Gift Aid</th>
                               <th style={{ padding: "12px 14px", textAlign: "right" }}>Amount</th>
                               <th style={{ padding: "12px 14px", textAlign: "center" }}>Status</th>
                               <th style={{ padding: "12px 14px", textAlign: "right" }}>Receipt</th>
@@ -1457,13 +1454,6 @@ export function DonorDashboardPage() {
                                 </td>
                                 <td style={{ padding: "14px", color: "#5C475A" }}>
                                   {d.type === "RECURRING" ? "Monthly" : "One-off"}
-                                </td>
-                                <td style={{ padding: "14px" }}>
-                                  {d.giftAid ? (
-                                    <span style={{ color: "#059669", fontWeight: 700, fontSize: "11px" }}>✓ 25% Tax Reclaim</span>
-                                  ) : (
-                                    <span style={{ color: "#8E7287", fontSize: "11px" }}>No</span>
-                                  )}
                                 </td>
                                 <td style={{ padding: "14px", textAlign: "right", fontWeight: 800, color: "#241221", fontSize: "14px" }}>
                                   £{Number(d.amount).toFixed(2)}
@@ -1958,10 +1948,10 @@ export function DonorDashboardPage() {
 
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <span style={{ fontSize: "12px", fontWeight: 700, color: "#8E7287" }}>
-                            UK Gift Aid (+25%)
+                            Payment Method
                           </span>
-                          <span style={{ fontSize: "12px", fontWeight: 700, color: paymentReceipt.giftAid ? "#059669" : "#8E7287" }}>
-                            {paymentReceipt.giftAid ? "✓ Reclaimed (+25% HMRC Relief)" : "Not Claimed"}
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#241221" }}>
+                            {paymentReceipt.paymentMethod}
                           </span>
                         </div>
                       </div>
@@ -1977,7 +1967,7 @@ export function DonorDashboardPage() {
                               currency: "GBP",
                               status: "COMPLETED",
                               type: paymentReceipt.type,
-                              giftAid: paymentReceipt.giftAid,
+                              giftAid: false,
                               paymentMethod: paymentReceipt.paymentMethod,
                               reference: paymentReceipt.reference,
                               createdAt: new Date().toISOString(),
@@ -2630,7 +2620,7 @@ export function DonorDashboardPage() {
 
                           <div>
                             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#241221", marginBottom: "6px" }}>
-                              Home Address (for Gift Aid)
+                              Home Address
                             </label>
                             <input
                               type="text"
@@ -2667,35 +2657,6 @@ export function DonorDashboardPage() {
                             />
                           </div>
                         </div>
-
-                        {/* UK Gift Aid (+25%) Declaration Box */}
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "12px",
-                            padding: "16px",
-                            borderRadius: "16px",
-                            cursor: "pointer",
-                            border: pageGiftAid ? "1.5px solid #10B981" : "1px solid rgba(36, 18, 33, 0.15)",
-                            backgroundColor: pageGiftAid ? "#ECFDF5" : "#ffffff"
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={pageGiftAid}
-                            onChange={(e) => setPageGiftAid(e.target.checked)}
-                            style={{ accentColor: "#059669", width: "18px", height: "18px", marginTop: "2px" }}
-                          />
-                          <div>
-                            <div style={{ fontSize: "13px", fontWeight: 800, color: "#065F46" }}>
-                              Boost your gift by 25p for every £1 with UK Gift Aid (+25%)
-                            </div>
-                            <p style={{ fontSize: "12px", color: "#047857", margin: "4px 0 0 0", lineHeight: "1.5" }}>
-                              I am a UK taxpayer. Please reclaim Gift Aid on my donation. This increases your £{currentDonationAmount.toFixed(2)} contribution to <strong>£{currentTotalCharityValue.toFixed(2)}</strong> for The Zinthiya Trust at zero extra cost to you.
-                            </p>
-                          </div>
-                        </label>
                       </div>
 
                       {/* SECTION E: PAYMENT SUMMARY & SECURE GATEWAY */}
@@ -2753,12 +2714,6 @@ export function DonorDashboardPage() {
                                 {pageDonateType === "RECURRING" ? `Recurring (${pageRecurringFrequency})` : "One-time"}
                               </span>
                             </div>
-                            {pageGiftAid && (
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", borderBottom: "1px solid rgba(36, 18, 33, 0.08)", paddingBottom: "8px", color: "#059669" }}>
-                                <span>Gift Aid Relief (+25% HMRC)</span>
-                                <span style={{ fontWeight: 800 }}>+£{(currentDonationAmount * 0.25).toFixed(2)} (Charity receives £{(currentDonationAmount * 1.25).toFixed(2)})</span>
-                              </div>
-                            )}
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "15px", paddingTop: "4px" }}>
                               <span style={{ fontWeight: 800, color: "#241221" }}>Total payable</span>
                               <span style={{ fontWeight: 800, color: "#E6127E", fontSize: "22px" }}>£{currentDonationAmount.toFixed(2)}</span>
@@ -2920,7 +2875,7 @@ export function DonorDashboardPage() {
                           Full Donation History
                         </h2>
                         <p style={{ fontSize: "13px", color: "#5C475A", marginTop: "4px" }}>
-                          Permanent HMRC-compliant record of your donations, tax relief claims, and project allocations.
+                          Permanent verified record of your donations and project allocations.
                         </p>
                       </div>
 
@@ -2948,16 +2903,13 @@ export function DonorDashboardPage() {
 
                     {/* Summary Counters */}
                     {(() => {
-                      const totalGiftAidReclaimed = donations
-                        .filter((d) => d.giftAid)
-                        .reduce((acc, d) => acc + (Number(d.amount) * 0.25), 0);
                       const recurringCount = donations.filter((d) => d.type === "RECURRING").length;
 
                       return (
                         <div
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                             gap: "16px",
                             marginBottom: "24px",
                             padding: "20px",
@@ -2987,18 +2939,6 @@ export function DonorDashboardPage() {
                             </div>
                             <div style={{ fontSize: "11px", color: "#5C475A", marginTop: "4px" }}>
                               {recurringCount > 0 ? `${recurringCount} monthly recurring` : "All single gifts"}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: "11px", fontWeight: 700, color: "#8E7287", textTransform: "uppercase" }}>
-                              HMRC Gift Aid Boost (+25%)
-                            </div>
-                            <div style={{ fontSize: "24px", fontWeight: 800, color: "#059669", marginTop: "2px" }}>
-                              £{totalGiftAidReclaimed.toFixed(2)}
-                            </div>
-                            <div style={{ fontSize: "11px", color: "#059669", fontWeight: 600, marginTop: "4px" }}>
-                              Claimed for community relief
                             </div>
                           </div>
 
@@ -3209,7 +3149,6 @@ export function DonorDashboardPage() {
                               <th style={{ padding: "12px 14px" }}>Receipt Reference</th>
                               <th style={{ padding: "12px 14px" }}>Campaign Supported</th>
                               <th style={{ padding: "12px 14px" }}>Type</th>
-                              <th style={{ padding: "12px 14px" }}>HMRC Gift Aid</th>
                               <th style={{ padding: "12px 14px", textAlign: "right" }}>Amount</th>
                               <th style={{ padding: "12px 14px", textAlign: "center" }}>Payment Status</th>
                               <th style={{ padding: "12px 14px", textAlign: "right" }}>Receipt &amp; Action</th>
@@ -3277,28 +3216,6 @@ export function DonorDashboardPage() {
                                   >
                                     {d.type === "RECURRING" ? "Monthly Recurring" : "One-Time"}
                                   </span>
-                                </td>
-                                <td style={{ padding: "14px" }}>
-                                  {d.giftAid ? (
-                                    <span
-                                      style={{
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "3px",
-                                        color: "#059669",
-                                        fontWeight: 700,
-                                        fontSize: "11px",
-                                        backgroundColor: "#ECFDF5",
-                                        padding: "3px 8px",
-                                        borderRadius: "6px"
-                                      }}
-                                    >
-                                      <Check size={12} style={{ width: "12px", height: "12px" }} />
-                                      <span>+25% Reclaimed</span>
-                                    </span>
-                                  ) : (
-                                    <span style={{ color: "#8E7287", fontSize: "12px" }}>No</span>
-                                  )}
                                 </td>
                                 <td style={{ padding: "14px", textAlign: "right" }}>
                                   <div style={{ fontWeight: 800, color: "#241221", fontSize: "15px" }}>
@@ -4209,13 +4126,6 @@ export function DonorDashboardPage() {
                   </select>
                 </div>
 
-                <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "12px", borderRadius: "12px", cursor: "pointer", border: giftAid ? "1px solid #A7F3D0" : "1px solid rgba(36, 18, 33, 0.15)", backgroundColor: giftAid ? "#ECFDF5" : "#ffffff" }}>
-                  <input type="checkbox" checked={giftAid} onChange={(e) => setGiftAid(e.target.checked)} style={{ accentColor: "#059669", width: "16px", height: "16px", marginTop: "2px" }} />
-                  <span style={{ fontSize: "11px", color: "#065F46", lineHeight: "1.4" }}>
-                    <strong>Add Gift Aid (+25%)</strong>: I am a UK taxpayer. Boost my donation by 25p for every £1 at no extra cost.
-                  </span>
-                </label>
-
                 <button
                   type="submit"
                   disabled={submittingDonation}
@@ -4413,33 +4323,19 @@ export function DonorDashboardPage() {
                     </td>
                   </tr>
 
-                  {viewReceiptDonation.giftAid && (
-                    <tr style={{ borderBottom: "1px solid rgba(36, 18, 33, 0.06)", backgroundColor: "#ECFDF5" }}>
-                      <td style={{ padding: "10px 14px", color: "#065F46" }}>
-                        <div style={{ fontWeight: 800 }}>UK HMRC Gift Aid Tax Relief (+25%)</div>
-                        <div style={{ fontSize: "11px", color: "#047857" }}>
-                          Reclaimed under Chapter 2, Part 8, Income Tax Act 2007 at zero cost to donor
-                        </div>
-                      </td>
-                      <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: "#059669", fontSize: "13px" }}>
-                        +£{(Number(viewReceiptDonation.amount) * 0.25).toFixed(2)}
-                      </td>
-                    </tr>
-                  )}
-
                   <tr style={{ backgroundColor: "#FDF0F4" }}>
                     <td style={{ padding: "12px 14px", fontWeight: 800, color: "#241221" }}>
                       Total Charitable Value to The Zinthiya Trust
                     </td>
                     <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 800, color: "#E6127E", fontSize: "16px" }}>
-                      £{(Number(viewReceiptDonation.amount) * (viewReceiptDonation.giftAid ? 1.25 : 1.0)).toFixed(2)}
+                      £{Number(viewReceiptDonation.amount).toFixed(2)}
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            {/* HMRC & Charity Disclaimer Note */}
+            {/* Official Charity Disclaimer Note */}
             <div
               style={{
                 padding: "12px 14px",

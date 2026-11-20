@@ -316,7 +316,7 @@ export const PERMISSION_MODULES = [
     id: "donations",
     icon: CreditCard,
     items: [
-      { key: "donations:read", label: "View Transactions & Gift Aid", desc: "Review giving ledger, tax reclaim eligibility & payment status" },
+      { key: "donations:read", label: "View Transactions", desc: "Review giving ledger and payment status" },
       { key: "donations:write", label: "Record Offline Donations", desc: "Enter manual bank transfers, cash gifts & generate official receipts" },
     ],
   },
@@ -917,7 +917,6 @@ export function AdminDashboardPage() {
       "Giving Type",
       "Payment Method",
       "Payment Status",
-      "Gift Aid Declared",
       "Notes"
     ];
 
@@ -943,7 +942,6 @@ export function AdminDashboardPage() {
         `"${dn.type}"`,
         `"${dn.paymentMethod || 'Card'}"`,
         `"${dn.status}"`,
-        dn.giftAid ? "Yes" : "No",
         `"${notes.replace(/"/g, '""')}"`
       ].join(",");
     });
@@ -2480,7 +2478,6 @@ export function AdminDashboardPage() {
         "Campaign Type",
         "Giving Type",
         "Amount (£)",
-        "Gift Aid Claim (£)",
         "Payment Channel"
       ];
       const rows = (reportsData?.donations || []).map((d: any) => [
@@ -2494,7 +2491,6 @@ export function AdminDashboardPage() {
         d.campaignType,
         d.type === "RECURRING" ? "Monthly Recurring" : "One-Off",
         d.amount,
-        d.giftAidAmount,
         d.paymentMethod
       ]);
       return {
@@ -4811,14 +4807,8 @@ export function AdminDashboardPage() {
         donationMethodFilter === "ALL"
           ? true
           : (dn.paymentMethod || "").toLowerCase().includes(donationMethodFilter.toLowerCase());
-      const matchGiftAid =
-        donationGiftAidFilter === "ALL"
-          ? true
-          : donationGiftAidFilter === "YES"
-          ? dn.giftAid === true
-          : dn.giftAid === false;
 
-      return matchSearch && matchType && matchStatus && matchMethod && matchGiftAid;
+      return matchSearch && matchType && matchStatus && matchMethod;
     })
     .sort((a, b) => {
       if (donationSortBy === "DATE_DESC") {
@@ -4842,9 +4832,6 @@ export function AdminDashboardPage() {
   const completedDonationsCount = donationsList.filter((dn) => dn.status === "COMPLETED").length;
   const oneOffCount = donationsList.filter((dn) => dn.type === "ONE_OFF").length;
   const recurringCount = donationsList.filter((dn) => dn.type === "RECURRING").length;
-  const giftAidClaimableAmount = donationsList
-    .filter((dn) => dn.status === "COMPLETED" && dn.giftAid)
-    .reduce((sum, dn) => sum + Number(dn.amount || 0) * 0.25, 0);
 
   const totalActiveCampaigns = campaigns.filter((c) => (c.active || c.status === "ACTIVE") && c.status !== "COMPLETED").length;
   const internalCampaignsCount = campaigns.filter((c) => (c.campaignType || "INTERNAL") === "INTERNAL" && !c.archived && c.status !== "ARCHIVED").length;
@@ -6279,19 +6266,6 @@ export function AdminDashboardPage() {
                             £{Number(sections?.donationTrends?.recurringTotal || 0).toFixed(2)}
                           </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
-                      <div className="text-[10px] font-bold text-emerald-800 uppercase flex items-center gap-1 tracking-wider">
-                        <Check size={12} className="text-emerald-600" />
-                        <span>HMRC Gift Aid Reclaim (+25%)</span>
-                      </div>
-                      <div className="text-xl font-black text-emerald-800 mt-1">
-                        £{Number(sections?.donationTrends?.giftAidTaxReclaimed || 0).toFixed(2)}
-                      </div>
-                      <div className="text-[10px] text-emerald-700/80 mt-1">
-                        Claimed under s.414 ITA 2007 for Leicestershire community services.
                       </div>
                     </div>
 
@@ -9592,7 +9566,7 @@ export function AdminDashboardPage() {
               </div>
 
               {/* KPI Performance Cards */}
-              <div className="admin-kpi-grid" style={{ marginBottom: "1.75rem" }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" style={{ marginBottom: "1.75rem" }}>
                 <div className="admin-card p-4">
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                     Total Funds Received
@@ -9626,18 +9600,6 @@ export function AdminDashboardPage() {
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
                     One-time &amp; recurring donors
-                  </div>
-                </div>
-
-                <div className="admin-card p-4">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    HMRC Gift Aid Boost
-                  </div>
-                  <div className="text-2xl font-black text-emerald-600 mt-1">
-                    £{giftAidClaimableAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[11px] text-emerald-700 font-semibold mt-0.5">
-                    +25% eligible tax reclaim value
                   </div>
                 </div>
               </div>
@@ -9706,17 +9668,6 @@ export function AdminDashboardPage() {
                     <option value="In-Person">In-Person POS</option>
                   </select>
 
-                  {/* Gift Aid Filter */}
-                  <select
-                    value={donationGiftAidFilter}
-                    onChange={(e) => setDonationGiftAidFilter(e.target.value)}
-                    className="admin-select"
-                  >
-                    <option value="ALL">All Gift Aid</option>
-                    <option value="YES">Gift Aid Declared (+25%)</option>
-                    <option value="NO">No Gift Aid</option>
-                  </select>
-
                   {/* Sort Dropdown */}
                   <select
                     value={donationSortBy}
@@ -9729,7 +9680,7 @@ export function AdminDashboardPage() {
                     <option value="AMOUNT_ASC">Lowest Amount (£ Low-High)</option>
                   </select>
 
-                  {(donationSearch || donationStatusFilter !== "ALL" || donationTypeFilter !== "ALL" || donationMethodFilter !== "ALL" || donationGiftAidFilter !== "ALL" || donationSortBy !== "DATE_DESC") && (
+                  {(donationSearch || donationStatusFilter !== "ALL" || donationTypeFilter !== "ALL" || donationMethodFilter !== "ALL" || donationSortBy !== "DATE_DESC") && (
                     <button
                       type="button"
                       onClick={() => {
@@ -9737,7 +9688,6 @@ export function AdminDashboardPage() {
                         setDonationStatusFilter("ALL");
                         setDonationTypeFilter("ALL");
                         setDonationMethodFilter("ALL");
-                        setDonationGiftAidFilter("ALL");
                         setDonationSortBy("DATE_DESC");
                       }}
                       className="px-2.5 py-2 text-xs font-bold text-magenta hover:underline cursor-pointer"
@@ -9775,7 +9725,6 @@ export function AdminDashboardPage() {
                           <th>Giving Type</th>
                           <th>Method</th>
                           <th>Payment Status</th>
-                          <th className="text-center">Gift Aid</th>
                           <th className="text-right">Actions</th>
                         </tr>
                       </thead>
@@ -9903,18 +9852,6 @@ export function AdminDashboardPage() {
                                   ) : (
                                     <span className="admin-badge-refunded">● Refunded</span>
                                   )
-                                )}
-                              </td>
-
-                              {/* Gift Aid */}
-                              <td className="py-3.5 px-4 text-center">
-                                {dn.giftAid ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200" title="+25% Gift Aid claimed from HMRC">
-                                    <Check size={11} />
-                                    <span>+25%</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400 text-[11px]">—</span>
                                 )}
                               </td>
 
@@ -10154,7 +10091,7 @@ export function AdminDashboardPage() {
                     <div>
                       <h3 className="text-base font-extrabold text-slate-900">Donation Reports</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        Total donations, online vs external, one-off vs recurring &amp; Gift Aid
+                        Total donations, online vs external, one-off vs recurring gifts
                       </p>
                     </div>
                     <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
@@ -10436,7 +10373,7 @@ export function AdminDashboardPage() {
                 {reportsActiveSubTab === "donations" && (
                   <div className="space-y-6">
                     {/* Donation KPI Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -10494,26 +10431,6 @@ export function AdminDashboardPage() {
                         </div>
                         <div className="text-[11px] text-purple-600 font-semibold mt-1">
                           External appeals &amp; partner drives
-                        </div>
-                      </div>
-
-                      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                            Gift Aid Claimable (+25%)
-                          </span>
-                          <div className="w-8 h-8 rounded-xl bg-pink-50 text-magenta flex items-center justify-center">
-                            <Award size={16} />
-                          </div>
-                        </div>
-                        <div className="text-2xl font-black text-slate-900 tracking-tight">
-                          £{(reportsData?.summary?.giftAidTotal || 0).toLocaleString("en-GB", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </div>
-                        <div className="text-[11px] text-magenta font-semibold mt-1">
-                          HMRC UK tax reclaim eligible
                         </div>
                       </div>
                     </div>
@@ -10661,7 +10578,6 @@ export function AdminDashboardPage() {
                               <th className="py-3 px-4">Campaign Allocation</th>
                               <th className="py-3 px-4">Giving Type</th>
                               <th className="py-3 px-4">Amount</th>
-                              <th className="py-3 px-4">Gift Aid (+25%)</th>
                               <th className="py-3 px-4 text-right">Payment Channel</th>
                             </tr>
                           </thead>
@@ -10716,15 +10632,6 @@ export function AdminDashboardPage() {
                                   <td className="py-3.5 px-4 font-black text-slate-900">
                                     £{Number(d.amount).toFixed(2)}
                                   </td>
-                                  <td className="py-3.5 px-4">
-                                    {d.giftAid ? (
-                                      <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                                        +£{Number(d.giftAidAmount).toFixed(2)}
-                                      </span>
-                                    ) : (
-                                      <span className="text-gray-400 text-[11px]">—</span>
-                                    )}
-                                  </td>
                                   <td className="py-3.5 px-4 text-right">
                                     <span className="text-[11px] font-semibold text-slate-600 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg">
                                       {d.paymentMethod}
@@ -10734,7 +10641,7 @@ export function AdminDashboardPage() {
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={8} className="py-12 text-center text-xs text-gray-400">
+                                <td colSpan={7} className="py-12 text-center text-xs text-gray-400">
                                   No donation records match the selected date range or search filter.
                                 </td>
                               </tr>
@@ -10748,9 +10655,6 @@ export function AdminDashboardPage() {
                                 </td>
                                 <td className="py-3 px-4 text-emerald-600 font-black">
                                   £{totalFilteredDonationsAmount.toFixed(2)}
-                                </td>
-                                <td className="py-3 px-4 text-emerald-700 font-black">
-                                  +£{totalFilteredGiftAid.toFixed(2)}
                                 </td>
                                 <td className="py-3 px-4 text-right text-gray-400 text-[10px]">
                                   Verified Audit
@@ -12045,7 +11949,7 @@ export function AdminDashboardPage() {
                       </div>
                       <h4 className="text-sm font-extrabold text-slate-900">Grants &amp; Financial Accounting</h4>
                       <p className="text-xs text-gray-500 leading-relaxed">
-                        Recording offline gifts (cash, bank transfer), assistance fund allocations, voucher redemption tracking, and Gift Aid tax reconciliations.
+                        Recording offline gifts (cash, bank transfer), assistance fund allocations, voucher redemption tracking, and financial audit reconciliations.
                       </p>
                       <div className="pt-2 border-t border-gray-100 text-[11px] text-gray-600 space-y-1">
                         <div className="font-bold text-slate-800">Assigned Team Members:</div>
@@ -12114,7 +12018,7 @@ export function AdminDashboardPage() {
                         <ul className="text-[11px] text-gray-600 space-y-1">
                           <li>• <code className="text-[10px] bg-white px-1 py-0.5 rounded">donations:read</code> - Audit ledger entries</li>
                           <li>• <code className="text-[10px] bg-white px-1 py-0.5 rounded">donations:write</code> - Record cash / BACS gifts</li>
-                          <li>• <code className="text-[10px] bg-white px-1 py-0.5 rounded">donations:manage</code> - Status &amp; Gift Aid oversight</li>
+                          <li>• <code className="text-[10px] bg-white px-1 py-0.5 rounded">donations:manage</code> - Status &amp; transaction oversight</li>
                         </ul>
                       </div>
 
@@ -13475,7 +13379,7 @@ export function AdminDashboardPage() {
                     <span>System & Charity Settings</span>
                   </h1>
                   <p className="text-xs text-slate-500 mt-1">
-                    Charity Commission registration details, Gift Aid reclaim parameters, automated notification hooks, and security policies.
+                    Charity Commission registration details, automated notification hooks, and security policies.
                   </p>
                 </div>
 
@@ -13570,20 +13474,6 @@ export function AdminDashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">HMRC Gift Aid Rate (%)</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          value={settingGiftAidRate}
-                          onChange={(e) => setSettingGiftAidRate(Number(e.target.value))}
-                          className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl font-bold text-slate-900 text-xs focus:ring-2 focus:ring-magenta/20 focus:border-magenta shadow-sm transition-all pr-8"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 mt-1">HMRC reclaims 25p per £1 on eligible UK donations.</p>
-                    </div>
-
-                    <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Primary Official Contact Email</label>
                       <input
                         type="email"
@@ -13610,7 +13500,7 @@ export function AdminDashboardPage() {
                   {canManageSettings ? (
                     <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <p className="text-[11px] text-slate-500">
-                        Updates the official statutory records across all receipts, invoices, Gift Aid declarations, and public reports.
+                        Updates the official statutory records across all receipts, invoices, and public reports.
                       </p>
                       <button
                         type="submit"
@@ -14236,7 +14126,6 @@ export function AdminDashboardPage() {
                         <th className="py-2.5 px-3">Reference</th>
                         <th className="py-2.5 px-3">Campaign</th>
                         <th className="py-2.5 px-3">Type</th>
-                        <th className="py-2.5 px-3">Gift Aid</th>
                         <th className="py-2.5 px-3 text-right">Amount</th>
                         <th className="py-2.5 px-3 text-center">Status</th>
                       </tr>
@@ -14257,13 +14146,6 @@ export function AdminDashboardPage() {
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-50 text-magenta">
                               {dn.type === "RECURRING" ? "Monthly" : "One-off"}
                             </span>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            {dn.giftAid ? (
-                              <span className="text-emerald-600 font-bold text-[10px]">✓ +25% Claimed</span>
-                            ) : (
-                              <span className="text-gray-400 text-[10px]">No</span>
-                            )}
                           </td>
                           <td className="py-2.5 px-3 text-right font-black text-gray-900">
                             £{Number(dn.amount).toFixed(2)}
@@ -15215,19 +15097,6 @@ export function AdminDashboardPage() {
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 outline-none focus:border-magenta font-mono text-xs"
                 />
               </div>
-
-              {/* Gift Aid */}
-              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={recordGiftAid}
-                  onChange={(e) => setRecordGiftAid(e.target.checked)}
-                  className="accent-emerald-600 w-4 h-4 mt-0.5"
-                />
-                <span className="text-[11px] text-emerald-800 leading-tight">
-                  <strong>UK Gift Aid Claim (+25%)</strong>: Donor confirmed they are a UK taxpayer. An extra 25p for every £1 will be reclaimed from HMRC.
-                </span>
-              </label>
 
               <div className="pt-2 flex items-center justify-end gap-3">
                 <button
@@ -16385,7 +16254,6 @@ export function AdminDashboardPage() {
                         <th>Date &amp; Ref</th>
                         <th>Donor</th>
                         <th>Payment Method</th>
-                        <th>Gift Aid</th>
                         <th className="text-right">Amount</th>
                       </tr>
                     </thead>
@@ -16412,15 +16280,6 @@ export function AdminDashboardPage() {
                             <span className="text-slate-600 font-medium">
                               {dn.paymentMethod || "Card"}
                             </span>
-                          </td>
-                          <td>
-                            {dn.giftAid ? (
-                              <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                                ✓ Yes
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 text-[10px]">No</span>
-                            )}
                           </td>
                           <td className="text-right">
                             <span className="font-black text-slate-900">
@@ -17052,76 +16911,7 @@ export function AdminDashboardPage() {
               </div>
 
               {/* ========================================================= */}
-              {/* SECTION D: GIFT AID INFORMATION                           */}
-              {/* ========================================================= */}
-              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      style={{
-                        width: "22px",
-                        height: "22px",
-                        borderRadius: "9999px",
-                        backgroundColor: "#E6127E",
-                        color: "#FFFFFF",
-                        fontWeight: 800,
-                        fontSize: "11px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0
-                      }}
-                    >
-                      4
-                    </span>
-                    <h3 className="font-extrabold text-slate-900 text-xs tracking-tight">
-                      UK HMRC Gift Aid Boost (+25%)
-                    </h3>
-                  </div>
-
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    HMRC Chapter 2, Part 8
-                  </span>
-                </div>
-
-                <div className="p-3 bg-pink-50/50 rounded-xl border border-pink-100 flex items-start gap-2.5">
-                  <input
-                    type="checkbox"
-                    id="offlineGiftAidCheck"
-                    checked={offlineGiftAid}
-                    onChange={(e) => setOfflineGiftAid(e.target.checked)}
-                    className="mt-0.5 rounded text-magenta focus:ring-magenta cursor-pointer"
-                  />
-                  <div className="flex-1">
-                    <label htmlFor="offlineGiftAidCheck" className="font-bold text-slate-900 text-xs cursor-pointer select-none block">
-                      Donor has given an active Gift Aid declaration as a UK taxpayer
-                    </label>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Reclaims 25p for every £1 given at no extra cost to the donor.
-                    </p>
-                  </div>
-                </div>
-
-                {offlineGiftAid && (
-                  <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2 animate-in fade-in duration-200">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-emerald-900 font-medium">Base Contribution:</span>
-                      <span className="font-mono font-bold text-emerald-950">£{Number(offlineAmount || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-emerald-900 font-medium">HMRC Gift Aid Boost (+25%):</span>
-                      <span className="font-mono font-bold text-emerald-600">+£{(Number(offlineAmount || 0) * 0.25).toFixed(2)}</span>
-                    </div>
-                    <div className="pt-2 border-t border-emerald-200/80 flex items-center justify-between text-xs font-black">
-                      <span className="text-emerald-950">Total Charitable Value to Trust:</span>
-                      <span className="font-mono text-sm text-emerald-700">£{(Number(offlineAmount || 0) * 1.25).toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ========================================================= */}
-              {/* SECTION E: RECEIPT & AUDIT REMARKS                        */}
+              {/* SECTION 4: RECEIPT & AUDIT REMARKS                        */}
               {/* ========================================================= */}
               <div className="p-4 rounded-2xl bg-white border border-slate-200/80 space-y-3">
                 <div className="flex items-center gap-2">
@@ -17140,7 +16930,7 @@ export function AdminDashboardPage() {
                       flexShrink: 0
                     }}
                   >
-                    5
+                    4
                   </span>
                   <h3 className="font-extrabold text-slate-900 text-xs tracking-tight">
                     Receipt &amp; Audit Information
@@ -17312,13 +17102,6 @@ export function AdminDashboardPage() {
                   </span>
                 </div>
 
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Gift Aid Declared:</span>
-                  <span className="font-bold text-slate-900">
-                    {viewingReceiptDonation.giftAid ? "Yes (+25% eligible UK taxpayer boost)" : "No"}
-                  </span>
-                </div>
-
                 {/* Amount Paid Highlight */}
                 <div className="p-4 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-between mt-4">
                   <span className="font-black text-sm text-slate-800 uppercase tracking-wide">
@@ -17436,10 +17219,6 @@ export function AdminDashboardPage() {
               <div className="p-3 bg-slate-50 rounded-xl flex justify-between">
                 <span className="text-slate-500">Status:</span>
                 <span className="font-extrabold text-emerald-700">{viewingDonationDetail.status}</span>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-xl flex justify-between">
-                <span className="text-slate-500">Gift Aid:</span>
-                <span className="font-bold text-slate-900">{viewingDonationDetail.giftAid ? "Yes (+25%)" : "No"}</span>
               </div>
               {viewingDonationDetail.notes && (
                 <div className="p-3 bg-slate-50 rounded-xl">

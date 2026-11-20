@@ -16,8 +16,7 @@ export function generateReceiptPdfBlob(donation: any, donor?: DonorUser | null):
   const filename = `Zinthiya_Trust_Receipt_${ref}.pdf`;
 
   const amountNum = Number(donation.amount) || 0;
-  const giftAidAmount = donation.giftAid ? (amountNum * 0.25).toFixed(2) : "0.00";
-  const totalImpact = donation.giftAid ? (amountNum * 1.25).toFixed(2) : amountNum.toFixed(2);
+  const totalImpact = amountNum.toFixed(2);
 
   const donorName = donation.donorName || donor?.fullName || donation.user?.fullName || "Valued Supporter";
   const donorEmail = donation.donorEmail || donor?.email || donation.user?.email || "supporter@zinthiyatrust.org";
@@ -207,93 +206,65 @@ export function generateReceiptPdfBlob(donation: any, donor?: DonorUser | null):
     `(${escapePdfText("£" + amountNum.toFixed(2))}) Tj`,
     "ET",
 
-    // Divider line between Row 1 and Row 2
+    // Divider line below Row 1
     "0.9 0.9 0.9 RG",
     "0.5 w",
     "50 490 m 545 490 l S",
 
-    // Row 2: UK Gift Aid Relief Box (Green tint)
-    donation.giftAid ? "0.93 0.99 0.96 rg" : "0.98 0.98 0.98 rg",
-    "50 442 495 48 re f",
-    "BT",
-    "/F2 10 Tf",
-    donation.giftAid ? "0.05 0.55 0.35 rg" : "0.5 0.5 0.5 rg",
-    "66 470 Td",
-    `(${escapePdfText(donation.giftAid ? "UK HMRC Gift Aid Tax Relief (+25%)" : "UK HMRC Gift Aid Relief")}) Tj`,
-    "ET",
-    "BT",
-    "/F1 8 Tf",
-    donation.giftAid ? "0.04 0.45 0.28 rg" : "0.55 0.55 0.55 rg",
-    "66 456 Td",
-    `(${escapePdfText(donation.giftAid ? "Reclaimed under Chapter 2, Part 8, Income Tax Act 2007 at zero cost to donor" : "Not claimed by donor for this contribution")}) Tj`,
-    "ET",
-    "BT",
-    "/F2 12 Tf",
-    donation.giftAid ? "0.05 0.55 0.35 rg" : "0.5 0.5 0.5 rg",
-    "450 464 Td",
-    `(${escapePdfText((donation.giftAid ? "+£" : "£") + giftAidAmount)}) Tj`,
-    "ET",
-
-    // Row 3: Total Charitable Value (Pink Highlight)
+    // Row 2: Total Charitable Value (Pink Highlight)
     "0.99 0.93 0.96 rg",
-    "50 380 495 62 re f",
+    "50 428 495 62 re f",
     "0.902 0.071 0.494 RG",
     "1 w",
-    "50 442 m 545 442 l S",
+    "50 490 m 545 490 l S",
     "BT",
     "/F2 12 Tf",
     "0.24 0.12 0.21 rg",
-    "66 414 Td",
+    "66 462 Td",
     `(${escapePdfText("Total Charitable Value to The Zinthiya Trust")}) Tj`,
     "ET",
     "BT",
     "/F1 8.5 Tf",
     "0.55 0.35 0.5 rg",
-    "66 398 Td",
+    "66 446 Td",
     `(${escapePdfText("Total purchasing power and assistance deployed to crisis beneficiaries")}) Tj`,
     "ET",
     "BT",
     "/F2 18 Tf",
     "0.902 0.071 0.494 rg", // Magenta
-    "440 408 Td",
+    "440 456 Td",
     `(${escapePdfText("£" + totalImpact)}) Tj`,
     "ET",
 
-    // OFFICIAL STATUTORY & TAX NOTICE BOX
+    // OFFICIAL STATUTORY & CHARITY NOTICE BOX
     "0.98 0.98 0.98 rg",
     "0.88 0.88 0.9 RG",
     "0.5 w",
-    "50 255 495 105 re B",
+    "50 280 495 110 re B",
 
     "BT",
     "/F2 9.5 Tf",
     "0.24 0.12 0.21 rg",
-    "66 338 Td",
-    `(${escapePdfText("OFFICIAL CHARITY TAX AUDIT STATEMENT")}) Tj`,
+    "66 365 Td",
+    `(${escapePdfText("OFFICIAL CHARITY AUDIT STATEMENT")}) Tj`,
     "ET",
     "BT",
     "/F1 8.5 Tf",
     "0.4 0.35 0.4 rg",
-    "66 322 Td",
+    "66 348 Td",
     `(${escapePdfText("The Zinthiya Trust is a charitable trust registered under charity number 1137350.")}) Tj`,
     "ET",
     "BT",
     "/F1 8.5 Tf",
     "0.4 0.35 0.4 rg",
-    "66 308 Td",
-    `(${escapePdfText("Registered with HMRC for Gift Aid tax reclaims under s.414 of the Income Tax Act 2007.")}) Tj`,
-    "ET",
-    "BT",
-    "/F1 8.5 Tf",
-    "0.4 0.35 0.4 rg",
-    "66 294 Td",
+    "66 332 Td",
     `(${escapePdfText("Funds received directly fund poverty relief, emergency heating, food parcels, and women refuge services.")}) Tj`,
     "ET",
     "BT",
     "/F2 8.5 Tf",
     "0.2 0.5 0.3 rg",
-    "66 274 Td",
-    `(${escapePdfText("Please retain this official document for your personal tax return and accounting records.")}) Tj`,
+    "66 312 Td",
+    `(${escapePdfText("Please retain this official document for your personal accounting and verification records.")}) Tj`,
     "ET",
 
     // SIGNATURE & TRUSTEE AUTHORIZATION
