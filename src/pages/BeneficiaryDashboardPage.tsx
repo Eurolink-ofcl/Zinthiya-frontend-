@@ -881,7 +881,15 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
             setRequestCategory(data.categories[0].name);
           }
         }
-        if (data && data.stats) setLiveStats(data.stats);
+        if (data && data.stats) {
+          const activeAllocTotal = (data.allocations || [])
+            .filter((a: any) => a.status !== "CANCELLED" && a.status !== "REJECTED")
+            .reduce((sum: number, a: any) => sum + Number(a.allocatedAmount || 0), 0);
+          setLiveStats({
+            ...data.stats,
+            totalAllocated: activeAllocTotal
+          });
+        }
 
         // Zero hardcoded/mock notifications: populate strictly from real database records
         if (data && Array.isArray(data.notifications) && data.notifications.length > 0) {
@@ -894,33 +902,89 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           allocList.forEach((a: any) => {
             const amountStr = `£${Number(a.allocatedAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const isDistributed = a.status === 'DISTRIBUTED' || a.status === 'PAID';
-            realNotifs.push({
-              id: `alloc-${a.id}`,
-              title: isDistributed
-                ? `${a.category || 'Relief'} Assistance Distributed (${amountStr})`
-                : `${a.category || 'Assistance'} Grant Awarded (${amountStr})`,
-              body: isDistributed
-                ? `Official disbursement of ${amountStr} for ${a.purpose || 'authorized community assistance'} via ${a.disbursementMethod || 'bank transfer'} has been completed.`
-                : `Trustee relief grant (Ref: ${a.referenceNumber || a.id}) of ${amountStr} has been approved and scheduled for payout.`,
-              time: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
-              timestamp: a.createdAt ? new Date(a.createdAt).getTime() : 0,
-              unread: !isDistributed,
-              tag: isDistributed ? 'Disbursement' : 'Grant',
-            });
+            const isCancelled = a.status === 'CANCELLED';
+            const isRejected = a.status === 'REJECTED';
+            const refNumber = a.reference || a.referenceNumber || a.id;
+            const catName = a.categoryName || a.category || (a.assistanceType ? a.assistanceType.replace(/_/g, ' ') : 'Relief');
+
+            if (isCancelled) {
+              realNotifs.push({
+                id: `alloc-cancel-${a.id}`,
+                title: `${catName} Allocation Cancelled (${amountStr})`,
+                body: `Trustee relief allocation (Ref: ${refNumber}) of ${amountStr} has been cancelled by administration.`,
+                time: a.updatedAt ? new Date(a.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
+                timestamp: a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0),
+                unread: true,
+                tag: 'Cancelled',
+              });
+            } else if (isRejected) {
+              realNotifs.push({
+                id: `alloc-reject-${a.id}`,
+                title: `${catName} Allocation Declined (${amountStr})`,
+                body: `Trustee relief allocation (Ref: ${refNumber}) of ${amountStr} was reviewed and declined.`,
+                time: a.updatedAt ? new Date(a.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
+                timestamp: a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0),
+                unread: true,
+                tag: 'Declined',
+              });
+            } else if (isDistributed) {
+              realNotifs.push({
+                id: `alloc-dist-${a.id}`,
+                title: `${catName} Assistance Distributed (${amountStr})`,
+                body: `Official disbursement of ${amountStr} for ${a.purpose || 'authorized community assistance'} via ${a.disbursementMethod || 'bank transfer'} has been completed.`,
+                time: a.distributionDate ? new Date(a.distributionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : (a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'),
+                timestamp: a.distributionDate ? new Date(a.distributionDate).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0),
+                unread: false,
+                tag: 'Disbursement',
+              });
+            } else {
+              realNotifs.push({
+                id: `alloc-appr-${a.id}`,
+                title: `${catName} Grant Approved (${amountStr})`,
+                body: `Trustee relief grant (Ref: ${refNumber}) of ${amountStr} has been approved by the Trustees Relief Committee.`,
+                time: a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
+                timestamp: a.createdAt ? new Date(a.createdAt).getTime() : 0,
+                unread: true,
+                tag: 'Approved',
+              });
+            }
           });
 
           reqList.forEach((req: any) => {
-            const isPending = req.status === 'PENDING';
-            const statusLabel = req.status === 'APPROVED' ? 'Approved' : isPending ? 'Under Assessment' : req.status === 'COMPLETED' ? 'Completed' : req.status;
-            realNotifs.push({
-              id: `req-${req.id}`,
-              title: `Support Application: ${req.serviceType} – ${statusLabel}`,
-              body: `Your application for ${req.serviceType} (Urgency: ${req.urgency || 'Standard'}) is ${isPending ? 'under active assessment by your assigned advocate.' : `marked as ${statusLabel.toLowerCase()}.`}`,
-              time: req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
-              timestamp: req.createdAt ? new Date(req.createdAt).getTime() : 0,
-              unread: isPending,
-              tag: 'Application',
-            });
+            const isApproved = req.status === 'APPROVED';
+            const isRejected = req.status === 'REJECTED' || req.status === 'DECLINED';
+
+            if (isApproved) {
+              realNotifs.push({
+                id: `req-appr-${req.id}`,
+                title: `Support Application Approved: ${req.serviceType}`,
+                body: `Your emergency support application for ${req.serviceType} has been approved by the casework team.`,
+                time: req.resolutionDate ? new Date(req.resolutionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : (req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'),
+                timestamp: req.resolutionDate ? new Date(req.resolutionDate).getTime() : (req.createdAt ? new Date(req.createdAt).getTime() : 0),
+                unread: true,
+                tag: 'Approved',
+              });
+            } else if (isRejected) {
+              realNotifs.push({
+                id: `req-rej-${req.id}`,
+                title: `Support Application Declined: ${req.serviceType}`,
+                body: `Your support application for ${req.serviceType} was reviewed and declined at this time.`,
+                time: req.resolutionDate ? new Date(req.resolutionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : (req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'),
+                timestamp: req.resolutionDate ? new Date(req.resolutionDate).getTime() : (req.createdAt ? new Date(req.createdAt).getTime() : 0),
+                unread: true,
+                tag: 'Declined',
+              });
+            } else {
+              realNotifs.push({
+                id: `req-pend-${req.id}`,
+                title: `Support Application: ${req.serviceType} – Under Assessment`,
+                body: `Your application for ${req.serviceType} (Urgency: ${req.urgency || 'Standard'}) is under active assessment by your assigned advocate.`,
+                time: req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent',
+                timestamp: req.createdAt ? new Date(req.createdAt).getTime() : 0,
+                unread: false,
+                tag: 'Application',
+              });
+            }
           });
 
           realNotifs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
@@ -1064,7 +1128,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   // Assistance & Support History state
-  const [historyFilter, setHistoryFilter] = useState<"all" | "received" | "approved" | "completed">("all");
+  const [historyFilter, setHistoryFilter] = useState<"all" | "received" | "approved" | "completed" | "cancelled">("all");
   const [historySearch, setHistorySearch] = useState("");
   const [selectedAssistanceDetail, setSelectedAssistanceDetail] = useState<any | null>(null);
 
@@ -1074,9 +1138,33 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       const amtGbp = Number(alloc.allocatedAmount || 0);
       const distGbp = Number(alloc.distributedAmount || 0);
       const isDisbursed = alloc.status === "DISTRIBUTED";
+      const isCancelled = alloc.status === "CANCELLED";
+      const isRejected = alloc.status === "REJECTED";
       const dateAllocStr = new Date(alloc.allocationDate || alloc.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       const dateDistStr = alloc.distributionDate ? new Date(alloc.distributionDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Scheduled upon trustee review";
       const ref = alloc.referenceNumber || `ZT-ALC-${alloc.id.substring(0, 6).toUpperCase()}`;
+
+      let status = "Approved • Pending Payout";
+      let statusTag = "pending";
+      let statusColor = "#2563EB";
+      let statusBg = "#EFF6FF";
+
+      if (isCancelled) {
+        status = "Cancelled by Administration";
+        statusTag = "cancelled";
+        statusColor = "#DC2626";
+        statusBg = "#FEF2F2";
+      } else if (isRejected) {
+        status = "Declined";
+        statusTag = "rejected";
+        statusColor = "#DC2626";
+        statusBg = "#FEF2F2";
+      } else if (isDisbursed) {
+        status = "Approved • Disbursed";
+        statusTag = "disbursed";
+        statusColor = "#059669";
+        statusBg = "#ECFDF5";
+      }
 
       return {
         id: alloc.id,
@@ -1085,25 +1173,25 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         reference: ref,
         amountINR: `₹${Math.round(amtGbp * 105).toLocaleString()}`,
         amountGBP: `£${amtGbp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        purpose: alloc.notes || "Emergency trustee relief grant allocated directly to verified beneficiary account.",
+        purpose: alloc.notes || (isCancelled ? "Relief grant allocation was cancelled by administration." : "Emergency trustee relief grant allocated directly to verified beneficiary account."),
         allocationDate: dateAllocStr,
-        effectiveDate: dateDistStr,
-        status: isDisbursed ? "Approved • Disbursed" : "Approved • Pending Payout",
-        statusTag: isDisbursed ? "disbursed" : "pending",
-        statusColor: isDisbursed ? "#059669" : "#2563EB",
-        statusBg: isDisbursed ? "#ECFDF5" : "#EFF6FF",
+        effectiveDate: isCancelled ? "Allocation Cancelled" : dateDistStr,
+        status,
+        statusTag,
+        statusColor,
+        statusBg,
         funder: "The Zinthiya Trust Community Hardship Fund",
         caseworker: beneficiaryUser.caseWorker,
-        disbursementMethod: isDisbursed ? "Disbursed via direct grant transfer" : "Scheduled BACS / Voucher dispatch",
-        usageGuidelines: "Restricted to authorized emergency household essentials.",
-        authorizationBody: "Approved by Zinthiya Trustees Relief Committee",
-        validUntil: "Current Relief Period",
-        stepIndex: isDisbursed ? 3 : 2,
+        disbursementMethod: isCancelled ? "Allocation Cancelled" : isDisbursed ? "Disbursed via direct grant transfer" : "Scheduled BACS / Voucher dispatch",
+        usageGuidelines: isCancelled ? "Allocation has been cancelled." : "Restricted to authorized emergency household essentials.",
+        authorizationBody: isCancelled ? "Cancelled by Administration" : "Approved by Zinthiya Trustees Relief Committee",
+        validUntil: isCancelled ? "Cancelled" : "Current Relief Period",
+        stepIndex: isCancelled ? 1 : isDisbursed ? 3 : 2,
         steps: [
           { label: "Application & Assessment", date: dateAllocStr, done: true },
-          { label: "Trustee Approval", date: dateAllocStr, done: true },
-          { label: "Funds Allocated", date: dateAllocStr, done: true },
-          { label: isDisbursed ? "Disbursed / Received" : "Payout Scheduled", date: dateDistStr, done: isDisbursed }
+          { label: isCancelled ? "Allocation Cancelled" : "Trustee Approval", date: dateAllocStr, done: true },
+          { label: isCancelled ? "Revoked" : "Funds Allocated", date: dateAllocStr, done: !isCancelled },
+          { label: isCancelled ? "Cancelled" : isDisbursed ? "Disbursed / Received" : "Payout Scheduled", date: isCancelled ? dateAllocStr : dateDistStr, done: isDisbursed }
         ]
       };
     });
@@ -1114,25 +1202,45 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     const fromAlloc = liveAllocations.map((alloc) => {
       const amtGbp = Number(alloc.allocatedAmount || 0);
       const isDisbursed = alloc.status === "DISTRIBUTED";
+      const isCancelled = alloc.status === "CANCELLED";
+      const isRejected = alloc.status === "REJECTED";
       const dateAllocStr = new Date(alloc.allocationDate || alloc.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       const dateDistStr = alloc.distributionDate ? new Date(alloc.distributionDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : dateAllocStr;
       const ref = alloc.referenceNumber || `ZT-AST-${alloc.id.substring(0, 6).toUpperCase()}`;
+
+      let status = "Approved";
+      let statusColor = "#2563EB";
+      let statusBg = "#EFF6FF";
+
+      if (isCancelled) {
+        status = "Cancelled";
+        statusColor = "#DC2626";
+        statusBg = "#FEF2F2";
+      } else if (isRejected) {
+        status = "Declined";
+        statusColor = "#DC2626";
+        statusBg = "#FEF2F2";
+      } else if (isDisbursed) {
+        status = "Received";
+        statusColor = "#059669";
+        statusBg = "#ECFDF5";
+      }
 
       return {
         id: alloc.id,
         type: alloc.assistanceType ? alloc.assistanceType.replace(/_/g, " ") : "Community Relief",
         amountINR: amtGbp > 0 ? `₹${Math.round(amtGbp * 105).toLocaleString()}` : "—",
         amountGBP: amtGbp > 0 ? `£${amtGbp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—",
-        status: isDisbursed ? "Received" : "Approved",
-        statusColor: isDisbursed ? "#059669" : "#2563EB",
-        statusBg: isDisbursed ? "#ECFDF5" : "#EFF6FF",
+        status,
+        statusColor,
+        statusBg,
         dateAllocated: dateAllocStr,
-        dateReceived: isDisbursed ? dateDistStr : "Pending Dispatch",
+        dateReceived: isDisbursed ? dateDistStr : isCancelled ? "Cancelled by Admin" : isRejected ? "Declined" : "Pending Dispatch",
         category: alloc.assistanceType || "Relief Aid",
         reference: ref,
         funder: "The Zinthiya Trust Hardship Panel",
         caseworker: beneficiaryUser.caseWorker,
-        description: alloc.notes || "Official trustee allocated assistance record."
+        description: alloc.notes || (isCancelled ? "Relief grant allocation was cancelled by administration." : "Official trustee allocated assistance record.")
       };
     });
 
@@ -1141,9 +1249,11 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       .map((req) => {
         const dateStr = new Date(req.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const ref = `ZT-REQ-${req.id.substring(0, 6).toUpperCase()}`;
-        const statusFormatted = req.status === "APPROVED" ? "Approved" : req.status === "REJECTED" ? "Completed" : "Under Review";
-        const statusColor = req.status === "APPROVED" ? "#2563EB" : req.status === "REJECTED" ? "#64748B" : "#B45309";
-        const statusBg = req.status === "APPROVED" ? "#EFF6FF" : req.status === "REJECTED" ? "#F1F5F9" : "#FFFBEB";
+        const isApproved = req.status === "APPROVED";
+        const isRejected = req.status === "REJECTED" || req.status === "DECLINED";
+        const statusFormatted = isApproved ? "Approved" : isRejected ? "Declined" : "Under Assessment";
+        const statusColor = isApproved ? "#2563EB" : isRejected ? "#DC2626" : "#B45309";
+        const statusBg = isApproved ? "#EFF6FF" : isRejected ? "#FEF2F2" : "#FFFBEB";
 
         return {
           id: req.id,
@@ -1166,7 +1276,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     return [...fromAlloc, ...fromReq];
   }, [liveAllocations, liveRequests, beneficiaryUser.caseWorker]);
 
-  const [allocationFilter, setAllocationFilter] = useState<"all" | "pending" | "disbursed">("all");
+  const [allocationFilter, setAllocationFilter] = useState<"all" | "pending" | "disbursed" | "cancelled">("all");
   const [allocationSearch, setAllocationSearch] = useState("");
   const [allocationViewMode, setAllocationViewMode] = useState<"cards" | "table">("cards");
   const [selectedAllocationDetail, setSelectedAllocationDetail] = useState<any | null>(null);
@@ -3716,7 +3826,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {formatAmount(liveStats.totalAllocated)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#2563EB", fontWeight: 700, marginTop: "2px" }}>
-                    {allocatedSupportRecords.length} Active Allocation(s)
+                    {allocatedSupportRecords.filter(r => r.statusTag !== "cancelled" && r.statusTag !== "rejected").length} Active Allocation(s)
                   </div>
                 </div>
 
@@ -3730,7 +3840,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#059669" }}>
-                    {allocatedSupportRecords.length} Allocations
+                    {allocatedSupportRecords.filter(r => r.statusTag !== "cancelled" && r.statusTag !== "rejected").length} Allocations
                   </div>
                   <div style={{ fontSize: "11px", color: "#059669", fontWeight: 700, marginTop: "2px" }}>
                     100% Trustee Verified &amp; Authorized
@@ -3778,9 +3888,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   {/* Status Filters */}
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {[
-                      { id: "all" as const, label: "All Approved (4)" },
-                      { id: "pending" as const, label: "Pending Payout (1)" },
-                      { id: "disbursed" as const, label: "Disbursed & Active (3)" }
+                      { id: "all" as const, label: `All (${allocatedSupportRecords.length})` },
+                      { id: "pending" as const, label: `Pending Payout (${allocatedSupportRecords.filter(r => r.statusTag === "pending").length})` },
+                      { id: "disbursed" as const, label: `Disbursed & Active (${allocatedSupportRecords.filter(r => r.statusTag === "disbursed").length})` },
+                      { id: "cancelled" as const, label: `Cancelled (${allocatedSupportRecords.filter(r => r.statusTag === "cancelled" || r.statusTag === "rejected").length})` }
                     ].map((tab) => {
                       const isTabActive = allocationFilter === tab.id;
                       return (
@@ -4587,6 +4698,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       { id: "all" as const, label: `All Records (${assistanceRecords.length})` },
                       { id: "received" as const, label: `Received (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "received").length})` },
                       { id: "approved" as const, label: `Approved (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "approved").length})` },
+                      { id: "cancelled" as const, label: `Cancelled (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "cancelled" || a.status.toLowerCase() === "declined").length})` },
                       { id: "completed" as const, label: `Completed (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "completed").length})` }
                     ].map((tab) => {
                       const isTabActive = historyFilter === tab.id;
@@ -4654,7 +4766,13 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       ) : (
                         assistanceRecords
                           .filter((item: any) => {
-                            if (historyFilter !== "all" && item.status.toLowerCase() !== historyFilter) return false;
+                            if (historyFilter !== "all") {
+                              if (historyFilter === "cancelled") {
+                                if (item.status.toLowerCase() !== "cancelled" && item.status.toLowerCase() !== "declined") return false;
+                              } else if (item.status.toLowerCase() !== historyFilter) {
+                                return false;
+                              }
+                            }
                             if (
                               historySearch.trim() &&
                               !item.type.toLowerCase().includes(historySearch.toLowerCase()) &&
@@ -6083,7 +6201,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           <span style={{ fontSize: "13px", fontWeight: 800, color: notif.unread ? "#E6127E" : "#241221" }}>
                             {notif.title}
                           </span>
-                          <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#B80C64" }}>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              backgroundColor: notif.tag === "Cancelled" || notif.tag === "Declined" ? "#FEF2F2" : notif.tag === "Approved" ? "#ECFDF5" : "#FCE8F3",
+                              color: notif.tag === "Cancelled" || notif.tag === "Declined" ? "#DC2626" : notif.tag === "Approved" ? "#059669" : "#B80C64"
+                            }}
+                          >
                             {notif.tag}
                           </span>
                         </div>
