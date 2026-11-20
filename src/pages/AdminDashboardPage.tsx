@@ -3157,7 +3157,9 @@ export function AdminDashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [data, setData] = useState<AdminDashboardPayload | null>(null);
-  const [currentUser, setCurrentUser] = useState<DonorUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<DonorUser | null>(() => {
+    return typeof window !== "undefined" ? api.getUser() : null;
+  });
 
   // Super Admin Check (Role === ADMIN has full unconstrained platform permissions)
   const isSuperAdmin = currentUser?.role === "ADMIN" || currentUser?.staffRole === "SUPER_ADMIN";
@@ -3420,14 +3422,53 @@ export function AdminDashboardPage() {
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string>("");
   const [profileErrorMsg, setProfileErrorMsg] = useState<string>("");
 
-  const [profileFullName, setProfileFullName] = useState("");
-  const [profilePhone, setProfilePhone] = useState("");
-  const [profileDepartment, setProfileDepartment] = useState("");
-  const [profileJobTitle, setProfileJobTitle] = useState("");
-  const [profileAddress, setProfileAddress] = useState("");
-  const [profileTownCity, setProfileTownCity] = useState("");
-  const [profilePostcode, setProfilePostcode] = useState("");
-  const [profileEmergencyContact, setProfileEmergencyContact] = useState("");
+  const [profileFullName, setProfileFullName] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? api.getUser() : null;
+    return u?.fullName || "";
+  });
+  const [profilePhone, setProfilePhone] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? api.getUser() : null;
+    return u?.phoneNumber || "";
+  });
+  const [profileDepartment, setProfileDepartment] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? (api.getUser() as any) : null;
+    return u?.department || "";
+  });
+  const [profileJobTitle, setProfileJobTitle] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? (api.getUser() as any) : null;
+    return u?.jobTitle || "";
+  });
+  const [profileAddress, setProfileAddress] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? api.getUser() : null;
+    return u?.address || "";
+  });
+  const [profileTownCity, setProfileTownCity] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? api.getUser() : null;
+    return u?.townCity || "";
+  });
+  const [profilePostcode, setProfilePostcode] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? api.getUser() : null;
+    return u?.postcode || "";
+  });
+  const [profileEmergencyContact, setProfileEmergencyContact] = useState<string>(() => {
+    const u = typeof window !== "undefined" ? (api.getUser() as any) : null;
+    return u?.emergencyContact || "";
+  });
+
+  // Synchronize profile form fields once adminProfile or currentUser becomes available
+  useEffect(() => {
+    const active = adminProfile || currentUser;
+    if (active) {
+      setProfileFullName((prev) => prev || active.fullName || "");
+      setProfilePhone((prev) => prev || active.phoneNumber || "");
+      setProfileDepartment((prev) => prev || (active as any).department || "");
+      setProfileJobTitle((prev) => prev || (active as any).jobTitle || "");
+      setProfileAddress((prev) => prev || active.address || "");
+      setProfileTownCity((prev) => prev || active.townCity || "");
+      setProfilePostcode((prev) => prev || active.postcode || "");
+      setProfileEmergencyContact((prev) => prev || (active as any).emergencyContact || "");
+    }
+  }, [adminProfile, currentUser]);
 
   // Change Password State
   const [pwdCurrent, setPwdCurrent] = useState("");
@@ -4070,17 +4111,27 @@ export function AdminDashboardPage() {
     setProfileErrorMsg("");
     try {
       const activeUser = currentUser || api.getUser();
+      if (activeUser) {
+        if (activeUser.fullName) setProfileFullName((prev) => prev || activeUser.fullName);
+        if (activeUser.phoneNumber) setProfilePhone((prev) => prev || activeUser.phoneNumber);
+        if ((activeUser as any).department) setProfileDepartment((prev) => prev || (activeUser as any).department);
+        if ((activeUser as any).jobTitle) setProfileJobTitle((prev) => prev || (activeUser as any).jobTitle);
+        if (activeUser.address) setProfileAddress((prev) => prev || activeUser.address);
+        if (activeUser.townCity) setProfileTownCity((prev) => prev || activeUser.townCity);
+        if (activeUser.postcode) setProfilePostcode((prev) => prev || activeUser.postcode);
+        if ((activeUser as any).emergencyContact) setProfileEmergencyContact((prev) => prev || (activeUser as any).emergencyContact);
+      }
       const p = await api.getAdminProfile(activeUser?.email);
       if (p) {
         setAdminProfile(p);
-        setProfileFullName(p.fullName || "");
-        setProfilePhone(p.phoneNumber || "");
-        setProfileDepartment(p.department || "");
-        setProfileJobTitle(p.jobTitle || "");
-        setProfileAddress(p.address || "");
-        setProfileTownCity(p.townCity || "");
-        setProfilePostcode(p.postcode || "");
-        setProfileEmergencyContact(p.emergencyContact || "");
+        setProfileFullName(p.fullName ?? activeUser?.fullName ?? "");
+        setProfilePhone(p.phoneNumber ?? activeUser?.phoneNumber ?? "");
+        setProfileDepartment(p.department ?? (activeUser as any)?.department ?? "");
+        setProfileJobTitle(p.jobTitle ?? (activeUser as any)?.jobTitle ?? "");
+        setProfileAddress(p.address ?? activeUser?.address ?? "");
+        setProfileTownCity(p.townCity ?? activeUser?.townCity ?? "");
+        setProfilePostcode(p.postcode ?? activeUser?.postcode ?? "");
+        setProfileEmergencyContact(p.emergencyContact ?? (activeUser as any)?.emergencyContact ?? "");
       }
     } catch (err: any) {
       setProfileErrorMsg(err.message || "Failed to load profile.");
