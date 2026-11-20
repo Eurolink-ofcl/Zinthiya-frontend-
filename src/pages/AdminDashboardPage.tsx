@@ -4069,18 +4069,21 @@ export function AdminDashboardPage() {
     setProfileLoading(true);
     setProfileErrorMsg("");
     try {
-      const p = await api.getAdminProfile();
-      setAdminProfile(p);
-      setProfileFullName(p.fullName || "");
-      setProfilePhone(p.phoneNumber || "");
-      setProfileDepartment(p.department || "");
-      setProfileJobTitle(p.jobTitle || "");
-      setProfileAddress(p.address || "");
-      setProfileTownCity(p.townCity || "");
-      setProfilePostcode(p.postcode || "");
-      setProfileEmergencyContact(p.emergencyContact || "");
+      const activeUser = currentUser || api.getUser();
+      const p = await api.getAdminProfile(activeUser?.email);
+      if (p) {
+        setAdminProfile(p);
+        setProfileFullName(p.fullName || "");
+        setProfilePhone(p.phoneNumber || "");
+        setProfileDepartment(p.department || "");
+        setProfileJobTitle(p.jobTitle || "");
+        setProfileAddress(p.address || "");
+        setProfileTownCity(p.townCity || "");
+        setProfilePostcode(p.postcode || "");
+        setProfileEmergencyContact(p.emergencyContact || "");
+      }
     } catch (err: any) {
-      setProfileErrorMsg(err.message || "Failed to load admin profile.");
+      setProfileErrorMsg(err.message || "Failed to load profile.");
     } finally {
       setProfileLoading(false);
     }
@@ -4092,7 +4095,9 @@ export function AdminDashboardPage() {
     setProfileSuccessMsg("");
     setProfileErrorMsg("");
     try {
+      const activeUser = currentUser || api.getUser();
       const res = await api.updateAdminProfile({
+        email: activeUser?.email,
         fullName: profileFullName,
         phoneNumber: profilePhone,
         department: profileDepartment,
@@ -4102,14 +4107,16 @@ export function AdminDashboardPage() {
         postcode: profilePostcode,
         emergencyContact: profileEmergencyContact,
       });
-      setProfileSuccessMsg("Admin profile updated successfully successfully.");
-      if (res.user) {
-        setAdminProfile(res.user);
-        setCurrentUser(res.user);
+      setProfileSuccessMsg("Profile updated successfully.");
+      const updatedUser = res?.user || res;
+      if (updatedUser) {
+        setAdminProfile(updatedUser);
+        setCurrentUser(updatedUser);
+        api.setSession(updatedUser, api.getToken() || "");
       }
       setTimeout(() => setProfileSuccessMsg(""), 4000);
     } catch (err: any) {
-      setProfileErrorMsg(err.message || "Failed to update admin profile.");
+      setProfileErrorMsg(err.message || "Failed to update profile.");
     } finally {
       setProfileSaving(false);
     }
@@ -4135,7 +4142,9 @@ export function AdminDashboardPage() {
 
     setPwdSaving(true);
     try {
+      const activeUser = currentUser || api.getUser();
       await api.changeAdminPassword({
+        email: activeUser?.email,
         currentPassword: pwdCurrent,
         newPassword: pwdNew,
         confirmPassword: pwdConfirm,
@@ -4457,7 +4466,7 @@ export function AdminDashboardPage() {
     } else if (activeTab === "profile") {
       loadProfileData();
     }
-  }, [activeTab]);
+  }, [activeTab, currentUser?.email]);
 
   async function loadDashboardData() {
     setLoading(true);
@@ -13753,58 +13762,63 @@ export function AdminDashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left 2 Cols: Profile Overview Card & Edit Details Form */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Administrator Overview Card */}
-                  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 relative overflow-hidden">
-                    <div
-                      className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none rounded-full"
-                      style={{ background: "radial-gradient(circle, #E6127E 0%, transparent 70%)" }}
-                    />
+                  {/* User Profile Overview Card */}
+                  {(() => {
+                    const activeProfile = adminProfile || currentUser;
+                    const initial = activeProfile?.fullName?.charAt(0) || (activeProfile?.role === "ADMIN" ? "A" : "S");
+                    const roleLabel = activeProfile?.staffRole || activeProfile?.role || "STAFF";
+                    const fallbackPerms = activeProfile?.role === "ADMIN"
+                      ? ["donors:manage", "campaigns:manage", "donations:manage", "beneficiaries:manage", "allocations:manage", "reports:view", "staff:manage", "audit:view"]
+                      : (Array.isArray(activeProfile?.permissions) && activeProfile.permissions.length > 0 ? activeProfile.permissions : ["dashboard:view"]);
+                    const permsList = Array.isArray(activeProfile?.permissions) && activeProfile.permissions.length > 0
+                      ? activeProfile.permissions
+                      : fallbackPerms;
 
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white font-black text-2xl flex items-center justify-center shadow-md">
-                        {adminProfile?.fullName?.charAt(0) || "A"}
-                      </div>
+                    return (
+                      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 relative overflow-hidden">
+                        <div
+                          className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none rounded-full"
+                          style={{ background: "radial-gradient(circle, #E6127E 0%, transparent 70%)" }}
+                        />
 
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-lg font-black text-slate-900">{adminProfile?.fullName || "Senior Administrator"}</h2>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-100 text-magenta">
-                            {adminProfile?.staffRole || "SUPER_ADMIN"}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Active Session
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500 font-medium">
-                          {adminProfile?.email} • {adminProfile?.jobTitle || "Systems Administrator"}
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                          {adminProfile?.department || "Executive Operations"} • Registered Charity #1137350
-                        </div>
-                      </div>
-                    </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white font-black text-2xl flex items-center justify-center shadow-md">
+                            {initial}
+                          </div>
 
-                    {/* Permissions summary chips */}
-                    <div className="mt-5 pt-4 border-t border-slate-100">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Granted RBAC Security Capabilities:</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(adminProfile?.permissions || [
-                          "donors:manage",
-                          "campaigns:manage",
-                          "donations:manage",
-                          "beneficiaries:manage",
-                          "allocations:manage",
-                          "reports:view",
-                          "staff:manage",
-                          "audit:view"
-                        ]).map((perm: string) => (
-                          <span key={perm} className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-slate-100 text-slate-700">
-                            {perm}
-                          </span>
-                        ))}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2 className="text-lg font-black text-slate-900">{activeProfile?.fullName || (activeProfile?.role === "ADMIN" ? "Senior Administrator" : "Staff Member")}</h2>
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-100 text-magenta">
+                                {roleLabel}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Active Session
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-500 font-medium">
+                              {activeProfile?.email} • {activeProfile?.jobTitle || (activeProfile?.role === "ADMIN" ? "Systems Administrator" : "Dedicated Staff Member")}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {activeProfile?.department || (activeProfile?.role === "ADMIN" ? "Executive Operations" : "Casework & Support")} • Registered Charity #1137350
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Permissions summary chips */}
+                        <div className="mt-5 pt-4 border-t border-slate-100">
+                          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Granted RBAC Security Capabilities:</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {permsList.map((perm: string) => (
+                              <span key={perm} className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-slate-100 text-slate-700">
+                                {perm}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Edit Personal & Office Information Form */}
                   <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
@@ -13831,7 +13845,7 @@ export function AdminDashboardPage() {
                           <div className="relative">
                             <input
                               type="email"
-                              value={adminProfile?.email || ""}
+                              value={adminProfile?.email || currentUser?.email || ""}
                               disabled
                               className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-mono cursor-not-allowed"
                             />

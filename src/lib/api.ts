@@ -1649,14 +1649,14 @@ class ApiService {
     const q = email ? `?email=${encodeURIComponent(email)}` : "";
     return this.request<any>(`/admin/profile${q}`, {
       method: "GET",
-      headers: this.getHeaders(false),
+      headers: this.getHeaders(true),
     });
   }
 
   async updateAdminProfile(payload: any): Promise<any> {
     return this.request<any>("/admin/profile", {
       method: "PUT",
-      headers: this.getHeaders(false),
+      headers: this.getHeaders(true),
       body: JSON.stringify(payload),
     });
   }
@@ -1664,7 +1664,7 @@ class ApiService {
   async changeAdminPassword(payload: any): Promise<any> {
     return this.request<any>("/admin/change-password", {
       method: "POST",
-      headers: this.getHeaders(false),
+      headers: this.getHeaders(true),
       body: JSON.stringify(payload),
     });
   }
