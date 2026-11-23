@@ -5363,25 +5363,6 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       <span>Translating thread into {LANGUAGE_LABELS[chatTranslationTarget] || chatTranslationTarget}...</span>
                     </span>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      alert(`Accredited Human Interpreter Request sent to ${beneficiaryUser.caseWorker}. An interpreter for your chosen language will be booked for your next scheduled consultation.`);
-                    }}
-                    style={{
-                      padding: "4px 8px",
-                      borderRadius: "6px",
-                      backgroundColor: "#FCE8F3",
-                      color: "#B80C64",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      border: "none",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {t("btn_request_interpreter", "+ Request Live Interpreter")}
-                  </button>
                 </div>
               </div>
 
