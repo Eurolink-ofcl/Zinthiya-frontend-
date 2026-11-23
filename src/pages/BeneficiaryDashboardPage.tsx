@@ -5,6 +5,9 @@ import {
   BENEFICIARY_LANGUAGES,
   BENEFICIARY_TRANSLATIONS,
   getBeneficiaryText,
+  translateAssistanceType,
+  translateStatus,
+  translateAdvocateName,
   SupportedLanguage
 } from "../lib/beneficiaryTranslations";
 import {
@@ -2319,7 +2322,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 }}
               >
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#10B981" }} />
-                <span>{t("caseworker_prefix", "Caseworker:")} {beneficiaryUser.caseWorker || "Duty Caseworker"}</span>
+                <span>{t("caseworker_prefix", "Caseworker:")} {translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage) || "Duty Caseworker"}</span>
               </div>
 
               <button
@@ -2623,7 +2626,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {formatAmount(liveStats.totalDistributed)}
                     </div>
                     <p style={{ fontSize: "11px", color: "#8E7287", margin: "4px 0 0 0" }}>
-                      Total approved and disbursed community relief aid.
+                      {t("kpi_distributed_sub", "Total approved and disbursed community relief aid.")}
                     </p>
                   </div>
 
@@ -2643,7 +2646,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {formatAmount(liveStats.totalAllocated)}
                     </div>
                     <p style={{ fontSize: "11px", color: "#8E7287", margin: "4px 0 0 0" }}>
-                      Current active grants and assistance undergoing fulfillment.
+                      {t("kpi_allocated_sub", "Current active grants and assistance undergoing fulfillment.")}
                     </p>
                   </div>
                 </div>
@@ -2686,16 +2689,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     >
                       {assistanceRecords.slice(0, 4).map((record) => (
                         <li key={record.id}>
-                          <span style={{ fontWeight: 600 }}>{record.type}</span> –{" "}
-                          <strong style={{ color: record.statusColor }}>{record.status}</strong>
+                          <span style={{ fontWeight: 600 }}>{translateAssistanceType(record.type, selectedLanguage)}</span> –{" "}
+                          <strong style={{ color: record.statusColor }}>{translateStatus(record.status, selectedLanguage)}</strong>
                           <span style={{ fontSize: "11px", color: "#8E7287", marginLeft: "8px" }}>
-                            ({record.amountGBP !== "—" && record.amountGBP !== "Under Assessment" ? (dashboardCurrency === "INR" ? record.amountINR : record.amountGBP) : record.dateReceived})
+                            ({record.amountGBP !== "—" && record.amountGBP !== "Under Assessment" && record.amountGBP !== "Awaiting Review"
+                              ? (dashboardCurrency === "INR" ? record.amountINR : record.amountGBP)
+                              : (record.amountGBP === "Awaiting Review" ? translateStatus("Awaiting Review", selectedLanguage) : translateStatus(record.dateReceived, selectedLanguage))})
                           </span>
                         </li>
                       ))}
                       <li>
                         <span style={{ fontWeight: 600 }}>{t("assigned_advocate", "Advocate assigned")}</span> –{" "}
-                        <strong style={{ color: "#059669" }}>{beneficiaryUser.caseWorker}</strong>
+                        <strong style={{ color: "#059669" }}>{translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage)}</strong>
                       </li>
                     </ul>
                   ) : (
@@ -2745,7 +2750,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 <div className="beneficiary-card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                     <h3 style={{ fontSize: "15px", fontWeight: 800, color: "#241221", margin: 0 }}>
-                      Assigned Advocate Details
+                      {t("advocate_details_title", "Assigned Advocate Details")}
                     </h3>
                     <span
                       style={{
@@ -2757,7 +2762,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         color: "#065F46"
                       }}
                     >
-                      ACTIVE ADVOCATE
+                      {t("active_advocate_badge", "ACTIVE ADVOCATE")}
                     </span>
                   </div>
 
@@ -2780,13 +2785,13 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                     <div>
                       <div style={{ fontSize: "15px", fontWeight: 800, color: "#241221" }}>
-                        {beneficiaryUser.caseWorker}
+                        {translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage)}
                       </div>
                       <div style={{ fontSize: "11px", color: "#8E7287" }}>
-                        Senior Family Welfare & Crisis Advocate
+                        {t("advocate_role_title", "Senior Family Welfare & Crisis Advocate")}
                       </div>
                       <div style={{ fontSize: "11px", color: "#10B981", fontWeight: 700, marginTop: "2px" }}>
-                        • Available for Consultations Today
+                        {t("available_today", "• Available for Consultations Today")}
                       </div>
                     </div>
                   </div>
@@ -2807,15 +2812,15 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <PhoneCall size={14} style={{ color: "#E6127E" }} />
-                      <span>Direct Helpline: <strong>0116 254 5168 (ext 204)</strong></span>
+                      <span>{t("direct_helpline_label", "Direct Helpline:")} <strong>0116 254 5168 (ext 204)</strong></span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <MessagesSquare size={14} style={{ color: "#E6127E" }} />
-                      <span>Duty Email: <strong>casework@zinthiyatrust.org</strong></span>
+                      <span>{t("duty_email_label", "Duty Email:")} <strong>casework@zinthiyatrust.org</strong></span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <Clock size={14} style={{ color: "#E6127E" }} />
-                      <span>Duty Hours: Mon – Fri, 9:00am – 4:30pm</span>
+                      <span>{t("duty_hours_text", "Duty Hours: Mon – Fri, 9:00am – 4:30pm")}</span>
                     </div>
                   </div>
 
@@ -2827,7 +2832,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       style={{ padding: "8px 14px", fontSize: "12px", flex: 1 }}
                     >
                       <MessagesSquare size={14} />
-                      <span>Message Caseworker</span>
+                      <span>{t("btn_message_caseworker", "Message Caseworker")}</span>
                     </button>
                     <a
                       href="tel:01162545168"
@@ -2845,7 +2850,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       }}
                     >
                       <PhoneCall size={14} />
-                      <span>Call Caseworker</span>
+                      <span>{t("btn_call_caseworker", "Call Caseworker")}</span>
                     </a>
                   </div>
                 </div>
@@ -2868,7 +2873,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           borderBottom: dashNoticeTab === "messages" ? "2px solid #E6127E" : "2px solid transparent"
                         }}
                       >
-                        Recent Messages (1)
+                        {t("tab_recent_messages", "Recent Messages")} (1)
                       </button>
                       <button
                         type="button"
@@ -2884,7 +2889,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           borderBottom: dashNoticeTab === "notifications" ? "2px solid #E6127E" : "2px solid transparent"
                         }}
                       >
-                        Notifications ({notifications.length})
+                        {t("tab_notifications", "Notifications")} ({notifications.length})
                       </button>
                     </div>
 
@@ -2900,7 +2905,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         cursor: "pointer"
                       }}
                     >
-                      View all →
+                      {t("view_all_arrow", "View all →")}
                     </button>
                   </div>
 
@@ -2916,14 +2921,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       >
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                           <span style={{ fontSize: "12px", fontWeight: 800, color: "#241221" }}>
-                            {beneficiaryUser.caseWorker}
+                            {translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage)}
                           </span>
                           <span style={{ fontSize: "10px", color: "#8E7287" }}>
-                            Duty Office
+                            {t("duty_office_badge", "Duty Office")}
                           </span>
                         </div>
                         <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: "1.5" }}>
-                          "Welcome to your Zinthiya Trust client portal. You can review your case file, check allocated aid, or request emergency assistance."
+                          {t("welcome_portal_message", '"Welcome to your Zinthiya Trust client portal. You can review your case file, check allocated aid, or request emergency assistance."')}
                         </p>
                       </div>
 
@@ -2943,14 +2948,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           textAlign: "center"
                         }}
                       >
-                        Open Advocate Messaging Thread →
+                        {t("btn_open_advocate_thread", "Open Advocate Messaging Thread →")}
                       </button>
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       {notifications.length === 0 ? (
                         <div style={{ padding: "16px", borderRadius: "12px", backgroundColor: "#FBF7F9", border: "1px dashed #CBD5E1", fontSize: "12px", color: "#64748B", textAlign: "center" }}>
-                          No active notifications recorded.
+                          {t("no_active_notifications", "No active notifications recorded.")}
                         </div>
                       ) : (
                         notifications.slice(0, 3).map((notif) => (
@@ -4058,7 +4063,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     </div>
                   </div>
                   <div style={{ fontSize: "17px", fontWeight: 800, color: "#241221", marginTop: "4px" }}>
-                    {beneficiaryUser.caseWorker}
+                    {translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#B80C64", fontWeight: 700, marginTop: "2px" }}>
                     0116 254 5168 ext. 204
@@ -4879,12 +4884,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {[
-                      { id: "all" as const, label: `All Records (${assistanceRecords.length})` },
-                      { id: "received" as const, label: `Received (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "received").length})` },
-                      { id: "approved" as const, label: `Approved (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "approved").length})` },
-                      { id: "cancelled" as const, label: `Cancelled (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "cancelled" || a.status.toLowerCase() === "declined").length})` },
-                      { id: "completed" as const, label: `Completed (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "completed").length})` },
-                      { id: "applied" as const, label: `Applied Requests (${allAppliedRequests.length})` }
+                      { id: "all" as const, label: `${t("filter_all_records", "All Records")} (${assistanceRecords.length})` },
+                      { id: "received" as const, label: `${t("filter_received", "Received")} (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "received").length})` },
+                      { id: "approved" as const, label: `${t("filter_approved", "Approved")} (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "approved").length})` },
+                      { id: "cancelled" as const, label: `${t("filter_cancelled", "Cancelled")} (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "cancelled" || a.status.toLowerCase() === "declined").length})` },
+                      { id: "completed" as const, label: `${t("filter_completed", "Completed")} (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "completed").length})` },
+                      { id: "applied" as const, label: `${t("tab_applied_requests", "Applied Requests")} (${allAppliedRequests.length})` }
                     ].map((tab) => {
                       const isTabActive = historyFilter === tab.id;
                       return (
@@ -4934,11 +4939,11 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
                     <thead>
                       <tr style={{ backgroundColor: "#FBF7F9", borderBottom: "1.5px solid rgba(230, 18, 126, 0.12)" }}>
-                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Assistance type</th>
-                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Amount</th>
-                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Status</th>
-                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Date</th>
-                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221", textAlign: "right" }}>Action</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("col_assistance_type", "Assistance type")}</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("col_amount", "Amount")}</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("col_status", "Status")}</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("col_date", "Date")}</th>
+                        <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221", textAlign: "right" }}>{t("col_action", "Action")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -4972,13 +4977,13 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             <tr key={record.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
                               <td style={{ padding: "14px 16px" }}>
                                 <div style={{ fontWeight: 700, color: "#241221" }}>
-                                  {record.type}
+                                  {translateAssistanceType(record.type, selectedLanguage)}
                                 </div>
                                 <div style={{ fontSize: "11px", color: "#8E7287", marginTop: "2px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                                  <span>Ref: <span style={{ fontFamily: "monospace" }}>{record.reference}</span> • {record.category}</span>
+                                  <span>Ref: <span style={{ fontFamily: "monospace" }}>{record.reference}</span> • {translateAssistanceType(record.category, selectedLanguage)}</span>
                                   {record.urgency && (
                                     <span style={{ fontSize: "10px", fontWeight: 800, padding: "1px 6px", borderRadius: "4px", backgroundColor: record.urgency === "CRITICAL" ? "#FEE2E2" : "#FEF3C7", color: record.urgency === "CRITICAL" ? "#991B1B" : "#92400E" }}>
-                                      {record.urgency}
+                                      {translateStatus(record.urgency, selectedLanguage)}
                                     </span>
                                   )}
                                   {record.documents && record.documents.length > 0 && (
@@ -4998,7 +5003,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     </span>
                                   ) : (
                                     <span style={{ fontSize: "11px", color: "#D97706", fontWeight: 700, backgroundColor: "#FFFBEB", padding: "2px 8px", borderRadius: "6px", border: "1px solid #FDE68A" }}>
-                                      Awaiting Triage
+                                      {translateStatus("Awaiting Triage", selectedLanguage)}
                                     </span>
                                   )
                                 ) : (
@@ -5018,7 +5023,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     color: record.statusColor
                                   }}
                                 >
-                                  {record.status}
+                                  {translateStatus(record.status, selectedLanguage)}
                                 </span>
                               </td>
 
@@ -5456,7 +5461,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                         <h2 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: 0 }}>
-                          {assignedAdvocate.name}
+                          {translateAdvocateName(assignedAdvocate.name, selectedLanguage)}
                         </h2>
                         <span
                           style={{
@@ -6756,7 +6761,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
             </div>
 
             <p style={{ fontSize: "12px", color: "#64748B", margin: "0 0 16px 0" }}>
-              {t("modal_request_sub", "Your request goes directly to assigned caseworker")} <strong>{beneficiaryUser.caseWorker}</strong>.
+              {t("modal_request_sub", "Your request goes directly to assigned caseworker")} <strong>{translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage)}</strong>.
             </p>
 
             <form
