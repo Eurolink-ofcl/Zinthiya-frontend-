@@ -143,12 +143,6 @@ export function Navbar() {
               >
                 Beneficiary
               </a>
-              <a
-                href="#chapel-cafe"
-                className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold whitespace-nowrap"
-              >
-                Chapel Cafe
-              </a>
             </nav>
 
             {/* Direct Login Button */}
@@ -226,13 +220,6 @@ export function Navbar() {
                   className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
                 >
                   Beneficiary
-                </a>
-                <a
-                  href="#chapel-cafe"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
-                >
-                  Chapel Cafe
                 </a>
               </nav>
 
