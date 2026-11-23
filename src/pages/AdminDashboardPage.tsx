@@ -86,6 +86,8 @@ import {
   Globe,
   ExternalLink,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Building,
   Building2,
   Award,
@@ -1882,6 +1884,14 @@ export function AdminDashboardPage() {
   const [staffDeptFilter, setStaffDeptFilter] = useState<string>("ALL");
   const [staffSubTab, setStaffSubTab] = useState<"staff_directory" | "roles_permissions" | "audit_history">("staff_directory");
 
+  // Staff Directory Pagination State
+  const [staffCurrentPage, setStaffCurrentPage] = useState<number>(1);
+  const [staffItemsPerPage, setStaffItemsPerPage] = useState<number>(5);
+
+  // Audit History Pagination State
+  const [auditCurrentPage, setAuditCurrentPage] = useState<number>(1);
+  const [auditItemsPerPage, setAuditItemsPerPage] = useState<number>(10);
+
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
   const [auditTotalCount, setAuditTotalCount] = useState<number>(0);
@@ -1965,6 +1975,55 @@ export function AdminDashboardPage() {
       display: `${s.fullName} (${s.jobTitle || s.staffRole || "Casework Advocate"})`,
     }));
   }, [staffList]);
+
+  // Staff Directory Filtered & Paginated list
+  const filteredStaffList = useMemo(() => {
+    return (staffList || []).filter((s) => {
+      const matchSearch =
+        !staffSearch ||
+        s.fullName.toLowerCase().includes(staffSearch.toLowerCase()) ||
+        s.email.toLowerCase().includes(staffSearch.toLowerCase()) ||
+        (s.department || "").toLowerCase().includes(staffSearch.toLowerCase()) ||
+        (s.jobTitle || "").toLowerCase().includes(staffSearch.toLowerCase());
+      const matchRole =
+        staffRoleFilter === "ALL" ||
+        s.staffRole === staffRoleFilter ||
+        (staffRoleFilter === "ADMIN" && s.role === "ADMIN");
+      const matchDept =
+        staffDeptFilter === "ALL" || s.department === staffDeptFilter;
+      return matchSearch && matchRole && matchDept;
+    });
+  }, [staffList, staffSearch, staffRoleFilter, staffDeptFilter]);
+
+  const totalStaffPages = Math.max(1, Math.ceil(filteredStaffList.length / staffItemsPerPage));
+  const safeStaffCurrentPage = Math.min(Math.max(1, staffCurrentPage), totalStaffPages);
+  const paginatedStaffList = useMemo(() => {
+    const startIndex = (safeStaffCurrentPage - 1) * staffItemsPerPage;
+    return filteredStaffList.slice(startIndex, startIndex + staffItemsPerPage);
+  }, [filteredStaffList, safeStaffCurrentPage, staffItemsPerPage]);
+
+  // Audit History Filtered & Paginated list
+  const filteredAuditLogs = useMemo(() => {
+    return (auditLogs || []).filter((log) => {
+      const matchSearch =
+        !auditSearch ||
+        (log.details || "").toLowerCase().includes(auditSearch.toLowerCase()) ||
+        (log.actorName || "").toLowerCase().includes(auditSearch.toLowerCase()) ||
+        (log.entityTitle || "").toLowerCase().includes(auditSearch.toLowerCase()) ||
+        (log.action || "").toLowerCase().includes(auditSearch.toLowerCase());
+      const matchAction = auditActionFilter === "ALL" || log.action === auditActionFilter;
+      const matchEntity = auditEntityFilter === "ALL" || log.entityType === auditEntityFilter;
+      const matchActor = auditActorFilter === "ALL" || log.actorId === auditActorFilter;
+      return matchSearch && matchAction && matchEntity && matchActor;
+    });
+  }, [auditLogs, auditSearch, auditActionFilter, auditEntityFilter, auditActorFilter]);
+
+  const totalAuditPages = Math.max(1, Math.ceil(filteredAuditLogs.length / auditItemsPerPage));
+  const safeAuditCurrentPage = Math.min(Math.max(1, auditCurrentPage), totalAuditPages);
+  const paginatedAuditLogs = useMemo(() => {
+    const startIndex = (safeAuditCurrentPage - 1) * auditItemsPerPage;
+    return filteredAuditLogs.slice(startIndex, startIndex + auditItemsPerPage);
+  }, [filteredAuditLogs, safeAuditCurrentPage, auditItemsPerPage]);
 
   async function loadAuditLogsData() {
     setAuditLoading(true);
@@ -4986,11 +5045,14 @@ export function AdminDashboardPage() {
 
   return (
     <div
-      className={`min-h-screen text-slate-900 bg-slate-50 relative ${
+      className={`min-h-screen text-slate-900 bg-slate-50 relative w-full overflow-x-hidden ${
         activeTab === "comms" ? "h-screen max-h-screen overflow-hidden" : ""
       }`}
       style={{
         backgroundColor: "#F8FAFC",
+        width: "100%",
+        maxWidth: "100%",
+        overflowX: "hidden",
         ...(activeTab === "comms" ? { height: "100vh", maxHeight: "100vh", overflow: "hidden" } : {}),
       }}
     >
@@ -5056,10 +5118,12 @@ export function AdminDashboardPage() {
           .admin-main-wrapper {
             margin-left: 260px !important;
             width: calc(100% - 260px) !important;
+            max-width: calc(100% - 260px) !important;
             min-height: 100vh !important;
             display: flex !important;
             flex-direction: column !important;
             position: relative !important;
+            overflow-x: hidden !important;
           }
 
           .admin-sidebar-scroll::-webkit-scrollbar {
@@ -5103,9 +5167,11 @@ export function AdminDashboardPage() {
           .admin-main-wrapper {
             margin-left: 0 !important;
             width: 100% !important;
+            max-width: 100% !important;
             min-height: 100vh !important;
             display: flex !important;
             flex-direction: column !important;
+            overflow-x: hidden !important;
           }
           .admin-sidebar-closed {
             transform: translateX(-100%) !important;
@@ -5275,32 +5341,35 @@ export function AdminDashboardPage() {
         /* Standard SaaS Grid Layouts */
         .admin-kpi-grid {
           display: grid !important;
-          grid-template-columns: repeat(4, 1fr) !important;
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           gap: 1.25rem !important;
+          width: 100% !important;
         }
 
         @media (max-width: 1200px) {
           .admin-kpi-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
         }
 
         @media (max-width: 640px) {
           .admin-kpi-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: minmax(0, 1fr) !important;
           }
         }
 
         .admin-grid-2col {
           display: grid !important;
-          grid-template-columns: 1.8fr 1fr !important;
+          grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr) !important;
           gap: 1.5rem !important;
+          width: 100% !important;
         }
 
         .admin-grid-1-2col {
           display: grid !important;
-          grid-template-columns: 1fr 1.8fr !important;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) !important;
           gap: 1.5rem !important;
+          width: 100% !important;
         }
 
         @media (max-width: 1024px) {
@@ -5315,6 +5384,7 @@ export function AdminDashboardPage() {
           border: 1px solid #E2E8F0 !important;
           border-radius: 1rem !important;
           box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04) !important;
+          min-width: 0 !important;
         }
 
         /* Professional Tables */
@@ -5950,7 +6020,7 @@ export function AdminDashboardPage() {
             height: "56px"
           }}
         >
-          <div className="px-4 sm:px-6 h-full flex items-center justify-between" style={{ maxWidth: "1600px", margin: "0 auto" }}>
+          <div className="px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between w-full" style={{ width: "100%" }}>
             {/* Logo & Portal Authority Badge */}
             <div className="flex items-center gap-3">
               <button
@@ -6050,15 +6120,13 @@ export function AdminDashboardPage() {
 
         {/* Dashboard Main View Area */}
         <main
-          className={`flex-1 min-w-0 ${
+          className={`flex-1 min-w-0 w-full ${
             activeTab === "comms"
               ? "flex flex-col min-h-0 overflow-hidden p-3 sm:p-4 lg:p-5"
               : "p-4 sm:p-6 lg:p-8"
           }`}
           style={{
-            maxWidth: "1600px",
             width: "100%",
-            margin: "0 auto",
             ...(activeTab === "comms"
               ? { height: "calc(100vh - 56px)", maxHeight: "calc(100vh - 56px)", overflow: "hidden" }
               : {}),
@@ -6098,7 +6166,7 @@ export function AdminDashboardPage() {
 
           {/* TAB 1: ADMIN DASHBOARD */}
           {activeTab === "dashboard" && (
-            <div className="space-y-8">
+            <div className="space-y-8 w-full min-w-0">
               {/* Dashboard Title & Meta */}
               <div className="admin-page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ marginBottom: "2rem" }}>
                 <div>
@@ -6202,148 +6270,91 @@ export function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* TWO COLUMN GRID: Recent Donations & Activities */}
-              <div className="admin-grid-2col mb-8">
-                {/* SECTION 1: Recent donations */}
-                <div className="admin-card p-6">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <h2 className="text-base font-bold text-slate-900">
-                        Recent Donations
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Real-time audit log of donations recorded.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("donations")}
-                      className="text-xs font-bold text-magenta hover:underline cursor-pointer"
-                    >
-                      View all ledger →
-                    </button>
-                  </div>
-
-                  {sections?.recentDonations?.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 text-xs">
-                      No donations recorded yet.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200">
-                      <table className="admin-table w-full text-left text-xs">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Reference</th>
-                            <th>Donor</th>
-                            <th>Campaign</th>
-                            <th>Type</th>
-                            <th className="text-right">Amount</th>
-                            <th className="text-center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sections?.recentDonations?.map((d) => (
-                            <tr key={d.id}>
-                              <td className="whitespace-nowrap font-medium text-slate-600">
-                                {new Date(d.createdAt).toLocaleDateString("en-GB", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric"
-                                })}
-                              </td>
-                              <td>
-                                <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                                  {d.reference}
-                                </span>
-                              </td>
-                              <td>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-full bg-pink-100 text-magenta font-bold text-[10px] flex items-center justify-center shrink-0">
-                                    {d.donor?.fullName?.charAt(0) || "D"}
-                                  </div>
-                                  <span className="font-semibold text-slate-900">{d.donor?.fullName}</span>
-                                </div>
-                              </td>
-                              <td className="text-slate-600 max-w-[150px] truncate">
-                                {d.campaign?.title || "General Fund"}
-                              </td>
-                              <td>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-50 text-magenta border border-pink-100">
-                                  {d.type === "RECURRING" ? "Monthly" : "One-off"}
-                                </span>
-                              </td>
-                              <td className="text-right font-black text-slate-900 whitespace-nowrap text-sm">
-                                £{Number(d.amount).toFixed(2)}
-                              </td>
-                              <td className="text-center">
-                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 inline-flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                  <span>{d.status}</span>
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {/* SECTION 2: Recent activities */}
-                <div className="admin-card p-6 flex flex-col justify-between">
+              {/* SECTION: Recent Donations Ledger */}
+              <div className="admin-card p-6 mb-8 w-full">
+                <div className="flex items-center justify-between mb-5">
                   <div>
-                    <div className="flex items-center justify-between mb-5">
-                      <div>
-                        <h2 className="text-base font-bold text-slate-900">
-                          Recent Activities
-                        </h2>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          Live audit trail across platform events.
-                        </p>
-                      </div>
-                      <div className="w-8 h-8 rounded-lg bg-pink-50 text-magenta flex items-center justify-center">
-                        <Activity size={16} />
-                      </div>
-                    </div>
-
-                    {sections?.recentActivities?.length === 0 ? (
-                      <div className="text-center py-10 text-slate-400 text-xs">
-                        No activity recorded yet.
-                      </div>
-                    ) : (
-                      <div className="space-y-3.5">
-                        {sections?.recentActivities?.map((act) => (
-                          <div key={act.id} className="flex items-start gap-3 text-xs p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
-                            <div className="w-7 h-7 rounded-lg bg-pink-50 border border-pink-100 text-magenta flex items-center justify-center shrink-0 mt-0.5">
-                              {act.type === "DONATION" && <CreditCard size={13} />}
-                              {act.type === "BENEFICIARY_REQUEST" && <HeartHandshake size={13} />}
-                              {act.type === "DONOR_REGISTRATION" && <User size={13} />}
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="font-bold text-slate-900 truncate">
-                                {act.title}
-                              </div>
-                              <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
-                                {act.description}
-                              </div>
-                              <div className="text-[10px] text-slate-400 font-medium mt-1">
-                                {new Date(act.timestamp).toLocaleDateString("en-GB", {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit"
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <h2 className="text-base font-bold text-slate-900">
+                      Recent Donations
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Real-time audit log of donations recorded.
+                    </p>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("donations")}
+                    className="text-xs font-bold text-magenta hover:underline cursor-pointer"
+                  >
+                    View all ledger →
+                  </button>
                 </div>
+
+                {sections?.recentDonations?.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    No donations recorded yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="admin-table w-full text-left text-xs">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Reference</th>
+                          <th>Donor</th>
+                          <th>Campaign</th>
+                          <th>Type</th>
+                          <th className="text-right">Amount</th>
+                          <th className="text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sections?.recentDonations?.map((d) => (
+                          <tr key={d.id}>
+                            <td className="whitespace-nowrap font-medium text-slate-600">
+                              {new Date(d.createdAt).toLocaleDateString("en-GB", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric"
+                              })}
+                            </td>
+                            <td>
+                              <span className="font-mono text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                                {d.reference}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-pink-100 text-magenta font-bold text-[10px] flex items-center justify-center shrink-0">
+                                  {d.donor?.fullName?.charAt(0) || "D"}
+                                </div>
+                                <span className="font-semibold text-slate-900">{d.donor?.fullName}</span>
+                              </div>
+                            </td>
+                            <td className="text-slate-600 max-w-[200px] truncate">
+                              {d.campaign?.title || "General Fund"}
+                            </td>
+                            <td>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-50 text-magenta border border-pink-100">
+                                {d.type === "RECURRING" ? "Monthly" : "One-off"}
+                              </span>
+                            </td>
+                            <td className="text-right font-black text-slate-900 whitespace-nowrap text-sm">
+                              £{Number(d.amount).toFixed(2)}
+                            </td>
+                            <td className="text-center">
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span>{d.status}</span>
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {/* SECTION 3: Campaign performance */}
@@ -11767,23 +11778,14 @@ export function AdminDashboardPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-xs">
-                          {staffList
-                            .filter((s) => {
-                              const matchSearch =
-                                !staffSearch ||
-                                s.fullName.toLowerCase().includes(staffSearch.toLowerCase()) ||
-                                s.email.toLowerCase().includes(staffSearch.toLowerCase()) ||
-                                (s.department || "").toLowerCase().includes(staffSearch.toLowerCase()) ||
-                                (s.jobTitle || "").toLowerCase().includes(staffSearch.toLowerCase());
-                              const matchRole =
-                                staffRoleFilter === "ALL" ||
-                                s.staffRole === staffRoleFilter ||
-                                (staffRoleFilter === "ADMIN" && s.role === "ADMIN");
-                              const matchDept =
-                                staffDeptFilter === "ALL" || s.department === staffDeptFilter;
-                              return matchSearch && matchRole && matchDept;
-                            })
-                            .map((staff) => {
+                          {paginatedStaffList.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-8 text-center text-gray-400">
+                                No staff members matched the selected filters.
+                              </td>
+                            </tr>
+                          ) : (
+                            paginatedStaffList.map((staff) => {
                               const roleKey = staff.staffRole || (staff.role === "ADMIN" ? "SUPER_ADMIN" : "CASEWORKER");
                               let badgeClass = "bg-purple-50 text-purple-700";
                               if (roleKey === "SUPER_ADMIN") badgeClass = "bg-pink-100 text-magenta font-black";
@@ -11877,9 +11879,101 @@ export function AdminDashboardPage() {
                                   </td>
                                 </tr>
                               );
-                            })}
+                            })
+                          )}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Staff Pagination Bar */}
+                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs bg-slate-50/50">
+                      <div className="flex items-center gap-3 text-slate-500">
+                        <span>
+                          Showing{" "}
+                          <strong className="text-slate-800">
+                            {filteredStaffList.length === 0 ? 0 : (safeStaffCurrentPage - 1) * staffItemsPerPage + 1}
+                          </strong>{" "}
+                          to{" "}
+                          <strong className="text-slate-800">
+                            {Math.min(safeStaffCurrentPage * staffItemsPerPage, filteredStaffList.length)}
+                          </strong>{" "}
+                          of{" "}
+                          <strong className="text-slate-800">{filteredStaffList.length}</strong> staff accounts
+                        </span>
+
+                        <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                          <span className="text-[11px] text-slate-400">Per page:</span>
+                          <select
+                            value={staffItemsPerPage}
+                            onChange={(e) => {
+                              setStaffItemsPerPage(Number(e.target.value));
+                              setStaffCurrentPage(1);
+                            }}
+                            className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-magenta"
+                          >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          disabled={safeStaffCurrentPage <= 1}
+                          onClick={() => setStaffCurrentPage((prev) => Math.max(1, prev - 1))}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs cursor-pointer transition-colors"
+                          title="Previous page"
+                        >
+                          <ChevronLeft size={14} />
+                          <span className="hidden sm:inline">Prev</span>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalStaffPages }, (_, i) => i + 1)
+                            .filter((page) => {
+                              if (totalStaffPages <= 7) return true;
+                              if (page === 1 || page === totalStaffPages) return true;
+                              return Math.abs(page - safeStaffCurrentPage) <= 1;
+                            })
+                            .map((page, index, arr) => {
+                              const prevPage = arr[index - 1];
+                              const showEllipsis = prevPage && page - prevPage > 1;
+
+                              return (
+                                <React.Fragment key={page}>
+                                  {showEllipsis && (
+                                    <span className="px-1 text-slate-400 font-bold">...</span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setStaffCurrentPage(page)}
+                                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                                      page === safeStaffCurrentPage
+                                        ? "bg-magenta text-white shadow-sm"
+                                        : "bg-white text-slate-600 hover:bg-slate-100 border border-gray-200"
+                                    }`}
+                                  >
+                                    {page}
+                                  </button>
+                                </React.Fragment>
+                              );
+                            })}
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={safeStaffCurrentPage >= totalStaffPages}
+                          onClick={() => setStaffCurrentPage((prev) => Math.min(totalStaffPages, prev + 1))}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs cursor-pointer transition-colors"
+                          title="Next page"
+                        >
+                          <span className="hidden sm:inline">Next</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -12352,8 +12446,8 @@ export function AdminDashboardPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-xs">
-                          {auditLogs.length > 0 ? (
-                            auditLogs.map((log) => {
+                          {paginatedAuditLogs.length > 0 ? (
+                            paginatedAuditLogs.map((log) => {
                               let actionBadge = "bg-blue-50 text-blue-700";
                               if (log.action.includes("APPROVED") || log.action.includes("DISTRIBUTED")) {
                                 actionBadge = "bg-emerald-50 text-emerald-700";
@@ -12417,6 +12511,96 @@ export function AdminDashboardPage() {
                           )}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Audit Logs Pagination Bar */}
+                    <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs bg-slate-50/50">
+                      <div className="flex items-center gap-3 text-slate-500">
+                        <span>
+                          Showing{" "}
+                          <strong className="text-slate-800">
+                            {filteredAuditLogs.length === 0 ? 0 : (safeAuditCurrentPage - 1) * auditItemsPerPage + 1}
+                          </strong>{" "}
+                          to{" "}
+                          <strong className="text-slate-800">
+                            {Math.min(safeAuditCurrentPage * auditItemsPerPage, filteredAuditLogs.length)}
+                          </strong>{" "}
+                          of{" "}
+                          <strong className="text-slate-800">{filteredAuditLogs.length}</strong> audit events
+                        </span>
+
+                        <div className="hidden sm:flex items-center gap-1.5 ml-2">
+                          <span className="text-[11px] text-slate-400">Per page:</span>
+                          <select
+                            value={auditItemsPerPage}
+                            onChange={(e) => {
+                              setAuditItemsPerPage(Number(e.target.value));
+                              setAuditCurrentPage(1);
+                            }}
+                            className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-magenta"
+                          >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          disabled={safeAuditCurrentPage <= 1}
+                          onClick={() => setAuditCurrentPage((prev) => Math.max(1, prev - 1))}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs cursor-pointer transition-colors"
+                          title="Previous page"
+                        >
+                          <ChevronLeft size={14} />
+                          <span className="hidden sm:inline">Prev</span>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalAuditPages }, (_, i) => i + 1)
+                            .filter((page) => {
+                              if (totalAuditPages <= 7) return true;
+                              if (page === 1 || page === totalAuditPages) return true;
+                              return Math.abs(page - safeAuditCurrentPage) <= 1;
+                            })
+                            .map((page, index, arr) => {
+                              const prevPage = arr[index - 1];
+                              const showEllipsis = prevPage && page - prevPage > 1;
+
+                              return (
+                                <React.Fragment key={page}>
+                                  {showEllipsis && (
+                                    <span className="px-1 text-slate-400 font-bold">...</span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setAuditCurrentPage(page)}
+                                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                                      page === safeAuditCurrentPage
+                                        ? "bg-magenta text-white shadow-sm"
+                                        : "bg-white text-slate-600 hover:bg-slate-100 border border-gray-200"
+                                    }`}
+                                  >
+                                    {page}
+                                  </button>
+                                </React.Fragment>
+                              );
+                            })}
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={safeAuditCurrentPage >= totalAuditPages}
+                          onClick={() => setAuditCurrentPage((prev) => Math.min(totalAuditPages, prev + 1))}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs cursor-pointer transition-colors"
+                          title="Next page"
+                        >
+                          <span className="hidden sm:inline">Next</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
