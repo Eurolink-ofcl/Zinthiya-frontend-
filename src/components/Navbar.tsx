@@ -125,12 +125,12 @@ export function Navbar() {
               >
                 About
               </Link>
-              <a
-                href="/#services"
+              <Link
+                to="/services"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold whitespace-nowrap"
               >
                 Our Service
-              </a>
+              </Link>
               <Link
                 to="/donor/dashboard"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold whitespace-nowrap"
@@ -200,13 +200,13 @@ export function Navbar() {
                 >
                   About
                 </Link>
-                <a
-                  href="/#services"
+                <Link
+                  to="/services"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
                 >
                   Our Service
-                </a>
+                </Link>
                 <Link
                   to="/donor/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
