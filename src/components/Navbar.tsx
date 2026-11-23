@@ -113,36 +113,36 @@ export function Navbar() {
           <div className="hidden nav:flex items-center gap-3">
             {/* Dark Navigation Capsule */}
             <nav className="bg-ink/85 backdrop-blur-xl text-white px-3.5 py-1.5 rounded-full shadow-[0_8px_32px_0_rgba(36,18,33,0.3)] flex items-center space-x-1 font-semibold text-sm border border-white/20 transition-all">
-              <a
-                href="#"
+              <Link
+                to="/"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold"
               >
                 Home
-              </a>
-              <a
-                href="#about"
+              </Link>
+              <Link
+                to="/about"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold"
               >
                 About
-              </a>
+              </Link>
               <a
-                href="#services"
+                href="/#services"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold whitespace-nowrap"
               >
                 Our Service
               </a>
-              <a
-                href="/donor/dashboard"
+              <Link
+                to="/donor/dashboard"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold whitespace-nowrap"
               >
                 Donation
-              </a>
-              <a
-                href="/beneficiary"
+              </Link>
+              <Link
+                to="/beneficiary"
                 className="nav-shutter-link px-3.5 py-1.5 rounded-full text-white/90 hover:scale-105 font-bold whitespace-nowrap"
               >
                 Beneficiary
-              </a>
+              </Link>
             </nav>
 
             {/* Direct Login Button */}
@@ -186,41 +186,41 @@ export function Navbar() {
           <div className="nav:hidden mt-3 pt-3 pb-4 border-t border-white/40 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="bg-ink/95 backdrop-blur-2xl text-white rounded-3xl p-4 shadow-2xl border border-white/10 space-y-3">
               <nav className="flex flex-col space-y-1">
-                <a
-                  href="#"
+                <Link
+                  to="/"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-white font-semibold hover:bg-white/10 transition-colors"
                 >
                   Home
-                </a>
-                <a
-                  href="#about"
+                </Link>
+                <Link
+                  to="/about"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
                 >
                   About
-                </a>
+                </Link>
                 <a
-                  href="#services"
+                  href="/#services"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
                 >
                   Our Service
                 </a>
-                <a
-                  href="/donor/dashboard"
+                <Link
+                  to="/donor/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
                 >
                   Donation
-                </a>
-                <a
-                  href="/beneficiary"
+                </Link>
+                <Link
+                  to="/beneficiary"
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-white/90 font-semibold hover:bg-white/10 transition-colors"
                 >
                   Beneficiary
-                </a>
+                </Link>
               </nav>
 
               <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row gap-2">

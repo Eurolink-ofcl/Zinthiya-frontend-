@@ -1,6 +1,5 @@
 import { Navbar } from "../components/Navbar";
 import { Hero } from "../components/Hero";
-import { About } from "../components/About";
 import { Services } from "../components/Services";
 import { SupportBanner } from "../components/SupportBanner";
 import { CommunityProjects } from "../components/CommunityProjects";
@@ -17,7 +16,6 @@ export function HomePage() {
       {/* Main Content */}
       <main className="flex-1">
         <Hero />
-        <About />
         <Services />
         <SupportBanner />
         <CommunityProjects />
