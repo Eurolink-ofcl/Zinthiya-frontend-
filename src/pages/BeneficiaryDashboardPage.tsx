@@ -767,6 +767,34 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
   const [isCaseworkerTyping, setIsCaseworkerTyping] = useState<boolean>(false);
 
+  // Dedicated Chat Scrolling & Auto-scroll Reference
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const isNearBottomRef = useRef<boolean>(true);
+
+  const handleMessagesScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    // Consider near bottom if within 80px
+    isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 80;
+  };
+
+  // Smart auto-scroll when new messages arrive (only if user was already near bottom)
+  useEffect(() => {
+    if (activeTab === "messages" && messagesContainerRef.current) {
+      if (isNearBottomRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }
+  }, [chatThreads, activeConversationId, activeTab]);
+
+  // Initial scroll to bottom when switching tab or conversation thread
+  useEffect(() => {
+    if (activeTab === "messages" && messagesContainerRef.current) {
+      isNearBottomRef.current = true;
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [activeTab, activeConversationId]);
+
   // Language selection state & Internationalization (i18n)
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(() => {
     if (typeof window !== "undefined") {
@@ -1816,7 +1844,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     <div
       style={{
         backgroundColor: "#FBF7F9",
-        minHeight: "100vh",
+        height: activeTab === "messages" ? "100dvh" : undefined,
+        minHeight: activeTab === "messages" ? "100dvh" : "100vh",
+        maxHeight: activeTab === "messages" ? "100dvh" : undefined,
+        overflow: activeTab === "messages" ? "hidden" : undefined,
         display: "flex",
         flexDirection: "row",
         color: "#241221",
@@ -1835,6 +1866,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           width: 260px;
           min-width: 260px;
           height: 100vh;
+          height: 100dvh;
           position: sticky;
           top: 0;
           background-color: #ffffff;
@@ -1847,6 +1879,24 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           z-index: 50;
           overflow-y: auto;
           flex-shrink: 0;
+        }
+
+        .beneficiary-messages-workspace {
+          display: grid;
+          grid-template-columns: 320px minmax(0, 1fr);
+          gap: 16px;
+          align-items: stretch;
+          flex: 1;
+          min-height: 0;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        @media (max-width: 1023px) {
+          .beneficiary-messages-workspace {
+            grid-template-columns: 1fr !important;
+            overflow-y: auto !important;
+          }
         }
 
         .beneficiary-sidebar-btn {
@@ -2079,7 +2129,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       </aside>
 
       {/* 2. Main Content Area */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: "100vh" }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          minHeight: activeTab === "messages" ? 0 : "100vh",
+          height: activeTab === "messages" ? "100dvh" : undefined,
+          maxHeight: activeTab === "messages" ? "100dvh" : undefined,
+          overflow: activeTab === "messages" ? "hidden" : undefined
+        }}
+      >
         {/* Sticky Top Header Bar */}
         <header
           style={{
@@ -2091,7 +2152,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
             zIndex: 30,
             padding: "12px 24px",
             width: "100%",
-            boxSizing: "border-box"
+            boxSizing: "border-box",
+            flexShrink: 0
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
@@ -2184,7 +2246,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         </header>
 
         {/* 3. Tab Content Viewport */}
-        <main style={{ flex: 1, padding: "24px", width: "100%", boxSizing: "border-box" }}>
+        <main
+          style={{
+            flex: 1,
+            padding: activeTab === "messages" ? "12px 20px" : "24px",
+            width: "100%",
+            boxSizing: "border-box",
+            display: activeTab === "messages" ? "flex" : "block",
+            flexDirection: activeTab === "messages" ? "column" : undefined,
+            minHeight: 0,
+            overflow: activeTab === "messages" ? "hidden" : "visible"
+          }}
+        >
           {portalDisabledByAdmin && (
             <div
               style={{
@@ -5061,31 +5134,43 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           {/* - Automatic language detection & message translation                      */}
           {/* ========================================================================= */}
           {activeTab === "messages" && (
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                flex: 1,
+                minHeight: 0,
+                overflow: "hidden"
+              }}
+            >
               {/* 1. Assigned Advocate Overview Header Strip */}
               <div
                 className="beneficiary-card"
                 style={{
-                  padding: "20px",
+                  padding: "12px 18px",
                   background: "linear-gradient(135deg, #FFF5F9 0%, #FFFFFF 100%)",
-                  border: "1px solid rgba(230, 18, 126, 0.2)"
+                  border: "1px solid rgba(230, 18, 126, 0.2)",
+                  flexShrink: 0
                 }}
               >
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                     <div style={{ position: "relative" }}>
                       <div
                         style={{
-                          width: "56px",
-                          height: "56px",
-                          borderRadius: "16px",
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "14px",
                           background: "linear-gradient(135deg, #E6127E 0%, #FF5FA0 100%)",
                           color: "#ffffff",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           fontWeight: 900,
-                          fontSize: "20px",
+                          fontSize: "18px",
                           boxShadow: "0 4px 14px rgba(230, 18, 126, 0.3)"
                         }}
                       >
@@ -5108,7 +5193,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#241221", margin: 0 }}>
+                        <h2 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: 0 }}>
                           {assignedAdvocate.name}
                         </h2>
                         <span
@@ -5142,7 +5227,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         {assignedAdvocate.title} • {assignedAdvocate.credentials}
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "6px", fontSize: "11px", color: "#8E7287" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "4px", fontSize: "11px", color: "#8E7287" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                           <PhoneCall size={12} style={{ color: "#E6127E" }} />
                           <span>Direct: <strong>{assignedAdvocate.phone} ext. {assignedAdvocate.ext}</strong></span>
@@ -5163,8 +5248,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     <a
                       href={`tel:${assignedAdvocate.phone}`}
                       style={{
-                        padding: "8px 14px",
-                        borderRadius: "10px",
+                        padding: "7px 12px",
+                        borderRadius: "8px",
                         backgroundColor: "#ffffff",
                         border: "1px solid rgba(230, 18, 126, 0.25)",
                         color: "#E6127E",
@@ -5176,7 +5261,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         gap: "6px"
                       }}
                     >
-                      <PhoneCall size={14} />
+                      <PhoneCall size={13} />
                       <span>{t("call_advocate", "Call Advocate")}</span>
                     </a>
 
@@ -5184,16 +5269,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       type="button"
                       onClick={() => setShowAdvocateProfileModal(true)}
                       className="btn-gradient-magenta"
-                      style={{ padding: "8px 14px", fontSize: "12px" }}
+                      style={{ padding: "7px 12px", fontSize: "12px" }}
                     >
-                      <User size={14} />
+                      <User size={13} />
                       <span>{t("view_advocate_profile", "View Full Advocate Profile")}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Advocate Spoken Languages Strip */}
-                <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid rgba(230, 18, 126, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", fontSize: "11px" }}>
+                <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(230, 18, 126, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", fontSize: "11px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <Languages size={14} style={{ color: "#E6127E" }} />
                     <span style={{ color: "#241221", fontWeight: 700 }}>{t("advocate_spoken_languages", "Advocate Spoken Languages:")}</span>
@@ -5209,22 +5294,23 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
               <div
                 className="beneficiary-card"
                 style={{
-                  padding: "14px 20px",
+                  padding: "10px 18px",
                   backgroundColor: "#F8FAFC",
                   border: "1px solid #E2E8F0",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   flexWrap: "wrap",
-                  gap: "12px"
+                  gap: "10px",
+                  flexShrink: 0
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "30px", height: "30px", borderRadius: "8px", backgroundColor: "#EFF6FF", color: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Globe size={16} />
+                  <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: "#EFF6FF", color: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Globe size={15} />
                   </div>
                   <div>
-                    <div style={{ fontSize: "12.5px", fontWeight: 800, color: "#1E293B", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 800, color: "#1E293B", display: "flex", alignItems: "center", gap: "6px" }}>
                       <span>{t("translation_banner_title", "Automated Language Detection & Real-Time Translation")}</span>
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "9999px", backgroundColor: "#ECFDF5", color: "#065F46" }}>
                         ACTIVE
@@ -5236,7 +5322,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569" }}>
                       {t("translate_into", "Translate into:")}
@@ -5245,8 +5331,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       value={chatTranslationTarget}
                       onChange={(e) => handleTranslateThread(e.target.value)}
                       style={{
-                        padding: "5px 10px",
-                        borderRadius: "8px",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
                         border: "1px solid #CBD5E1",
                         fontSize: "12px",
                         fontWeight: 600,
@@ -5291,8 +5377,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   </label>
 
                   {isTranslatingThread && (
-                    <span style={{ fontSize: "11px", color: "#E6127E", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px", borderRadius: "6px", backgroundColor: "#FCE8F3" }}>
-                      <RefreshCw size={12} className="animate-spin text-magenta" />
+                    <span style={{ fontSize: "11px", color: "#E6127E", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 7px", borderRadius: "6px", backgroundColor: "#FCE8F3" }}>
+                      <RefreshCw size={11} className="animate-spin text-magenta" />
                       <span>Translating thread into {LANGUAGE_LABELS[chatTranslationTarget] || chatTranslationTarget}...</span>
                     </span>
                   )}
@@ -5303,8 +5389,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       alert(`Accredited Human Interpreter Request sent to ${beneficiaryUser.caseWorker}. An interpreter for your chosen language will be booked for your next scheduled consultation.`);
                     }}
                     style={{
-                      padding: "5px 10px",
-                      borderRadius: "8px",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
                       backgroundColor: "#FCE8F3",
                       color: "#B80C64",
                       fontSize: "11px",
@@ -5319,40 +5405,37 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
               </div>
 
               {/* 3. Main Communication Workspace: Previous Conversations (Threads) + Live Chat Panel */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                  gap: "20px",
-                  alignItems: "stretch"
-                }}
-              >
+              <div className="beneficiary-messages-workspace">
                 {/* Left Column: Previous Conversations / Thread Archive */}
                 <div
                   className="beneficiary-card"
                   style={{
-                    padding: "16px",
+                    padding: "14px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "12px",
-                    minWidth: "260px"
+                    gap: "10px",
+                    height: "100%",
+                    minHeight: 0,
+                    overflow: "hidden"
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 800, color: "#241221", display: "flex", alignItems: "center", gap: "6px" }}>
-                      <MessagesSquare size={16} style={{ color: "#E6127E" }} />
-                      <span>{t("threads_title", "Conversations & Casework Threads")}</span>
+                  <div style={{ flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#241221", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <MessagesSquare size={16} style={{ color: "#E6127E" }} />
+                        <span>{t("threads_title", "Conversations & Casework Threads")}</span>
+                      </div>
+                      <span style={{ fontSize: "10px", fontWeight: 800, padding: "1px 6px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#B80C64" }}>
+                        {conversationThreads.length} Total
+                      </span>
                     </div>
-                    <span style={{ fontSize: "10px", fontWeight: 800, padding: "1px 6px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#B80C64" }}>
-                      {conversationThreads.length} Total
-                    </span>
+
+                    <p style={{ fontSize: "11px", color: "#8E7287", margin: "4px 0 0 0" }}>
+                      {t("conversations_sub", "Switch between active casework discussions and previous resolved assistance records.")}
+                    </p>
                   </div>
 
-                  <p style={{ fontSize: "11px", color: "#8E7287", margin: "0 0 6px 0" }}>
-                    {t("conversations_sub", "Switch between active casework discussions and previous resolved assistance records.")}
-                  </p>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minHeight: 0, overflowY: "auto", paddingRight: "4px" }}>
                     {conversationThreads.map((thread) => {
                       const isSelected = activeConversationId === thread.id;
                       return (
@@ -5365,7 +5448,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             backgroundColor: isSelected ? "#FFF5F9" : "#F8FAFC",
                             border: isSelected ? "1.5px solid #E6127E" : "1px solid #E2E8F0",
                             cursor: "pointer",
-                            transition: "all 0.15s ease"
+                            transition: "all 0.15s ease",
+                            flexShrink: 0
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
@@ -5402,7 +5486,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <div
                     style={{
                       marginTop: "auto",
-                      padding: "12px",
+                      flexShrink: 0,
+                      padding: "10px 12px",
                       borderRadius: "10px",
                       backgroundColor: "#FBF7F9",
                       border: "1px solid rgba(230, 18, 126, 0.1)",
@@ -5425,21 +5510,23 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
-                    height: "720px",
-                    gridColumn: "span 2"
+                    height: "100%",
+                    minHeight: 0,
+                    flex: 1
                   }}
                 >
                   {/* Thread Header Bar */}
                   <div
                     style={{
-                      padding: "14px 20px",
+                      padding: "12px 18px",
                       borderBottom: "1px solid rgba(230, 18, 126, 0.12)",
                       backgroundColor: "#FFF5F9",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
                       flexWrap: "wrap",
-                      gap: "10px"
+                      gap: "10px",
+                      flexShrink: 0
                     }}
                   >
                     <div>
@@ -5476,13 +5563,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                   {/* Messages Feed Viewport */}
                   <div
+                    ref={messagesContainerRef}
+                    onScroll={handleMessagesScroll}
                     style={{
                       flex: 1,
-                      padding: "20px",
+                      minHeight: 0,
+                      padding: "16px 20px",
                       overflowY: "auto",
                       display: "flex",
                       flexDirection: "column",
-                      gap: "18px",
+                      gap: "16px",
                       backgroundColor: "#FAF7F9"
                     }}
                   >
@@ -5820,7 +5910,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   </div>
 
                   {/* Message Input & Voice Recording Toolbar */}
-                  <div style={{ borderTop: "1px solid rgba(230, 18, 126, 0.12)", backgroundColor: "#ffffff" }}>
+                  <div style={{ borderTop: "1px solid rgba(230, 18, 126, 0.12)", backgroundColor: "#ffffff", flexShrink: 0 }}>
                     {/* Attachment preview strip */}
                     {selectedAttachment && (
                       <div style={{ padding: "8px 16px", backgroundColor: "#FFF5F9", borderBottom: "1px solid rgba(230,18,126,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
