@@ -211,6 +211,7 @@ export interface AdminBeneficiaryRequest {
   assignedWorker?: string;
   resolutionDate?: string;
   documents?: any[];
+  allocations?: AssistanceAllocationRecord[];
   createdAt: string;
 }
 
@@ -342,6 +343,7 @@ export interface AssistanceAllocationRecord {
   beneficiaryEmail?: string | null;
   beneficiaryPhone?: string | null;
   requestId?: string | null;
+  beneficiaryRequestId?: string | null;
   campaignId?: string | null;
   categoryId?: string | null;
   categoryName?: string | null;
@@ -377,6 +379,8 @@ export interface AssistanceAllocationRecord {
     serviceType: string;
     urgency: string;
     status: string;
+    notes?: string | null;
+    createdAt?: string;
   } | null;
 }
 
@@ -1499,6 +1503,7 @@ class ApiService {
     beneficiaryEmail?: string;
     beneficiaryPhone?: string;
     requestId?: string;
+    beneficiaryRequestId?: string;
     campaignId?: string;
     categoryId?: string;
     categoryName?: string;

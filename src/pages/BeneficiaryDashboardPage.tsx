@@ -1356,15 +1356,37 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       const isApproved = req.status === "APPROVED";
       const isRejected = req.status === "REJECTED" || req.status === "DECLINED";
       const isPending = req.status === "PENDING" || !req.status;
-      const statusFormatted = isApproved ? "Approved" : isRejected ? "Declined" : isPending ? "Pending Admin Approval" : "Under Assessment";
-      const statusColor = isApproved ? "#2563EB" : isRejected ? "#DC2626" : "#D97706";
-      const statusBg = isApproved ? "#EFF6FF" : isRejected ? "#FEF2F2" : "#FEF3C7";
+
+      const linkedAllocs = (liveAllocations || []).filter(
+        (a: any) => (a.requestId === req.id || a.beneficiaryRequestId === req.id) && a.status !== "CANCELLED"
+      );
+      const totalAllocAmt = linkedAllocs.reduce((sum: number, a: any) => sum + Number(a.allocatedAmount || 0), 0);
+      const totalDistAmt = linkedAllocs
+        .filter((a: any) => a.status === "DISTRIBUTED")
+        .reduce((sum: number, a: any) => sum + Number(a.distributedAmount || a.allocatedAmount || 0), 0);
+      const hasAlloc = linkedAllocs.length > 0;
+
+      let statusFormatted = isApproved ? "Approved" : isRejected ? "Declined" : isPending ? "Pending Admin Approval" : "Under Assessment";
+      let statusColor = isApproved ? "#2563EB" : isRejected ? "#DC2626" : "#D97706";
+      let statusBg = isApproved ? "#EFF6FF" : isRejected ? "#FEF2F2" : "#FEF3C7";
+
+      if (hasAlloc) {
+        if (totalDistAmt >= totalAllocAmt && totalDistAmt > 0) {
+          statusFormatted = "Disbursed";
+          statusColor = "#059669";
+          statusBg = "#ECFDF5";
+        } else {
+          statusFormatted = "Funds Allocated";
+          statusColor = "#B80C64";
+          statusBg = "#FCE8F3";
+        }
+      }
 
       return {
         id: req.id,
         type: req.serviceType || "Emergency Support",
-        amountINR: "Awaiting Review",
-        amountGBP: "Awaiting Review",
+        amountINR: hasAlloc ? `₹${(totalAllocAmt * 110).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "Awaiting Review",
+        amountGBP: hasAlloc ? `£${totalAllocAmt.toLocaleString("en-GB", { minimumFractionDigits: 2 })}` : "Awaiting Review",
         status: statusFormatted,
         statusColor,
         statusBg,
@@ -1372,7 +1394,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         dateReceived: dateStr,
         category: req.serviceType || "Crisis Relief",
         reference: ref,
-        funder: "The Zinthiya Trust",
+        funder: linkedAllocs[0]?.fundSource || "The Zinthiya Trust",
         caseworker: req.assignedWorker || beneficiaryUser.caseWorker,
         description: req.notes || "Beneficiary support application undergoing caseworker assessment.",
         documents: Array.isArray(req.documents) ? req.documents : [],
@@ -1380,7 +1402,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         urgency: req.urgency || "HIGH",
         rawStatus: req.status || "PENDING",
         reviewNotes: req.reviewNotes || null,
-        hasAllocation: liveAllocations.some((a) => a.beneficiaryRequestId === req.id)
+        hasAllocation: hasAlloc,
+        totalAllocatedAmount: totalAllocAmt,
+        linkedAllocations: linkedAllocs
       };
     });
   }, [liveRequests, liveAllocations, beneficiaryUser.caseWorker]);
@@ -4968,9 +4992,15 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                               <td style={{ padding: "14px 16px", fontWeight: 800, color: record.amountINR === "—" || record.amountINR === "Awaiting Review" ? "#94A3B8" : "#241221", fontSize: "13px" }}>
                                 {record.isAppliedRequest ? (
-                                  <span style={{ fontSize: "11px", color: "#D97706", fontWeight: 700, backgroundColor: "#FFFBEB", padding: "2px 8px", borderRadius: "6px", border: "1px solid #FDE68A" }}>
-                                    Awaiting Triage
-                                  </span>
+                                  record.hasAllocation ? (
+                                    <span style={{ fontSize: "12px", color: "#059669", fontWeight: 800, backgroundColor: "#ECFDF5", padding: "3px 8px", borderRadius: "6px", border: "1px solid #A7F3D0" }}>
+                                      {dashboardCurrency === "INR" ? record.amountINR : record.amountGBP}
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: "11px", color: "#D97706", fontWeight: 700, backgroundColor: "#FFFBEB", padding: "2px 8px", borderRadius: "6px", border: "1px solid #FDE68A" }}>
+                                      Awaiting Triage
+                                    </span>
+                                  )
                                 ) : (
                                   dashboardCurrency === "INR" ? record.amountINR : record.amountGBP
                                 )}
@@ -5256,6 +5286,51 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 <Eye size={12} />
                                 <span>View File</span>
                               </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Linked Charitable Fund Allocations */}
+                    {selectedAssistanceDetail.linkedAllocations && selectedAssistanceDetail.linkedAllocations.length > 0 && (
+                      <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "12px", backgroundColor: "#FCE8F3", border: "1px solid #FBCFE8" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                          <span style={{ color: "#B80C64", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
+                            <Wallet size={13} style={{ color: "#E6127E" }} />
+                            <span>Linked Assistance Allocations ({selectedAssistanceDetail.linkedAllocations.length}):</span>
+                          </span>
+                          <span style={{ fontSize: "12px", fontWeight: 900, color: "#9D174D" }}>
+                            Total: {dashboardCurrency === "INR" ? selectedAssistanceDetail.amountINR : selectedAssistanceDetail.amountGBP}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {selectedAssistanceDetail.linkedAllocations.map((alloc: any, i: number) => (
+                            <div
+                              key={alloc.id || i}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "8px 12px",
+                                borderRadius: "8px",
+                                backgroundColor: "#FFFFFF",
+                                border: "1px solid rgba(230, 18, 126, 0.2)",
+                                fontSize: "11px"
+                              }}
+                            >
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                <span style={{ fontFamily: "monospace", fontWeight: 700, color: "#241221" }}>{alloc.reference}</span>
+                                <span style={{ fontSize: "10px", color: "#64748B" }}>{alloc.fundSource} • {new Date(alloc.allocationDate).toLocaleDateString("en-GB")}</span>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ fontWeight: 800, color: "#059669", fontSize: "12px" }}>
+                                  £{Number(alloc.allocatedAmount).toFixed(2)}
+                                </span>
+                                <span style={{ fontSize: "9px", fontWeight: 800, padding: "2px 6px", borderRadius: "9999px", backgroundColor: alloc.status === "DISTRIBUTED" ? "#ECFDF5" : "#FEF3C7", color: alloc.status === "DISTRIBUTED" ? "#065F46" : "#92400E" }}>
+                                  {alloc.status}
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>

@@ -1839,6 +1839,7 @@ export function AdminDashboardPage() {
   // Form State: Create Allocation
   const [allocBeneficiaryMode, setAllocBeneficiaryMode] = useState<"EXISTING" | "CUSTOM">("EXISTING");
   const [allocSelectedBeneficiaryId, setAllocSelectedBeneficiaryId] = useState<string>("");
+  const [allocSelectedRequestId, setAllocSelectedRequestId] = useState<string>("");
   const [allocCustomName, setAllocCustomName] = useState<string>("");
   const [allocCustomEmail, setAllocCustomEmail] = useState<string>("");
   const [allocCustomPhone, setAllocCustomPhone] = useState<string>("");
@@ -2891,6 +2892,124 @@ export function AdminDashboardPage() {
     }
   }
 
+  // Helper to extract requested/approved grant amount from notes or text
+  function extractRequestedAmount(notes?: string | null): number | null {
+    if (!notes) return null;
+    const kMatch = notes.match(/(\d+(?:\.\d+)?)\s*k\b/i);
+    if (kMatch) {
+      const val = parseFloat(kMatch[1]) * 1000;
+      if (val > 0) return val;
+    }
+    const numMatch = notes.match(/(?:£|gbp|need|request|approved)?\s*(?:£)?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{2})?|[0-9]{2,7}(?:\.[0-9]{2})?)/i);
+    if (numMatch) {
+      const cleaned = numMatch[1].replace(/,/g, "");
+      const val = parseFloat(cleaned);
+      if (!isNaN(val) && val >= 10 && val <= 1000000) return val;
+    }
+    return null;
+  }
+
+  // Helper to get linked allocations and live funding summary for a specific beneficiary request
+  function getRequestFinancialSummary(req: AdminBeneficiaryRequest, userAllocs?: AssistanceAllocationRecord[]) {
+    const requestedAmount = extractRequestedAmount(req.notes) || extractRequestedAmount(req.reviewNotes);
+    
+    // Find all allocations linked to this request in the allocations ledger
+    const directAllocs = (allocationsList || []).filter(
+      (a) => (a.requestId === req.id || a.beneficiaryRequestId === req.id) && a.status !== "CANCELLED"
+    );
+    // Merge with any allocations directly attached to req or userAllocs
+    const combinedAllocs: AssistanceAllocationRecord[] = [...directAllocs];
+    const extraSources = [...(req.allocations || []), ...(userAllocs || [])];
+    extraSources.forEach((a) => {
+      if ((a.requestId === req.id || a.beneficiaryRequestId === req.id) && a.status !== "CANCELLED") {
+        if (!combinedAllocs.some((existing) => existing.id === a.id)) {
+          combinedAllocs.push(a);
+        }
+      }
+    });
+
+    const totalAllocated = combinedAllocs.reduce((sum, a) => sum + Number(a.allocatedAmount || 0), 0);
+    const totalDistributed = combinedAllocs
+      .filter((a) => a.status === "DISTRIBUTED")
+      .reduce((sum, a) => sum + Number(a.distributedAmount || a.allocatedAmount || 0), 0);
+    
+    const remainingAmount = requestedAmount !== null ? Math.max(0, requestedAmount - totalAllocated) : null;
+    const isFullyFunded = requestedAmount !== null && totalAllocated >= requestedAmount;
+    const isClosed = req.status === "REJECTED" || req.status === "COMPLETED";
+
+    return {
+      requestedAmount,
+      totalAllocated,
+      totalDistributed,
+      remainingAmount,
+      isFullyFunded,
+      isClosed,
+      allocations: combinedAllocs,
+    };
+  }
+
+  function handleSelectSupportRequest(reqId: string, beneficiary?: BeneficiaryRecord) {
+    setAllocSelectedRequestId(reqId);
+    if (!reqId) {
+      return;
+    }
+
+    const ben = beneficiary || beneficiariesList.find((b) => b.id === allocSelectedBeneficiaryId);
+    const targetReq = ben?.beneficiaryRequests?.find((r) => r.id === reqId);
+    if (!targetReq) return;
+
+    // Automatically find and populate matching support category
+    const serviceName = targetReq.serviceType.toLowerCase().trim();
+    const matchedCategory = supportCategoriesList.find((c) => {
+      const catName = c.name.toLowerCase().trim();
+      return catName === serviceName || serviceName.includes(catName) || catName.includes(serviceName);
+    }) || supportCategoriesList.find((c) => {
+      if (serviceName.includes("food") && c.name.toLowerCase().includes("food")) return true;
+      if (serviceName.includes("educat") && c.name.toLowerCase().includes("educat")) return true;
+      if (serviceName.includes("medic") && c.name.toLowerCase().includes("medic")) return true;
+      if (serviceName.includes("fuel") || serviceName.includes("heat") || serviceName.includes("energy")) {
+        return c.name.toLowerCase().includes("energy") || c.name.toLowerCase().includes("fuel");
+      }
+      return false;
+    });
+
+    if (matchedCategory) {
+      setAllocCategoryId(matchedCategory.id);
+      setAllocAssistanceType(matchedCategory.name);
+    } else {
+      setAllocAssistanceType(targetReq.serviceType);
+    }
+
+    // Set suggested amount based on remaining balance
+    const summary = getRequestFinancialSummary(targetReq);
+    if (summary.remainingAmount !== null && summary.remainingAmount > 0) {
+      setAllocAmount(summary.remainingAmount);
+    }
+  }
+
+  function openCreateAllocationModal(presetBeneficiaryId?: string, presetRequestId?: string) {
+    setShowCreateAllocationModal(true);
+    setAllocBeneficiaryMode("EXISTING");
+    const targetBenId = presetBeneficiaryId || (beneficiariesList.length > 0 ? beneficiariesList[0].id : "");
+    setAllocSelectedBeneficiaryId(targetBenId);
+
+    const ben = beneficiariesList.find((b) => b.id === targetBenId);
+    const requests = ben?.beneficiaryRequests || [];
+
+    if (presetRequestId && requests.some((r) => r.id === presetRequestId)) {
+      handleSelectSupportRequest(presetRequestId, ben);
+    } else if (requests.length > 0) {
+      const firstEligible = requests.find((r) => r.status === "APPROVED") || requests[0];
+      handleSelectSupportRequest(firstEligible.id, ben);
+    } else {
+      setAllocSelectedRequestId("");
+      if (supportCategoriesList.length > 0 && !allocCategoryId) {
+        setAllocCategoryId(supportCategoriesList[0].id);
+        setAllocAssistanceType(supportCategoriesList[0].name);
+      }
+    }
+  }
+
   async function handleCreateAllocationSubmit(e: React.FormEvent) {
     e.preventDefault();
     const amt = typeof allocAmount === "string" ? parseFloat(allocAmount) : allocAmount;
@@ -2914,10 +3033,50 @@ export function AdminDashboardPage() {
       bEmail = ben.email;
       bPhone = ben.phoneNumber || "";
       userId = ben.id;
+
+      if (allocSelectedRequestId) {
+        const targetReq = ben.beneficiaryRequests?.find((r) => r.id === allocSelectedRequestId);
+        if (targetReq) {
+          const summary = getRequestFinancialSummary(targetReq);
+          if (summary.remainingAmount !== null && amt > summary.remainingAmount) {
+            setErrorMsg(
+              `Cannot allocate £${amt.toFixed(2)}. The remaining approved balance for this support request is £${summary.remainingAmount.toFixed(2)}.`
+            );
+            return;
+          }
+        }
+      } else {
+        // General Beneficiary Support without linked request requires justification
+        if (!allocDescription.trim()) {
+          setErrorMsg("Grant Purpose & Allocation Justification is mandatory when allocating General Beneficiary Support.");
+          return;
+        }
+      }
     } else {
       if (!bName) {
         setErrorMsg("Beneficiary name is required.");
         return;
+      }
+      if (!allocDescription.trim()) {
+        setErrorMsg("Grant Purpose & Allocation Justification is required for external / walk-in allocations.");
+        return;
+      }
+    }
+
+    // Validate available funds in funding source
+    if (allocCampaignId) {
+      const matchedCamp = campaigns.find((c) => c.id === allocCampaignId || c.title === allocFundSource);
+      if (matchedCamp) {
+        const campUsed = (allocationsList || [])
+          .filter((a) => (a.campaignId === matchedCamp.id || a.fundSource === matchedCamp.title) && a.status !== "CANCELLED")
+          .reduce((sum, a) => sum + Number(a.allocatedAmount || 0), 0);
+        const campAvail = Number(matchedCamp.raisedAmount || 0) - campUsed;
+        if (amt > campAvail && campAvail >= 0) {
+          setErrorMsg(
+            `Insufficient campaign reserves. Campaign "${matchedCamp.title}" has £${campAvail.toFixed(2)} available, but £${amt.toFixed(2)} was requested.`
+          );
+          return;
+        }
       }
     }
 
@@ -2935,6 +3094,7 @@ export function AdminDashboardPage() {
         beneficiaryName: bName,
         beneficiaryEmail: bEmail || undefined,
         beneficiaryPhone: bPhone || undefined,
+        requestId: allocSelectedRequestId || undefined,
         campaignId: allocCampaignId || undefined,
         categoryId: categoryIdVal,
         categoryName: categoryNameVal,
@@ -2959,6 +3119,7 @@ export function AdminDashboardPage() {
       setShowCreateAllocationModal(false);
 
       // Reset
+      setAllocSelectedRequestId("");
       setAllocCustomName("");
       setAllocCustomEmail("");
       setAllocCustomPhone("");
@@ -2967,15 +3128,13 @@ export function AdminDashboardPage() {
       setAllocImmediateDisburse(false);
       setAllocReceiptRef("");
       setAllocDisbursementNotes("");
-      setAllocImmediateDisburse(false);
-      setAllocReceiptRef("");
-      setAllocDisbursementNotes("");
 
       await loadAllocationsData();
-    loadReportsData();
-    loadStaffData();
-    loadAuditLogsData();
-    loadRolesPermissionsData();
+      await loadBeneficiariesData();
+      loadReportsData();
+      loadStaffData();
+      loadAuditLogsData();
+      loadRolesPermissionsData();
       await loadDashboardData();
       setTimeout(() => setActionSuccessMsg(""), 4500);
     } catch (err: any) {
@@ -8329,17 +8488,7 @@ export function AdminDashboardPage() {
                   {canWriteAllocations && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowCreateAllocationModal(true);
-                        setAllocBeneficiaryMode("EXISTING");
-                        if (beneficiariesList.length > 0) {
-                          setAllocSelectedBeneficiaryId(beneficiariesList[0].id);
-                        }
-                        if (supportCategoriesList.length > 0 && !allocCategoryId) {
-                          setAllocCategoryId(supportCategoriesList[0].id);
-                          setAllocAssistanceType(supportCategoriesList[0].name);
-                        }
-                      }}
+                      onClick={() => openCreateAllocationModal()}
                       className="admin-btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold cursor-pointer transition-all shadow-md"
                       style={{
                         height: "42px",
@@ -8777,11 +8926,7 @@ export function AdminDashboardPage() {
                                   onClick={() => {
                                     setAllocCategoryId(cat.id);
                                     setAllocAssistanceType(cat.name);
-                                    setShowCreateAllocationModal(true);
-                                    setAllocBeneficiaryMode("EXISTING");
-                                    if (beneficiariesList.length > 0) {
-                                      setAllocSelectedBeneficiaryId(beneficiariesList[0].id);
-                                    }
+                                    openCreateAllocationModal();
                                   }}
                                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-xs font-bold shadow-sm transition-all cursor-pointer hover:shadow hover:opacity-95"
                                   style={{
@@ -8994,7 +9139,7 @@ export function AdminDashboardPage() {
                     {canWriteAllocations && (
                       <button
                         type="button"
-                        onClick={() => setShowCreateAllocationModal(true)}
+                        onClick={() => openCreateAllocationModal()}
                         className="mt-4 px-4 py-2 rounded-xl bg-pink-50 text-magenta text-xs font-bold hover:bg-pink-100 transition-colors cursor-pointer"
                       >
                         + Allocate Funds to Beneficiary
@@ -9083,6 +9228,21 @@ export function AdminDashboardPage() {
                                   <div className="text-[11px] text-slate-500 mt-1 font-medium truncate max-w-[180px]" title={a.fundSource}>
                                     {a.fundSource}
                                   </div>
+                                  {a.request ? (
+                                    <div className="text-[10px] text-magenta font-semibold mt-0.5 flex items-center gap-1" title={a.request.serviceType}>
+                                      <FileText size={10} />
+                                      <span className="truncate max-w-[160px]">ZT-REQ-{a.request.id.slice(0, 6).toUpperCase()} • {a.request.serviceType}</span>
+                                    </div>
+                                  ) : a.requestId ? (
+                                    <div className="text-[10px] text-magenta font-semibold mt-0.5 flex items-center gap-1">
+                                      <FileText size={10} />
+                                      <span>ZT-REQ-{a.requestId.slice(0, 6).toUpperCase()}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] text-slate-400 mt-0.5">
+                                      General Support (Unlinked)
+                                    </div>
+                                  )}
                                 </div>
                               </td>
 
@@ -19969,6 +20129,18 @@ export function AdminDashboardPage() {
                             >
                               Review
                             </button>
+
+                            {canWriteAllocations && (
+                              <button
+                                type="button"
+                                onClick={() => openCreateAllocationModal(viewingBeneficiary.id, req.id)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-magenta hover:opacity-90 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
+                                title="Allocate funds against this specific support request"
+                              >
+                                <Wallet size={12} />
+                                <span>+ Allocate Funds</span>
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -19977,10 +20149,67 @@ export function AdminDashboardPage() {
                         </div>
 
                         {req.reviewNotes && (
-                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700">
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700 mb-2">
                             <strong>Admin Review Notes:</strong> {req.reviewNotes}
                           </div>
                         )}
+
+                        {/* Linked Fund Allocations & Distribution Summary */}
+                        {(() => {
+                          const reqSummary = getRequestFinancialSummary(req, (viewingBeneficiary as any).allocations);
+                          if (reqSummary.allocations.length === 0 && !reqSummary.requestedAmount) return null;
+                          return (
+                            <div className="p-3 rounded-xl bg-pink-50/60 border border-pink-200/80 mb-2 space-y-2">
+                              <div className="flex items-center justify-between text-xs font-bold flex-wrap gap-2">
+                                <span className="text-slate-800 flex items-center gap-1.5">
+                                  <Wallet size={13} className="text-magenta" />
+                                  <span>Funding Summary &amp; Allocations ({reqSummary.allocations.length})</span>
+                                </span>
+                                <span className="text-magenta font-black">
+                                  Total Allocated: £{reqSummary.totalAllocated.toFixed(2)}
+                                  {reqSummary.requestedAmount !== null && (
+                                    <span className="text-slate-500 font-semibold text-[11px] ml-1">
+                                      / £{reqSummary.requestedAmount.toFixed(2)} (Remaining: £{reqSummary.remainingAmount?.toFixed(2)})
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+
+                              {reqSummary.allocations.length > 0 ? (
+                                <div className="space-y-1.5 pt-1">
+                                  {reqSummary.allocations.map((a, idx) => (
+                                    <div
+                                      key={a.id || idx}
+                                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-pink-100 text-[11px]"
+                                    >
+                                      <div className="flex items-center gap-2 overflow-hidden">
+                                        <span className="font-mono text-[10px] font-bold text-slate-500">{a.reference}</span>
+                                        <span className="text-slate-700 truncate max-w-[140px] font-medium">{a.fundSource}</span>
+                                        <span className="text-[10px] text-slate-400">
+                                          {new Date(a.allocationDate).toLocaleDateString("en-GB")}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-slate-900">£{Number(a.allocatedAmount).toFixed(2)}</span>
+                                        <span className={`px-2 py-0.2 rounded-full text-[9px] font-extrabold uppercase ${
+                                          a.status === "DISTRIBUTED"
+                                            ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                            : "bg-amber-100 text-amber-800 border border-amber-200"
+                                        }`}>
+                                          {a.status}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-slate-500 italic">
+                                  No fund allocations linked to this request yet.
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Attached Documents in Request Card */}
                         {(req as any).documents && Array.isArray((req as any).documents) && (req as any).documents.length > 0 && (
@@ -21801,30 +22030,189 @@ export function AdminDashboardPage() {
                 </div>
 
                 {allocBeneficiaryMode === "EXISTING" ? (
-                  <div>
-                    <select
-                      value={allocSelectedBeneficiaryId}
-                      onChange={(e) => setAllocSelectedBeneficiaryId(e.target.value)}
-                      style={{
-  width: "100%",
-  height: "44px",
-  minHeight: "44px",
-  padding: "0 14px",
-  fontSize: "13px",
-  color: "#0F172A",
-  backgroundColor: "#FFFFFF",
-  border: "1.5px solid #CBD5E1",
-  borderRadius: "12px",
-  outline: "none",
-  boxSizing: "border-box",
-}}
-                    >
-                      {beneficiariesList.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.fullName} ({b.email}) &bull; {b.townCity || "Leicester"}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="space-y-3">
+                    <div>
+                      <select
+                        value={allocSelectedBeneficiaryId}
+                        onChange={(e) => {
+                          const newBenId = e.target.value;
+                          setAllocSelectedBeneficiaryId(newBenId);
+                          const ben = beneficiariesList.find((b) => b.id === newBenId);
+                          const requests = ben?.beneficiaryRequests || [];
+                          if (requests.length > 0) {
+                            const firstEligible = requests.find((r) => r.status === "APPROVED") || requests[0];
+                            handleSelectSupportRequest(firstEligible.id, ben);
+                          } else {
+                            setAllocSelectedRequestId("");
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          height: "44px",
+                          minHeight: "44px",
+                          padding: "0 14px",
+                          fontSize: "13px",
+                          color: "#0F172A",
+                          backgroundColor: "#FFFFFF",
+                          border: "1.5px solid #CBD5E1",
+                          borderRadius: "12px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {beneficiariesList.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.fullName} ({b.email}) &bull; {b.townCity || "Leicester"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* SELECT SUPPORT REQUEST FIELD (Requirement 1 & 4) */}
+                    {(() => {
+                      const selectedBen = beneficiariesList.find((b) => b.id === allocSelectedBeneficiaryId);
+                      const benRequests = selectedBen?.beneficiaryRequests || [];
+                      const currentSelectedReq = benRequests.find((r) => r.id === allocSelectedRequestId);
+                      const reqSummary = currentSelectedReq ? getRequestFinancialSummary(currentSelectedReq) : null;
+
+                      return (
+                        <div className="pt-2 border-t border-slate-200/70 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                              Select Support Request *
+                            </label>
+                            <span className="text-[10px] font-bold text-magenta bg-pink-50 px-2 py-0.5 rounded-full border border-pink-200">
+                              {benRequests.length} Request{benRequests.length !== 1 ? "s" : ""} on File
+                            </span>
+                          </div>
+
+                          <select
+                            value={allocSelectedRequestId}
+                            onChange={(e) => handleSelectSupportRequest(e.target.value)}
+                            style={{
+                              width: "100%",
+                              height: "44px",
+                              minHeight: "44px",
+                              padding: "0 14px",
+                              fontSize: "13px",
+                              color: "#0F172A",
+                              backgroundColor: "#FFFFFF",
+                              border: "1.5px solid #CBD5E1",
+                              borderRadius: "12px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <option value="">✦ General Beneficiary Support (Unlinked)</option>
+                            {benRequests.map((req) => {
+                              const s = getRequestFinancialSummary(req);
+                              const reqRef = `ZT-REQ-${req.id.slice(0, 6).toUpperCase()}`;
+                              const fundingTag = s.isFullyFunded
+                                ? `[Fully Funded £${s.totalAllocated.toFixed(0)}]`
+                                : s.requestedAmount !== null
+                                ? `[Allocated: £${s.totalAllocated.toFixed(0)} / £${s.requestedAmount.toFixed(0)} • Remaining: £${s.remainingAmount?.toFixed(0)}]`
+                                : s.totalAllocated > 0
+                                ? `[Allocated: £${s.totalAllocated.toFixed(0)}]`
+                                : `[Awaiting Allocation]`;
+                              return (
+                                <option key={req.id} value={req.id}>
+                                  {reqRef} • {req.serviceType} ({req.urgency} Urgency, {req.status}) {fundingTag}
+                                </option>
+                              );
+                            })}
+                          </select>
+
+                          {/* Selected Request Card */}
+                          {currentSelectedReq && reqSummary && (
+                            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-pink-50/70 via-white to-pink-50/30 border border-pink-200 shadow-xs space-y-2.5">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[11px] font-black text-magenta bg-pink-100/90 px-2 py-0.5 rounded-md">
+                                    ZT-REQ-{currentSelectedReq.id.slice(0, 6).toUpperCase()}
+                                  </span>
+                                  <span className="font-extrabold text-xs text-slate-900">
+                                    {currentSelectedReq.serviceType}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                    currentSelectedReq.urgency === "EMERGENCY" ? "bg-red-100 text-red-700 border border-red-200" :
+                                    currentSelectedReq.urgency === "HIGH" ? "bg-orange-100 text-orange-700 border border-orange-200" :
+                                    "bg-amber-100 text-amber-700 border border-amber-200"
+                                  }`}>
+                                    {currentSelectedReq.urgency}
+                                  </span>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                    currentSelectedReq.status === "APPROVED" ? "bg-emerald-100 text-emerald-800 border border-emerald-200" :
+                                    currentSelectedReq.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-800 border border-blue-200" :
+                                    "bg-slate-100 text-slate-700 border border-slate-200"
+                                  }`}>
+                                    ● {currentSelectedReq.status}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {currentSelectedReq.notes && (
+                                <div className="text-xs text-slate-600 bg-white/90 p-2.5 rounded-xl border border-pink-100/80 leading-relaxed">
+                                  <strong className="text-slate-800">Intake Circumstances / Request:</strong> {currentSelectedReq.notes}
+                                </div>
+                              )}
+
+                              {/* Multi-stage Financial Status */}
+                              <div className="grid grid-cols-3 gap-2 pt-1 border-t border-pink-200/60 text-center">
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs">
+                                  <div className="text-[10px] font-bold uppercase text-slate-400">Target Request</div>
+                                  <div className="text-xs font-black text-slate-900 mt-0.5">
+                                    {reqSummary.requestedAmount !== null ? `£${reqSummary.requestedAmount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}` : "Unspecified"}
+                                  </div>
+                                </div>
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs">
+                                  <div className="text-[10px] font-bold uppercase text-emerald-600">Previously Allocated</div>
+                                  <div className="text-xs font-black text-emerald-700 mt-0.5">
+                                    £{reqSummary.totalAllocated.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                                  </div>
+                                </div>
+                                <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-2xs">
+                                  <div className="text-[10px] font-bold uppercase text-magenta">Remaining Balance</div>
+                                  <div className="text-xs font-black text-magenta mt-0.5">
+                                    {reqSummary.remainingAmount !== null ? `£${reqSummary.remainingAmount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}` : "Open Grant"}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Prior Allocation Stages if multi-stage */}
+                              {reqSummary.allocations.length > 0 && (
+                                <div className="pt-1.5 border-t border-pink-100">
+                                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-between">
+                                    <span>Prior Allocation Stages ({reqSummary.allocations.length})</span>
+                                    <span className="text-emerald-700 font-bold">Stage {reqSummary.allocations.length + 1} will be added</span>
+                                  </div>
+                                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                                    {reqSummary.allocations.map((a, idx) => (
+                                      <div key={a.id || idx} className="flex items-center justify-between text-[11px] bg-white/90 px-2 py-1 rounded-lg border border-slate-100 text-slate-700">
+                                        <span className="font-mono text-[10px] text-slate-500">{a.reference}</span>
+                                        <span className="text-slate-500 truncate max-w-[120px]">{a.fundSource}</span>
+                                        <span className="font-bold text-slate-900">£{Number(a.allocatedAmount).toFixed(2)}</span>
+                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold ${a.status === "DISTRIBUTED" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                                          {a.status}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {!currentSelectedReq && (
+                            <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                              💡 <strong>General Beneficiary Support:</strong> Funds will be allocated without linking to a specific intake application. Please provide a clear grant justification below.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -21903,44 +22291,73 @@ export function AdminDashboardPage() {
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
                       Support Category *
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCreateAllocationModal(false);
-                        openCreateCategoryModal();
-                      }}
-                      className="text-[11px] font-bold text-magenta hover:underline cursor-pointer"
-                    >
-                      + New Category
-                    </button>
+                    {allocSelectedRequestId ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        ✓ Auto-linked to Request
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateAllocationModal(false);
+                          openCreateCategoryModal();
+                        }}
+                        className="text-[11px] font-bold text-magenta hover:underline cursor-pointer"
+                      >
+                        + New Category
+                      </button>
+                    )}
                   </div>
-                  <select
-                    value={allocCategoryId}
-                    onChange={(e) => {
-                      setAllocCategoryId(e.target.value);
-                      const cat = supportCategoriesList.find((c) => c.id === e.target.value);
-                      if (cat) setAllocAssistanceType(cat.name);
-                    }}
-                    style={{
-                      width: "100%",
-                      height: "44px",
-                      minHeight: "44px",
-                      padding: "0 14px",
-                      fontSize: "13px",
-                      color: "#0F172A",
-                      backgroundColor: "#FFFFFF",
-                      border: "1.5px solid #CBD5E1",
-                      borderRadius: "12px",
-                      outline: "none",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {supportCategoriesList.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name} (Target: £{Number(cat.targetFundingRequired || 0).toLocaleString("en-GB")})
-                      </option>
-                    ))}
-                  </select>
+                  {allocSelectedRequestId ? (
+                    <input
+                      type="text"
+                      disabled
+                      value={`${allocAssistanceType} (Auto-populated from Support Request)`}
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        minHeight: "44px",
+                        padding: "0 14px",
+                        fontSize: "13px",
+                        color: "#0F172A",
+                        backgroundColor: "#F8FAFC",
+                        border: "1.5px solid #CBD5E1",
+                        borderRadius: "12px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        fontWeight: 700,
+                        cursor: "not-allowed",
+                      }}
+                    />
+                  ) : (
+                    <select
+                      value={allocCategoryId}
+                      onChange={(e) => {
+                        setAllocCategoryId(e.target.value);
+                        const cat = supportCategoriesList.find((c) => c.id === e.target.value);
+                        if (cat) setAllocAssistanceType(cat.name);
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "44px",
+                        minHeight: "44px",
+                        padding: "0 14px",
+                        fontSize: "13px",
+                        color: "#0F172A",
+                        backgroundColor: "#FFFFFF",
+                        border: "1.5px solid #CBD5E1",
+                        borderRadius: "12px",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {supportCategoriesList.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} (Target: £{Number(cat.targetFundingRequired || 0).toLocaleString("en-GB")})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
@@ -21974,6 +22391,22 @@ export function AdminDashboardPage() {
                       }}
                     />
                   </div>
+                  {(() => {
+                    const selBen = beneficiariesList.find((b) => b.id === allocSelectedBeneficiaryId);
+                    const selReq = selBen?.beneficiaryRequests?.find((r) => r.id === allocSelectedRequestId);
+                    if (selReq) {
+                      const s = getRequestFinancialSummary(selReq);
+                      if (s.remainingAmount !== null) {
+                        return (
+                          <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between">
+                            <span>Remaining approved: <strong className="text-magenta">£{s.remainingAmount.toFixed(2)}</strong></span>
+                            <span>{s.allocations.length > 0 ? `Stage ${s.allocations.length + 1}` : "Initial stage"}</span>
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
 
@@ -21990,18 +22423,18 @@ export function AdminDashboardPage() {
                     setAllocCampaignId(matchedCamp ? matchedCamp.id : "");
                   }}
                   style={{
-  width: "100%",
-  height: "44px",
-  minHeight: "44px",
-  padding: "0 14px",
-  fontSize: "13px",
-  color: "#0F172A",
-  backgroundColor: "#FFFFFF",
-  border: "1.5px solid #CBD5E1",
-  borderRadius: "12px",
-  outline: "none",
-  boxSizing: "border-box",
-}}
+                    width: "100%",
+                    height: "44px",
+                    minHeight: "44px",
+                    padding: "0 14px",
+                    fontSize: "13px",
+                    color: "#0F172A",
+                    backgroundColor: "#FFFFFF",
+                    border: "1.5px solid #CBD5E1",
+                    borderRadius: "12px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
                 >
                   <option value="General Relief Fund">General Relief Fund (Unrestricted Reserves)</option>
                   {campaigns.map((c) => (
@@ -22015,26 +22448,31 @@ export function AdminDashboardPage() {
               {/* Description & Purpose */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                  Grant Purpose &amp; Allocation Justification
+                  Grant Purpose &amp; Allocation Justification {!allocSelectedRequestId && <span className="text-red-500 font-bold">* (Required for General Support)</span>}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Approved emergency prepayment voucher for gas meter disconnection threat..."
+                  required={!allocSelectedRequestId}
+                  placeholder={
+                    !allocSelectedRequestId
+                      ? "Mandatory: Enter justification for allocating general funds without a linked support request..."
+                      : "e.g. Approved emergency prepayment voucher for gas meter disconnection threat..."
+                  }
                   value={allocDescription}
                   onChange={(e) => setAllocDescription(e.target.value)}
                   style={{
-  width: "100%",
-  height: "44px",
-  minHeight: "44px",
-  padding: "0 14px",
-  fontSize: "13px",
-  color: "#0F172A",
-  backgroundColor: "#FFFFFF",
-  border: "1.5px solid #CBD5E1",
-  borderRadius: "12px",
-  outline: "none",
-  boxSizing: "border-box",
-}}
+                    width: "100%",
+                    height: "56px",
+                    minHeight: "56px",
+                    padding: "8px 14px",
+                    fontSize: "13px",
+                    color: "#0F172A",
+                    backgroundColor: "#FFFFFF",
+                    border: "1.5px solid #CBD5E1",
+                    borderRadius: "12px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
                 />
               </div>
 
@@ -22443,6 +22881,22 @@ export function AdminDashboardPage() {
               <div className="flex justify-between">
                 <span className="text-slate-500">Recipient Beneficiary:</span>
                 <span className="font-extrabold text-slate-900">{viewingVoucherAllocation.beneficiaryName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Linked Support Request:</span>
+                <span className="font-bold text-slate-900">
+                  {viewingVoucherAllocation.request ? (
+                    <span className="text-magenta font-mono">
+                      ZT-REQ-{viewingVoucherAllocation.request.id.slice(0, 6).toUpperCase()} • {viewingVoucherAllocation.request.serviceType}
+                    </span>
+                  ) : viewingVoucherAllocation.requestId ? (
+                    <span className="text-magenta font-mono">
+                      ZT-REQ-{viewingVoucherAllocation.requestId.slice(0, 6).toUpperCase()}
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 font-normal">General Beneficiary Support (Unlinked)</span>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Assistance Category:</span>
