@@ -1201,9 +1201,37 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   // Assistance & Support History state
-  const [historyFilter, setHistoryFilter] = useState<"all" | "received" | "approved" | "completed" | "cancelled">("all");
+  const [historyFilter, setHistoryFilter] = useState<"all" | "received" | "approved" | "completed" | "cancelled" | "applied">("all");
   const [historySearch, setHistorySearch] = useState("");
   const [selectedAssistanceDetail, setSelectedAssistanceDetail] = useState<any | null>(null);
+
+  const handleViewDoc = (doc: any) => {
+    if (!doc) return;
+    const url = doc.dataUrl || doc.url || doc.metadata?.dataUrl || doc.metadata?.url;
+    if (url && typeof url === "string") {
+      if (url.startsWith("data:")) {
+        try {
+          const parts = url.split(";base64,");
+          const contentType = parts[0].replace("data:", "") || "application/octet-stream";
+          const byteCharacters = atob(parts[1] || "");
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: contentType });
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, "_blank");
+          return;
+        } catch (err) {
+          console.error("Failed to decode document blob", err);
+        }
+      }
+      window.open(url, "_blank");
+    } else {
+      alert(`Document: ${doc.name} (${doc.size || 'Attached file'})`);
+    }
+  };
 
   // Dynamic Allocated Support Records
   const allocatedSupportRecords = useMemo(() => {
@@ -1270,8 +1298,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     });
   }, [liveAllocations, beneficiaryUser.caseWorker]);
 
-  // Dynamic Assistance History Records
-  const assistanceRecords = useMemo(() => {
+  // Dynamic Allocated History Records
+  const allocatedHistoryRecords = useMemo(() => {
     const fromAlloc = liveAllocations.map((alloc) => {
       const amtGbp = Number(alloc.allocatedAmount || 0);
       const isDisbursed = alloc.status === "DISTRIBUTED";
@@ -1317,38 +1345,51 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
       };
     });
 
-    const fromReq = liveRequests
-      .filter((req) => !liveAllocations.some((a) => a.beneficiaryRequestId === req.id))
-      .map((req) => {
-        const dateStr = new Date(req.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-        const ref = `ZT-REQ-${req.id.substring(0, 6).toUpperCase()}`;
-        const isApproved = req.status === "APPROVED";
-        const isRejected = req.status === "REJECTED" || req.status === "DECLINED";
-        const statusFormatted = isApproved ? "Approved" : isRejected ? "Declined" : "Under Assessment";
-        const statusColor = isApproved ? "#2563EB" : isRejected ? "#DC2626" : "#B45309";
-        const statusBg = isApproved ? "#EFF6FF" : isRejected ? "#FEF2F2" : "#FFFBEB";
+    return fromAlloc;
+  }, [liveAllocations, beneficiaryUser.caseWorker]);
 
-        return {
-          id: req.id,
-          type: req.serviceType || "Emergency Support",
-          amountINR: "Under Assessment",
-          amountGBP: "Under Assessment",
-          status: statusFormatted,
-          statusColor,
-          statusBg,
-          dateAllocated: dateStr,
-          dateReceived: dateStr,
-          category: req.serviceType || "Crisis Relief",
-          reference: ref,
-          funder: "The Zinthiya Trust",
-          caseworker: req.assignedWorker || beneficiaryUser.caseWorker,
-          description: req.notes || "Beneficiary support application undergoing caseworker assessment.",
-          documents: req.documents || []
-        };
-      });
+  // Dynamic Applied Requests (All requests submitted for caseworker & admin approval)
+  const allAppliedRequests = useMemo(() => {
+    return liveRequests.map((req) => {
+      const dateStr = new Date(req.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const ref = `ZT-REQ-${req.id.substring(0, 6).toUpperCase()}`;
+      const isApproved = req.status === "APPROVED";
+      const isRejected = req.status === "REJECTED" || req.status === "DECLINED";
+      const isPending = req.status === "PENDING" || !req.status;
+      const statusFormatted = isApproved ? "Approved" : isRejected ? "Declined" : isPending ? "Pending Admin Approval" : "Under Assessment";
+      const statusColor = isApproved ? "#2563EB" : isRejected ? "#DC2626" : "#D97706";
+      const statusBg = isApproved ? "#EFF6FF" : isRejected ? "#FEF2F2" : "#FEF3C7";
 
-    return [...fromAlloc, ...fromReq];
-  }, [liveAllocations, liveRequests, beneficiaryUser.caseWorker]);
+      return {
+        id: req.id,
+        type: req.serviceType || "Emergency Support",
+        amountINR: "Awaiting Review",
+        amountGBP: "Awaiting Review",
+        status: statusFormatted,
+        statusColor,
+        statusBg,
+        dateAllocated: dateStr,
+        dateReceived: dateStr,
+        category: req.serviceType || "Crisis Relief",
+        reference: ref,
+        funder: "The Zinthiya Trust",
+        caseworker: req.assignedWorker || beneficiaryUser.caseWorker,
+        description: req.notes || "Beneficiary support application undergoing caseworker assessment.",
+        documents: Array.isArray(req.documents) ? req.documents : [],
+        isAppliedRequest: true,
+        urgency: req.urgency || "HIGH",
+        rawStatus: req.status || "PENDING",
+        reviewNotes: req.reviewNotes || null,
+        hasAllocation: liveAllocations.some((a) => a.beneficiaryRequestId === req.id)
+      };
+    });
+  }, [liveRequests, liveAllocations, beneficiaryUser.caseWorker]);
+
+  // Combined Assistance Records (Allocations + Pending Applications)
+  const assistanceRecords = useMemo(() => {
+    const unallocatedReqs = allAppliedRequests.filter((r) => !r.hasAllocation);
+    return [...allocatedHistoryRecords, ...unallocatedReqs];
+  }, [allocatedHistoryRecords, allAppliedRequests]);
 
   const [allocationFilter, setAllocationFilter] = useState<"all" | "pending" | "disbursed" | "cancelled">("all");
   const [allocationSearch, setAllocationSearch] = useState("");
@@ -4818,7 +4859,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       { id: "received" as const, label: `Received (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "received").length})` },
                       { id: "approved" as const, label: `Approved (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "approved").length})` },
                       { id: "cancelled" as const, label: `Cancelled (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "cancelled" || a.status.toLowerCase() === "declined").length})` },
-                      { id: "completed" as const, label: `Completed (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "completed").length})` }
+                      { id: "completed" as const, label: `Completed (${assistanceRecords.filter((a: any) => a.status.toLowerCase() === "completed").length})` },
+                      { id: "applied" as const, label: `Applied Requests (${allAppliedRequests.length})` }
                     ].map((tab) => {
                       const isTabActive = historyFilter === tab.id;
                       return (
@@ -4876,16 +4918,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </tr>
                     </thead>
                     <tbody>
-                      {assistanceRecords.length === 0 ? (
+                      {(historyFilter === "applied" ? allAppliedRequests : assistanceRecords).length === 0 ? (
                         <tr>
                           <td colSpan={5} style={{ padding: "36px 16px", textAlign: "center", color: "#8E7287" }}>
-                            No assistance records on file. Completed relief grants and disbursements will appear here.
+                            {historyFilter === "applied"
+                              ? "No support applications submitted yet. Click '+ Request Support' at the top to apply."
+                              : "No assistance records on file. Completed relief grants and disbursements will appear here."}
                           </td>
                         </tr>
                       ) : (
-                        assistanceRecords
+                        (historyFilter === "applied" ? allAppliedRequests : assistanceRecords)
                           .filter((item: any) => {
-                            if (historyFilter !== "all") {
+                            if (historyFilter !== "all" && historyFilter !== "applied") {
                               if (historyFilter === "cancelled") {
                                 if (item.status.toLowerCase() !== "cancelled" && item.status.toLowerCase() !== "declined") return false;
                               } else if (item.status.toLowerCase() !== historyFilter) {
@@ -4906,13 +4950,30 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 <div style={{ fontWeight: 700, color: "#241221" }}>
                                   {record.type}
                                 </div>
-                                <div style={{ fontSize: "11px", color: "#8E7287", marginTop: "2px" }}>
-                                  Ref: <span style={{ fontFamily: "monospace" }}>{record.reference}</span> • {record.category}
+                                <div style={{ fontSize: "11px", color: "#8E7287", marginTop: "2px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                  <span>Ref: <span style={{ fontFamily: "monospace" }}>{record.reference}</span> • {record.category}</span>
+                                  {record.urgency && (
+                                    <span style={{ fontSize: "10px", fontWeight: 800, padding: "1px 6px", borderRadius: "4px", backgroundColor: record.urgency === "CRITICAL" ? "#FEE2E2" : "#FEF3C7", color: record.urgency === "CRITICAL" ? "#991B1B" : "#92400E" }}>
+                                      {record.urgency}
+                                    </span>
+                                  )}
+                                  {record.documents && record.documents.length > 0 && (
+                                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 6px", borderRadius: "4px", backgroundColor: "#FCE8F3", color: "#B80C64", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                      <Paperclip size={10} />
+                                      {record.documents.length} File{record.documents.length > 1 ? "s" : ""}
+                                    </span>
+                                  )}
                                 </div>
                               </td>
 
-                              <td style={{ padding: "14px 16px", fontWeight: 800, color: record.amountINR === "—" ? "#94A3B8" : "#241221", fontSize: "14px" }}>
-                                {dashboardCurrency === "INR" ? record.amountINR : record.amountGBP}
+                              <td style={{ padding: "14px 16px", fontWeight: 800, color: record.amountINR === "—" || record.amountINR === "Awaiting Review" ? "#94A3B8" : "#241221", fontSize: "13px" }}>
+                                {record.isAppliedRequest ? (
+                                  <span style={{ fontSize: "11px", color: "#D97706", fontWeight: 700, backgroundColor: "#FFFBEB", padding: "2px 8px", borderRadius: "6px", border: "1px solid #FDE68A" }}>
+                                    Awaiting Triage
+                                  </span>
+                                ) : (
+                                  dashboardCurrency === "INR" ? record.amountINR : record.amountGBP
+                                )}
                               </td>
 
                               <td style={{ padding: "14px 16px" }}>
@@ -4933,7 +4994,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                               <td style={{ padding: "14px 16px", color: "#64748B", fontSize: "12px" }}>
                                 <div>{record.dateReceived}</div>
-                                <div style={{ fontSize: "10px", color: "#94A3B8" }}>Allocated: {record.dateAllocated}</div>
+                                <div style={{ fontSize: "10px", color: "#94A3B8" }}>
+                                  {record.isAppliedRequest ? "Submitted by client" : `Allocated: ${record.dateAllocated}`}
+                                </div>
                               </td>
 
                               <td style={{ padding: "14px 16px", textAlign: "right" }}>
@@ -5033,18 +5096,34 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                       <div>
-                        <span
-                          style={{
-                            padding: "3px 8px",
-                            borderRadius: "6px",
-                            fontSize: "10px",
-                            fontWeight: 800,
-                            backgroundColor: selectedAssistanceDetail.statusBg,
-                            color: selectedAssistanceDetail.statusColor
-                          }}
-                        >
-                          {selectedAssistanceDetail.status.toUpperCase()}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: "6px",
+                              fontSize: "10px",
+                              fontWeight: 800,
+                              backgroundColor: selectedAssistanceDetail.statusBg,
+                              color: selectedAssistanceDetail.statusColor
+                            }}
+                          >
+                            {selectedAssistanceDetail.status.toUpperCase()}
+                          </span>
+                          {selectedAssistanceDetail.urgency && (
+                            <span
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                                backgroundColor: selectedAssistanceDetail.urgency === "CRITICAL" ? "#FEE2E2" : "#FEF3C7",
+                                color: selectedAssistanceDetail.urgency === "CRITICAL" ? "#991B1B" : "#92400E"
+                              }}
+                            >
+                              {selectedAssistanceDetail.urgency} URGENCY
+                            </span>
+                          )}
+                        </div>
                         <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: "4px 0 0 0" }}>
                           {selectedAssistanceDetail.type}
                         </h3>
@@ -5073,10 +5152,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     >
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Award Amount
+                          {selectedAssistanceDetail.isAppliedRequest ? "Application Stage" : "Award Amount"}
                         </span>
-                        <div style={{ fontSize: "16px", fontWeight: 900, color: "#E6127E", marginTop: "2px" }}>
-                          {dashboardCurrency === "INR" ? selectedAssistanceDetail.amountINR : selectedAssistanceDetail.amountGBP}
+                        <div style={{ fontSize: "14px", fontWeight: 900, color: "#E6127E", marginTop: "2px" }}>
+                          {selectedAssistanceDetail.isAppliedRequest ? selectedAssistanceDetail.status : (dashboardCurrency === "INR" ? selectedAssistanceDetail.amountINR : selectedAssistanceDetail.amountGBP)}
                         </div>
                       </div>
 
@@ -5091,7 +5170,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Date Allocated
+                          Date Submitted
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
                           {selectedAssistanceDetail.dateAllocated}
@@ -5100,25 +5179,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Status Date
+                          Assistance Category
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
-                          {selectedAssistanceDetail.dateReceived}
+                          {selectedAssistanceDetail.category}
                         </div>
                       </div>
 
                       <div style={{ gridColumn: "span 2" }}>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Funding Partner / Program
-                        </span>
-                        <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
-                          {selectedAssistanceDetail.funder}
-                        </div>
-                      </div>
-
-                      <div style={{ gridColumn: "span 2" }}>
-                        <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Supervising Caseworker
+                          Supervising Caseworker / Reviewer
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
                           {selectedAssistanceDetail.caseworker} (The Zinthiya Trust)
@@ -5126,14 +5196,83 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: "20px" }}>
-                      <span style={{ color: "#8E7287", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-                        Assistance Scope & Notes
+                    <div style={{ marginBottom: "16px" }}>
+                      <span style={{ color: "#8E7287", fontSize: "11px", fontWeight: 800, textTransform: "uppercase" }}>
+                        {selectedAssistanceDetail.isAppliedRequest ? "What You Submitted for Admin Approval:" : "Assistance Scope & Notes:"}
                       </span>
-                      <p style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6", margin: "4px 0 0 0" }}>
+                      <p style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6", margin: "4px 0 0 0", padding: "10px 12px", backgroundColor: "#F8FAFC", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
                         {selectedAssistanceDetail.description}
                       </p>
                     </div>
+
+                    {/* Supporting Documents Given for Approval */}
+                    {selectedAssistanceDetail.documents && Array.isArray(selectedAssistanceDetail.documents) && selectedAssistanceDetail.documents.length > 0 && (
+                      <div style={{ marginBottom: "16px" }}>
+                        <span style={{ color: "#8E7287", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
+                          <Paperclip size={13} style={{ color: "#E6127E" }} />
+                          Supporting Documents Given for Approval ({selectedAssistanceDetail.documents.length}):
+                        </span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", maxHeight: "160px", overflowY: "auto" }}>
+                          {selectedAssistanceDetail.documents.map((doc: any, i: number) => (
+                            <div
+                              key={doc.id || i}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "8px 12px",
+                                borderRadius: "8px",
+                                backgroundColor: "#FFF5F9",
+                                border: "1px solid rgba(230, 18, 126, 0.15)",
+                                fontSize: "12px"
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+                                <FileText size={15} style={{ color: "#E6127E", flexShrink: 0 }} />
+                                <span style={{ fontWeight: 700, color: "#241221", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "230px" }} title={doc.name}>
+                                  {doc.name}
+                                </span>
+                                <span style={{ fontSize: "10px", color: "#64748B", flexShrink: 0 }}>
+                                  ({doc.size || "File"})
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleViewDoc(doc)}
+                                style={{
+                                  padding: "4px 8px",
+                                  borderRadius: "6px",
+                                  backgroundColor: "#ffffff",
+                                  border: "1px solid rgba(230, 18, 126, 0.25)",
+                                  color: "#E6127E",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px"
+                                }}
+                              >
+                                <Eye size={12} />
+                                <span>View File</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Admin Review Feedback */}
+                    {selectedAssistanceDetail.reviewNotes && (
+                      <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "10px", backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                        <span style={{ color: "#1E40AF", fontSize: "11px", fontWeight: 800, textTransform: "uppercase" }}>
+                          Admin Review Notes & Feedback:
+                        </span>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#1E3A8A", lineHeight: "1.5" }}>
+                          {selectedAssistanceDetail.reviewNotes}
+                        </p>
+                      </div>
+                    )}
 
                     <div style={{ display: "flex", gap: "10px" }}>
                       <button
@@ -5153,15 +5292,17 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       >
                         Close
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => downloadAwardLetterPDF(selectedAssistanceDetail, beneficiaryUser)}
-                        className="btn-gradient-magenta"
-                        style={{ flex: 1, padding: "9px", fontSize: "12px" }}
-                      >
-                        <Download size={14} />
-                        <span>Download Statement</span>
-                      </button>
+                      {!selectedAssistanceDetail.isAppliedRequest && (
+                        <button
+                          type="button"
+                          onClick={() => downloadAwardLetterPDF(selectedAssistanceDetail, beneficiaryUser)}
+                          className="btn-gradient-magenta"
+                          style={{ flex: 1, padding: "9px", fontSize: "12px" }}
+                        >
+                          <Download size={14} />
+                          <span>Download Statement</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
