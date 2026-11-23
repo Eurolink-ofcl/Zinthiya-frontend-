@@ -15,6 +15,7 @@ import {
   translatePermittedUse,
   translateDefaultPurpose,
   translateValidity,
+  translateFunder,
   translateHousingTenure,
   translateContactMethod,
   translateContactHours,
@@ -4271,7 +4272,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
                                 <Calendar size={14} style={{ color: "#E6127E" }} />
-                                <span>{item.allocationDate}</span>
+                                <span>{translateDate(item.allocationDate, selectedLanguage)}</span>
                                 <span style={{ fontSize: "11px", color: "#8E7287", fontWeight: 500 }}>
                                   ({translateMilestoneStep(item.effectiveDate, selectedLanguage)})
                                 </span>
@@ -4305,7 +4306,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                             <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
                               <div>
-                                <strong style={{ color: "#241221" }}>{t("lbl_funding_partner", "Funding Partner:")}</strong> {item.funder}
+                                <strong style={{ color: "#241221" }}>{t("lbl_funding_partner", "Funding Partner:")}</strong> {translateFunder(item.funder, selectedLanguage)}
                               </div>
                               <div style={{ marginTop: "4px" }}>
                                 <strong style={{ color: "#241221" }}>{t("lbl_supervising_caseworker", "Supervising Caseworker:")}</strong> {translateAdvocateName(item.caseworker, selectedLanguage)}
@@ -4364,7 +4365,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                   </span>
                                 </div>
                                 <div style={{ fontSize: "10px", color: step.done ? "#059669" : "#94A3B8", paddingLeft: "18px" }}>
-                                  {step.date}
+                                  {translateMilestoneStep(step.date, selectedLanguage) !== step.date
+                                    ? translateMilestoneStep(step.date, selectedLanguage)
+                                    : translateDate(step.date, selectedLanguage)}
                                 </div>
                               </div>
                             ))}
@@ -4471,10 +4474,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               {/* 3. Allocation Date */}
                               <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
                                 <div style={{ fontWeight: 700, color: "#241221" }}>
-                                  {item.allocationDate}
+                                  {translateDate(item.allocationDate, selectedLanguage)}
                                 </div>
                                 <div style={{ fontSize: "11px", color: "#8E7287" }}>
-                                  Effective: {translateMilestoneStep(item.effectiveDate, selectedLanguage)}
+                                  {t("lbl_effective_date", "Effective:")} {translateMilestoneStep(item.effectiveDate, selectedLanguage)}
                                 </div>
                               </td>
 
@@ -4632,7 +4635,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           {t("alloc_date", "Allocation Date")}
                         </span>
                         <div style={{ fontSize: "13px", fontWeight: 800, color: "#241221", marginTop: "3px" }}>
-                          {selectedAllocationDetail.allocationDate}
+                          {translateDate(selectedAllocationDetail.allocationDate, selectedLanguage)}
                         </div>
                       </div>
 
@@ -4677,7 +4680,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           {t("funding_auth_label", "Funding Partner & Authorization")}
                         </span>
                         <div style={{ fontSize: "12px", color: "#475569", marginTop: "2px" }}>
-                          {selectedAllocationDetail.funder} • {translateTrusteeAuthority(selectedAllocationDetail.authorizationBody, selectedLanguage)}
+                          {translateFunder(selectedAllocationDetail.funder, selectedLanguage)} • {translateTrusteeAuthority(selectedAllocationDetail.authorizationBody, selectedLanguage)}
                         </div>
                       </div>
 

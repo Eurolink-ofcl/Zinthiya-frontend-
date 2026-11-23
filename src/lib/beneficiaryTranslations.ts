@@ -41,6 +41,7 @@ export const BENEFICIARY_LANGUAGES: LanguageOption[] = [
 
 export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
   en: {
+    lbl_effective_date: "Effective:",
     lbl_email_address: "Registered Email Address *",
     modal_allocation_cert_notice: "This assistance package was formally reviewed and authorized by The Zinthiya Trust for beneficiary",
     effective_date_label: "Effective / Payout Date",
@@ -375,6 +376,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   gu: {
+    lbl_effective_date: "અસરકારક:",
     lbl_email_address: "નોંધાયેલ ઇમેઇલ સરનામું *",
     modal_allocation_cert_notice: "આ સહાય પેકેજની ધ ઝિન્થિયા ટ્રસ્ટ દ્વારા લાભાર્થી માટે સત્તાવાર સમીક્ષા અને અધિકૃતતા કરવામાં આવી છે",
     effective_date_label: "અસરકારક / ચુકવણી તારીખ",
@@ -709,6 +711,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   hi: {
+    lbl_effective_date: "प्रभावी:",
     lbl_email_address: "पंजीकृत ईमेल पता *",
     modal_allocation_cert_notice: "यह सहायता पैकेज आधिकारिक रूप से लाभार्थी के लिए द ज़िंथिया ट्रस्ट द्वारा समीक्षा और अधिकृत किया गया है",
     effective_date_label: "प्रभावी / भुगतान तिथि",
@@ -1043,6 +1046,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   pa: {
+    lbl_effective_date: "ਪ੍ਰਭਾਵੀ:",
     lbl_email_address: "ਰਜਿਸਟਰਡ ਈਮੇਲ ਪਤਾ *",
     modal_allocation_cert_notice: "ਇਹ ਸਹਾਇਤਾ ਪੈਕੇਜ ਦ ਜ਼ਿੰਥੀਆ ਟਰੱਸਟ ਦੁਆਰਾ ਲਾਭਪਾਤਰੀ ਲਈ ਰਸਮੀ ਤੌਰ 'ਤੇ ਸਮੀਖਿਆ ਅਤੇ ਪ੍ਰਮਾਣਿਤ ਕੀਤਾ ਗਿਆ ਹੈ",
     effective_date_label: "ਪ੍ਰਭਾਵੀ / ਭੁਗਤਾਨ ਮਿਤੀ",
@@ -1377,6 +1381,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ur: {
+    lbl_effective_date: "مؤثر:",
     lbl_email_address: "رجسٹرڈ ای میل پتہ *",
     modal_allocation_cert_notice: "اس امدادی پیکیج کا باضابطہ جائزہ اور اجازت دی زنتھیا ٹرسٹ کی جانب سے دی گئی ہے",
     effective_date_label: "مؤثر / ادائیگی کی تاریخ",
@@ -1711,6 +1716,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   pl: {
+    lbl_effective_date: "Wchodzi w życie:",
     lbl_email_address: "Zarejestrowany adres e-mail *",
     modal_allocation_cert_notice: "Ten pakiet pomocy został oficjalnie sprawdzony i zatwierdzony przez The Zinthiya Trust dla beneficjenta",
     effective_date_label: "Data wejścia w życie / wypłaty",
@@ -2045,6 +2051,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   so: {
+    lbl_effective_date: "Dhaqangalka:",
     lbl_email_address: "Cinwaanka Iimaylka ee Diiwaangashan *",
     modal_allocation_cert_notice: "Xirmadan gargaarka waxaa si rasmi ah u dib-u-eegay una oggolaaday The Zinthiya Trust qofka ka faa'iideysanaya",
     effective_date_label: "Taariikhda Dhaqangalka / Bixinta",
@@ -2379,6 +2386,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ar: {
+    lbl_effective_date: "ساري المفعول:",
     lbl_email_address: "عنوان البريد الإلكتروني المسجل *",
     modal_allocation_cert_notice: "تمت مراجعة حزمة المساعدة هذه واعتمادها رسميًا من قبل صندوق زنثيا للمستفيد",
     effective_date_label: "تاريخ السريان / الصرف",
@@ -2713,6 +2721,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   bn: {
+    lbl_effective_date: "কার্যকরী:",
     lbl_email_address: "নিবন্ধিত ইমেল ঠিকানা *",
     modal_allocation_cert_notice: "এই সহায়তা প্যাকেজটি সুবিধাভোগীর জন্য দ্য জিনথিয়া ট্রাস্ট দ্বারা আনুষ্ঠানিকভাবে পর্যালোচনা এবং অনুমোদিত হয়েছে",
     effective_date_label: "কার্যকরী / অর্থপ্রদানের তারিখ",
@@ -3047,6 +3056,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ml: {
+    lbl_effective_date: "പ്രാബല്യത്തിൽ:",
     lbl_email_address: "രജിസ്റ്റർ ചെയ്ത ഇമെയിൽ വിലാസം *",
     modal_allocation_cert_notice: "ഈ സഹായ പാക്കേജ് ഗുണഭോക്താവിനായി ദി സിന്ധിയ ട്രസ്റ്റ് ഔദ്യോഗികമായി പരിശോധിച്ച് അംഗീകരിച്ചതാണ്",
     effective_date_label: "പ്രാബല്യത്തിൽ വരുന്ന / വിതരണ തീയതി",
@@ -3381,6 +3391,7 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ta: {
+    lbl_effective_date: "நடைமுறைக்கு வரும் தேதி:",
     lbl_email_address: "பதிவுசெய்யப்பட்ட மின்னஞ்சல் முகவரி *",
     modal_allocation_cert_notice: "இந்த உதவித் தொகுப்பு பயனாளருக்காக தி சிந்தியா அறக்கட்டளையால் முறைப்படி மதிப்பாய்வு செய்யப்பட்டு அங்கீகரிக்கப்பட்டது",
     effective_date_label: "நடைமுறைக்கு வரும் / பட்டுவாடா தேதி",
@@ -3947,6 +3958,10 @@ export const ASSISTANCE_TYPE_TRANSLATIONS: Record<SupportedLanguage, Record<stri
  */
 export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
   en: {
+    "Approved • Pending Payout": "Approved • Pending Payout",
+    "Approved • Disbursed": "Approved • Disbursed",
+    "Scheduled upon trustee review": "Scheduled upon trustee review",
+
     "Approved": "Approved",
     "Received": "Received",
     "Pending Admin Approval": "Pending Admin Approval",
@@ -3973,6 +3988,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "Standard",
   },
   pl: {
+    "Approved • Pending Payout": "Zatwierdzono • Oczekuje na wypłatę",
+    "Approved • Disbursed": "Zatwierdzono • Wypłacono",
+    "Scheduled upon trustee review": "Zaplanowano po przeglądzie powierników",
+
     "Approved": "Zatwierdzony",
     "Received": "Otrzymano",
     "Pending Admin Approval": "Oczekuje na zatwierdzenie administratora",
@@ -4005,6 +4024,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Online": "Dostępny",
   },
   gu: {
+    "Approved • Pending Payout": "મંજૂર • ચુકવણી બાકી",
+    "Approved • Disbursed": "મંજૂર • વિતરિત",
+    "Scheduled upon trustee review": "ટ્રસ્ટી સમીક્ષા પર નિર્ધારિત",
+
     "Approved": "મંજૂર થયેલ",
     "Received": "પ્રાપ્ત થયેલ",
     "Pending Admin Approval": "એડમિન મંજૂરી બાકી",
@@ -4030,6 +4053,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "પ્રમાણભૂત",
   },
   hi: {
+    "Approved • Pending Payout": "स्वीकृत • भुगतान लंबित",
+    "Approved • Disbursed": "स्वीकृत • वितरित",
+    "Scheduled upon trustee review": "ट्रस्टी समीक्षा पर निर्धारित",
+
     "Approved": "स्वीकृत",
     "Received": "प्राप्त",
     "Pending Admin Approval": "व्यवस्थापक स्वीकृति लंबित",
@@ -4055,6 +4082,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "मानक",
   },
   pa: {
+    "Approved • Pending Payout": "ਪ੍ਰਵਾਨਿਤ • ਭੁਗਤਾਨ ਬਕਾਇਆ",
+    "Approved • Disbursed": "ਪ੍ਰਵਾਨਿਤ • ਵੰਡਿਆ ਗਿਆ",
+    "Scheduled upon trustee review": "ਟਰੱਸਟੀ ਸਮੀਖਿਆ 'ਤੇ ਨਿਰਧਾਰਤ",
+
     "Approved": "ਪ੍ਰਵਾਨਿਤ",
     "Received": "ਪ੍ਰਾਪਤ ਹੋਇਆ",
     "Pending Admin Approval": "ਐਡਮਿਨ ਮਨਜ਼ੂਰੀ ਬਕਾਇਆ",
@@ -4080,6 +4111,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "ਮਿਆਰੀ",
   },
   ur: {
+    "Approved • Pending Payout": "منظور شدہ • ادائیگی زیر التواء",
+    "Approved • Disbursed": "منظور شدہ • تقسیم شدہ",
+    "Scheduled upon trustee review": "ٹرسٹی کے جائزے پر شیڈول",
+
     "Approved": "منظور شدہ",
     "Received": "وصول شدہ",
     "Pending Admin Approval": "ایڈمن منظوری کے منتظر",
@@ -4105,6 +4140,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "معیاری",
   },
   so: {
+    "Approved • Pending Payout": "La oggolaaday • Bixintu way dhiman tahay",
+    "Approved • Disbursed": "La oggolaaday • La bixiyay",
+    "Scheduled upon trustee review": "Waxaa la qorsheeyay dib u eegis ka dib",
+
     "Approved": "La ansixiyay",
     "Received": "La helay",
     "Pending Admin Approval": "Sugaya Ansixinta Maamulka",
@@ -4130,6 +4169,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "Caadiga ah",
   },
   ar: {
+    "Approved • Pending Payout": "معتمد • الصرف قيد الانتظار",
+    "Approved • Disbursed": "معتمد • تم الصرف",
+    "Scheduled upon trustee review": "مجدول بناءً على مراجعة الأمناء",
+
     "Approved": "معتمد",
     "Received": "مستلم",
     "Pending Admin Approval": "بانتظار موافقة الإدارة",
@@ -4155,6 +4198,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "قياسي",
   },
   bn: {
+    "Approved • Pending Payout": "অনুমোদিত • অর্থপ্রদান বাকি",
+    "Approved • Disbursed": "অনুমোদিত • বিতরণ করা হয়েছে",
+    "Scheduled upon trustee review": "ট্রাস্টি পর্যালোচনার পর নির্ধারিত",
+
     "Approved": "অনুমোদিত",
     "Received": "প্রাপ্ত",
     "Pending Admin Approval": "প্রশাসকের অনুমোদনের অপেক্ষায়",
@@ -4180,6 +4227,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "সাধারণ",
   },
   ml: {
+    "Approved • Pending Payout": "അംഗീകരിച്ചു • വിതരണം ബാക്കി",
+    "Approved • Disbursed": "അംഗീകരിച്ചു • വിതരണം ചെയ്തു",
+    "Scheduled upon trustee review": "ട്രസ്റ്റി അവലോകനത്തിന് ശേഷം നിശ്ചയിച്ചിരിക്കുന്നു",
+
     "Approved": "അംഗീകരിച്ചു",
     "Received": "ലഭിച്ചു",
     "Pending Admin Approval": "അഡ്മിൻ അംഗീകാരത്തിനായി കാത്തിരിക്കുന്നു",
@@ -4205,6 +4256,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "STANDARD": "സാധാരണ",
   },
   ta: {
+    "Approved • Pending Payout": "அங்கீகரிக்கப்பட்டது • நிலுவையில் உள்ள பட்டுவாடா",
+    "Approved • Disbursed": "அங்கீகரிக்கப்பட்டது • பட்டுவாடா செய்யப்பட்டது",
+    "Scheduled upon trustee review": "அறங்காவலர் பரிசீலனைக்கு பின் திட்டமிடப்பட்டது",
+
     "Approved": "அங்கீகரிக்கப்பட்டது",
     "Received": "பெறப்பட்டது",
     "Pending Admin Approval": "நிர்வாகி ஒப்புதலுக்கு காத்திருக்கிறது",
@@ -4324,6 +4379,8 @@ export function translateAssistanceTitle(type: string | undefined | null, lang: 
 export function translateMilestoneStep(label: string, lang: string = "en"): string {
   const map: Record<string, Record<string, string>> = {
     pl: {
+      "Scheduled upon trustee review": "Zaplanowano po przeglądzie powierników",
+
       "Application & Assessment": "Wniosek i ocena",
       "Trustee Approval": "Zatwierdzenie powierników",
       "Funds Allocated": "Środki przydzielone",
@@ -4334,6 +4391,8 @@ export function translateMilestoneStep(label: string, lang: string = "en"): stri
       "Cancelled": "Anulowano"
     },
     gu: {
+      "Scheduled upon trustee review": "ટ્રસ્ટી સમીક્ષા પર નિર્ધારિત",
+
       "Application & Assessment": "અરજી અને મૂલ્યાંકન",
       "Trustee Approval": "ટ્રસ્ટી મંજૂરી",
       "Funds Allocated": "ફંડ ફાળવવામાં આવ્યું",
@@ -4342,6 +4401,8 @@ export function translateMilestoneStep(label: string, lang: string = "en"): stri
       "Allocation Cancelled": "ફાળવણી રદ"
     },
     hi: {
+      "Scheduled upon trustee review": "ट्रस्टी समीक्षा पर निर्धारित",
+
       "Application & Assessment": "आवेदन एवं मूल्यांकन",
       "Trustee Approval": "ट्रस्टी स्वीकृति",
       "Funds Allocated": "धन आवंटित",
@@ -4350,6 +4411,8 @@ export function translateMilestoneStep(label: string, lang: string = "en"): stri
       "Allocation Cancelled": "आवंटन रद्द"
     },
     pa: {
+      "Scheduled upon trustee review": "ਟਰੱਸਟੀ ਸਮੀਖਿਆ 'ਤੇ ਨਿਰਧਾਰਤ",
+
       "Application & Assessment": "ਅਰਜ਼ੀ ਅਤੇ ਮੁਲਾਂਕਣ",
       "Trustee Approval": "ਟਰੱਸਟੀ ਪ੍ਰਵਾਨਗੀ",
       "Funds Allocated": "ਫੰਡ ਅਲਾਟ ਕੀਤੇ ਗਏ",
@@ -4358,6 +4421,8 @@ export function translateMilestoneStep(label: string, lang: string = "en"): stri
       "Allocation Cancelled": "ਅਲਾਟਮੈਂਟ ਰੱਦ"
     },
     ur: {
+      "Scheduled upon trustee review": "ٹرسٹی کے جائزے پر شیڈول",
+
       "Application & Assessment": "درخواست اور جائزہ",
       "Trustee Approval": "ٹرسٹی کی منظوری",
       "Funds Allocated": "فنڈز مختص",
@@ -4373,76 +4438,332 @@ export function translateMilestoneStep(label: string, lang: string = "en"): stri
 /**
  * Translates disbursement method strings.
  */
+/**
+ * Translates funding partner / grant charity names.
+ */
+export function translateFunder(funder: string | undefined | null, lang: string = "en"): string {
+  if (!funder) return "";
+  const map: Record<string, string> = {
+    pl: "Fundusz Pomocy Społeczności The Zinthiya Trust",
+    hi: "द ज़िंथिया ट्रस्ट कम्युनिटी हार्डशिप फंड",
+    gu: "ધ ઝિન્થિયા ટ્રસ્ટ કોમ્યુનિટી હાર્ડશિપ ફંડ",
+    pa: "ਦ ਜ਼ਿੰਥੀਆ ਟਰੱਸਟ ਕਮਿਊਨਿਟੀ ਹਾਰਡਸ਼ਿਪ ਫੰਡ",
+    ur: "دی زنتھیا ٹرسٹ کمیونٹی ہارڈشپ فنڈ",
+    so: "Sanduuqa Dhibaatada Bulshada ee The Zinthiya Trust",
+    ar: "صندوق صعوبات المجتمع التابع لمؤسسة زنثيا",
+    bn: "দ্য জিনথিয়া ট্রাস্ট কমিউনিটি হার্ডশিপ ফান্ড",
+    ml: "ദി സിന്ധിയ ട്രസ്റ്റ് കമ്മ്യൂണിറ്റി ഹാർഡ്ഷിപ്പ് ഫണ്ട്",
+    ta: "தி சிந்தியா அறக்கட்டளை சமூக இடர்பாட்டு நிதி"
+  };
+  if (funder.includes("The Zinthiya Trust Community Hardship Fund")) {
+    return map[lang] || funder;
+  }
+  return funder;
+}
+
+/**
+ * Translates disbursement method strings across all 11 languages.
+ */
 export function translateDisbursementMethod(method: string, lang: string = "en"): string {
-  if (lang === "pl") {
-    if (method.includes("direct grant transfer")) return "Wypłacono bezpośrednim przelewem dotacji";
-    if (method.includes("BACS") || method.includes("Voucher")) return "Zaplanowano przelew BACS / wysyłkę bonu";
-    if (method.includes("Cancelled")) return "Przydział anulowany";
+  if (!method) return "";
+  const maps: Record<string, { direct: string; bacs: string; cancelled: string }> = {
+    pl: {
+      direct: "Wypłacono bezpośrednim przelewem dotacji",
+      bacs: "Zaplanowano przelew BACS / wysyłkę bonu",
+      cancelled: "Przydział anulowany"
+    },
+    hi: {
+      direct: "प्रत्यक्ष अनुदान हस्तांतरण द्वारा वितरित",
+      bacs: "अनुसूचित BACS / वाउचर प्रेषण",
+      cancelled: "आवंटन रद्द"
+    },
+    gu: {
+      direct: "સીધા અનુદાન ટ્રાન્સફર દ્વારા વિતરિત",
+      bacs: "સુનિશ્ચિત BACS / વાઉચર ડિસ્પેચ",
+      cancelled: "ફાળવણી રદ"
+    },
+    pa: {
+      direct: "ਸਿੱਧੀ ਗ੍ਰਾਂਟ ਟ੍ਰਾਂਸਫਰ ਰਾਹੀਂ ਵੰਡਿਆ ਗਿਆ",
+      bacs: "ਨਿਰਧਾਰਤ BACS / ਵਾਊਚਰ ਡਿਸਪੈਚ",
+      cancelled: "ਅਲਾਟਮੈਂਟ ਰੱਦ"
+    },
+    ur: {
+      direct: "براہ راست گرانٹ ٹرانسفر کے ذریعے تقسیم کیا گیا",
+      bacs: "شیڈول شدہ BACS / واؤچر ڈسپیچ",
+      cancelled: "الاٹمنٹ منسوخ"
+    },
+    so: {
+      "Scheduled upon trustee review": "Waxaa la qorsheeyay dib u eegis ka dib",
+
+      direct: "Waxaa lagu bixiyay wareejin toos ah oo deeq ah",
+      bacs: "Jadwalka BACS / Dirista foojarka",
+      cancelled: "Qoondada waa la baabi'iyay"
+    },
+    ar: {
+      "Scheduled upon trustee review": "مجدول بناءً على مراجعة الأمناء",
+
+      direct: "تم الصرف عبر تحويل مباشر للمنحة",
+      bacs: "إرسال مجدول عبر BACS / قسيمة",
+      cancelled: "تم إلغاء التخصيص"
+    },
+    bn: {
+      "Scheduled upon trustee review": "ট্রাস্টি পর্যালোচনার পর নির্ধারিত",
+
+      direct: "সরাসরি অনুদান স্থানান্তরের মাধ্যমে বিতরণ করা হয়েছে",
+      bacs: "নির্ধারিত BACS / ভাউচার প্রেরণ",
+      cancelled: "বরাদ্দ বাতিল"
+    },
+    ml: {
+      "Scheduled upon trustee review": "ട്രസ്റ്റി അവലോകനത്തിന് ശേഷം നിശ്ചയിച്ചിരിക്കുന്നു",
+
+      direct: "നേരിട്ടുള്ള ഗ്രാന്റ് കൈമാറ്റം വഴി വിതരണം ചെയ്തു",
+      bacs: "പട്ടികപ്പെടുത്തിയ BACS / വൗച്ചർ അയക്കൽ",
+      cancelled: "അനുവദിച്ചത് റദ്ദാക്കി"
+    },
+    ta: {
+      "Scheduled upon trustee review": "அறங்காவலர் பரிசீலனைக்கு பின் திட்டமிடப்பட்டது",
+
+      direct: "நேரடி மானிய பரிமாற்றம் மூலம் பட்டுவாடா செய்யப்பட்டது",
+      bacs: "திட்டமிடப்பட்ட BACS / வவுச்சர் அனுப்புதல்",
+      cancelled: "ஒதுக்கீடு ரத்து செய்யப்பட்டது"
+    }
+  };
+
+  const lMap = maps[lang];
+  if (lMap) {
+    if (method.includes("direct grant transfer")) return lMap.direct;
+    if (method.includes("BACS") || method.includes("Voucher")) return lMap.bacs;
+    if (method.includes("Cancelled")) return lMap.cancelled;
   }
   return method;
 }
 
 /**
- * Translates trustee authorization body text.
+ * Translates trustee authorization body text across all 11 languages.
  */
 export function translateTrusteeAuthority(body: string, lang: string = "en"): string {
-  if (lang === "pl") {
-    if (body.includes("Trustees Relief Committee")) return "Zatwierdzone przez Komitet Pomocy Powierników Zinthiya";
-    if (body.includes("Cancelled")) return "Anulowano przez administrację";
+  if (!body) return "";
+  const maps: Record<string, { approved: string; cancelled: string }> = {
+    pl: {
+      approved: "Zatwierdzone przez Komitet Pomocy Powierników Zinthiya",
+      cancelled: "Anulowano przez administrację"
+    },
+    hi: {
+      approved: "ज़िंथिया ट्रस्टीज़ रिलीफ कमेटी द्वारा अनुमोदित",
+      cancelled: "प्रशासन द्वारा रद्द"
+    },
+    gu: {
+      approved: "ઝિન્થિયા ટ્રસ્ટીઝ રિલીફ કમિટી દ્વારા મંજૂર",
+      cancelled: "વહીવટીતંત્ર દ્વારા રદ"
+    },
+    pa: {
+      approved: "ਜ਼ਿੰਥੀਆ ਟਰੱਸਟੀਜ਼ ਰਿਲੀਫ ਕਮੇਟੀ ਦੁਆਰਾ ਪ੍ਰਵਾਨਿਤ",
+      cancelled: "ਪ੍ਰਸ਼ਾਸਨ ਦੁਆਰਾ ਰੱਦ"
+    },
+    ur: {
+      approved: "زنتھیا ٹرسٹیز ریلیف کمیٹی کی طرف سے منظور شدہ",
+      cancelled: "انتظامیہ کی طرف سے منسوخ"
+    },
+    so: {
+      approved: "Waxaa ansixiyay Guddiga Gargaarka Wakiillada Zinthiya",
+      cancelled: "Waxaa baabi'iyay Maamulka"
+    },
+    ar: {
+      approved: "معتمد من لجنة إغاثة أمناء زنثيا",
+      cancelled: "تم الإلغاء بواسطة الإدارة"
+    },
+    bn: {
+      approved: "জিনথিয়া ট্রাস্টি রিলিফ কমিটি দ্বারা অনুমোদিত",
+      cancelled: "প্রশাসন দ্বারা বাতিল"
+    },
+    ml: {
+      approved: "സിന്ധിയ ട്രസ്റ്റീസ് റിലീഫ് കമ്മിറ്റി അംഗീകരിച്ചത്",
+      cancelled: "ഭരണസമിതി റദ്ദാക്കി"
+    },
+    ta: {
+      approved: "சிந்தியா அறங்காவலர் நிவாரணக் குழுவால் அங்கீகரிக்கப்பட்டது",
+      cancelled: "நிர்வாகத்தால் ரத்து செய்யப்பட்டது"
+    }
+  };
+
+  const lMap = maps[lang];
+  if (lMap) {
+    if (body.includes("Trustees Relief Committee")) return lMap.approved;
+    if (body.includes("Cancelled")) return lMap.cancelled;
   }
   return body;
 }
 
 /**
- * Translates permitted use strings.
+ * Translates permitted use strings across all 11 languages.
  */
 export function translatePermittedUse(use: string, lang: string = "en"): string {
-  if (lang === "pl") {
-    if (use.includes("household essentials")) return "Ograniczone do zatwierdzonych niezbędnych artykułów domowych.";
-    if (use.includes("cancelled")) return "Przydział został anulowany.";
+  if (!use) return "";
+  const maps: Record<string, { essentials: string; cancelled: string }> = {
+    pl: {
+      essentials: "Ograniczone do zatwierdzonych niezbędnych artykułów domowych.",
+      cancelled: "Przydział został anulowany."
+    },
+    hi: {
+      essentials: "अधिकृत आपातकालीन घरेलू आवश्यक वस्तुओं तक सीमित।",
+      cancelled: "आवंटन रद्द कर दिया गया है।"
+    },
+    gu: {
+      essentials: "અધિકૃત કટોકટી ઘરગથ્થુ આવશ્યક ચીજવસ્તુઓ સુધી મર્યાદિત.",
+      cancelled: "ફાળવણી રદ કરવામાં આવી છે."
+    },
+    pa: {
+      essentials: "ਅਧਿਕਾਰਤ ਐਮਰਜੈਂਸੀ ਘਰੇਲੂ ਜ਼ਰੂਰੀ ਚੀਜ਼ਾਂ ਤੱਕ ਸੀਮਿਤ।",
+      cancelled: "ਅਲਾਟਮੈਂਟ ਰੱਦ ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ।"
+    },
+    ur: {
+      essentials: "مجاز ہنگامی گھریلو ضروری اشیاء تک محدود۔",
+      cancelled: "الاٹمنٹ منسوخ کر دی گئی ہے۔"
+    },
+    so: {
+      essentials: "Ku xaddidan waxyaabaha daruuriga ah ee qoyska ee degdegga ah.",
+      cancelled: "Qoondada waa la baabi'iyay."
+    },
+    ar: {
+      essentials: "يقتصر على المستلزمات المنزلية الأساسية المعتمدة في حالات الطوارئ.",
+      cancelled: "تم إلغاء التخصيص."
+    },
+    bn: {
+      essentials: "অনুমোদিত জরুরি গৃহস্থালী প্রয়োজনীয় সামগ্রীতে সীমাবদ্ধ।",
+      cancelled: "বরাদ্দ বাতিল করা হয়েছে।"
+    },
+    ml: {
+      essentials: "അംഗീകൃത അടിയന്തര ഗാർഹിക അവശ്യസാധനങ്ങൾക്ക് മാത്രമായി പരിമിതപ്പെടുത്തിയിരിക്കുന്നു.",
+      cancelled: "അനുവദിച്ചത് റദ്ദാക്കിയിരിക്കുന്നു."
+    },
+    ta: {
+      essentials: "அங்கீகரிக்கப்பட்ட அவசர வீட்டு உபயோகப் பொருட்களுக்கு மட்டுமே கட்டுப்படுத்தப்பட்டது.",
+      cancelled: "ஒதுக்கீடு ரத்து செய்யப்பட்டுள்ளது."
+    }
+  };
+
+  const lMap = maps[lang];
+  if (lMap) {
+    if (use.includes("household essentials")) return lMap.essentials;
+    if (use.toLowerCase().includes("cancelled")) return lMap.cancelled;
   }
   return use;
 }
 
 /**
- * Translates default purpose text when notes are empty.
+ * Translates default purpose text when notes are empty across all 11 languages.
  */
 export function translateDefaultPurpose(purpose: string | undefined | null, lang: string = "en"): string {
   if (!purpose) return "";
-  if (lang === "pl") {
-    if (purpose.includes("Emergency trustee relief grant allocated directly")) {
-      return "Awaryjna dotacja pomocowa przyznana bezpośrednio na zweryfikowane konto beneficjenta.";
+  const maps: Record<string, { emergency: string; cancelled: string; record: string; food: string; cash: string }> = {
+    pl: {
+      emergency: "Awaryjna dotacja pomocowa przyznana bezpośrednio na zweryfikowane konto beneficjenta.",
+      cancelled: "Przydział dotacji pomocowej został anulowany przez administrację.",
+      record: "Oficjalny rejestr przyznanej pomocy przez powierników.",
+      food: "Na żywność",
+      cash: "Potrzebna gotówka na pilne wydatki"
+    },
+    hi: {
+      emergency: "सत्यापित लाभार्थी खाते में सीधे आवंटित आपातकालीन ट्रस्टी राहत अनुदान।",
+      cancelled: "राहत अनुदान आवंटन प्रशासन द्वारा रद्द कर दिया गया था।",
+      record: "आधिकारिक ट्रस्टी आवंटित सहायता रिकॉर्ड।",
+      food: "भोजन के लिए",
+      cash: "तत्काल खर्चों के लिए नकद सहायता आवश्यक"
+    },
+    gu: {
+      emergency: "ચકાસાયેલ લાભાર્થી ખાતામાં સીધી ફાળવેલ કટોકટી ટ્રસ્ટી રાહત ગ્રાન્ટ.",
+      cancelled: "રાહત અનુદાન ફાળવણી વહીવટીતંત્ર દ્વારા રદ કરવામાં આવી હતી.",
+      record: "સત્તાવાર ટ્રસ્ટી ફાળવેલ સહાય રેકોર્ડ.",
+      food: "ખોરાક માટે",
+      cash: "તાત્કાલિક ખર્ચ માટે રોકડ સહાય જરૂરી"
+    },
+    pa: {
+      emergency: "ਤਸਦੀਕਸ਼ੁਦਾ ਲਾਭਪਾਤਰੀ ਖਾਤੇ ਵਿੱਚ ਸਿੱਧੀ ਅਲਾਟ ਕੀਤੀ ਐਮਰਜੈਂਸੀ ਟਰੱਸਟੀ ਰਾਹਤ ਗ੍ਰਾਂਟ।",
+      cancelled: "ਰਾਹਤ ਗ੍ਰਾਂਟ ਅਲਾਟਮੈਂਟ ਪ੍ਰਸ਼ਾਸਨ ਦੁਆਰਾ ਰੱਦ ਕਰ ਦਿੱਤੀ ਗਈ ਸੀ।",
+      record: "ਅਧਿਕਾਰਤ ਟਰੱਸਟੀ ਅਲਾਟ ਸਹਾਇਤਾ ਰਿਕਾਰਡ।",
+      food: "ਭੋਜਨ ਲਈ",
+      cash: "ਤੁਰੰਤ ਖਰਚਿਆਂ ਲਈ ਨਕਦੀ ਦੀ ਲੋੜ"
+    },
+    ur: {
+      emergency: "تصدیق شدہ مستفید کنندہ کے اکاؤنٹ میں براہ راست مختص کی گئی ہنگامی ٹرسٹی ریلیف گرانٹ۔",
+      cancelled: "ریلیف گرانٹ الاٹمنٹ انتظامیہ کی طرف سے منسوخ کر دی گئی تھی۔",
+      record: "سرکاری ٹرسٹی مختص امدادی ریکارڈ۔",
+      food: "خوراک کے لیے",
+      cash: "فوری اخراجات کے لیے نقد رقم درکار ہے"
+    },
+    so: {
+      emergency: "Deeqda gargaarka wakiillada degdegga ah oo si toos ah loogu qoondeeyay akoonka la xaqiijiyay ee ka faa'iideystaha.",
+      cancelled: "Qoondada deeqda gargaarka waxaa baabi'iyay maamulka.",
+      record: "Diiwaanka gargaarka ee wakiilka rasmiga ah u qoondeeyay.",
+      food: "Cunto ahaan",
+      cash: "Lacag caddaan ah oo loogu talagalay kharashaadka degdegga ah"
+    },
+    ar: {
+      emergency: "منحة إغاثة طارئة من الأمناء مخصصة مباشرة لحساب المستفيد المعتمد.",
+      cancelled: "تم إلغاء تخصيص منحة الإغاثة من قبل الإدارة.",
+      record: "سجل المساعدة المخصصة من قبل الأمناء الرسميين.",
+      food: "للغذاء",
+      cash: "مطلوب مساعدة نقدية لمصاريف عاجلة"
+    },
+    bn: {
+      emergency: "যাচাইকৃত সুবিধাভোগী অ্যাকাউন্টে সরাসরি বরাদ্দকৃত জরুরি ট্রাস্টি ত্রাণ অনুদান।",
+      cancelled: "ত্রাণ অনুদান বরাদ্দ প্রশাসন দ্বারা বাতিল করা হয়েছে।",
+      record: "অফিসিয়াল ট্রাস্টি বরাদ্দকৃত সহায়তা রেকর্ড।",
+      food: "খাবারের জন্য",
+      cash: "জরুরি খরচের জন্য নগদ অর্থ প্রয়োজন"
+    },
+    ml: {
+      emergency: "പരിശോധിച്ചുറപ്പിച്ച ഗുണഭോക്തൃ അക്കൗണ്ടിലേക്ക് നേരിട്ട് അനുവദിച്ച അടിയന്തര ട്രസ്റ്റി റിലീഫ് ഗ്രാന്റ്.",
+      cancelled: "റിലീഫ് ഗ്രാന്റ് അനുവദിച്ചത് ഭരണസമിതി റദ്ദാക്കി.",
+      record: "ഔദ്യോഗിക ട്രസ്റ്റി അനുവദിച്ച സഹായ രേഖ.",
+      food: "ഭക്ഷണത്തിനായി",
+      cash: "അടിയന്തര ചെലവുകൾക്കായി പണം ആവശ്യമാണ്"
+    },
+    ta: {
+      emergency: "சரிபார்க்கப்பட்ட பயனாளி கணக்கிற்கு நேரடியாக ஒதுக்கப்பட்ட அவசர அறங்காவலர் நிவாரண மானியம்.",
+      cancelled: "நிவாரண மானிய ஒதுக்கீடு நிர்வாகத்தால் ரத்து செய்யப்பட்டது.",
+      record: "அதிகாரப்பூர்வ அறங்காவலர் ஒதுக்கிய உதவிப் பதிவு.",
+      food: "உணவுக்காக",
+      cash: "அவசர செலவுகளுக்கு ரொக்க உதவி தேவை"
     }
-    if (purpose.includes("Relief grant allocation was cancelled")) {
-      return "Przydział dotacji pomocowej został anulowany przez administrację.";
-    }
-    if (purpose.includes("Official trustee allocated assistance record")) {
-      return "Oficjalny rejestr przyznanej pomocy przez powierników.";
-    }
-    if (purpose.toLowerCase() === "for food") {
-      return "Na żywność";
-    }
-    if (purpose.toLowerCase().includes("need cash") || purpose.toLowerCase().includes("need 10,000") || purpose.toLowerCase().includes("need 10000")) {
-      return "Potrzebna gotówka na pilne wydatki";
-    }
+  };
+
+  const lMap = maps[lang];
+  if (lMap) {
+    if (purpose.includes("Emergency trustee relief grant allocated directly")) return lMap.emergency;
+    if (purpose.includes("Relief grant allocation was cancelled")) return lMap.cancelled;
+    if (purpose.includes("Official trustee allocated assistance record")) return lMap.record;
+    if (purpose.toLowerCase() === "for food") return lMap.food;
+    if (purpose.toLowerCase().includes("need cash") || purpose.toLowerCase().includes("need 10,000") || purpose.toLowerCase().includes("need 10000")) return lMap.cash;
   }
   return purpose;
 }
 
 /**
- * Translates validity string (e.g. "Current Relief Period").
+ * Translates validity string across all 11 languages.
  */
 export function translateValidity(validity: string, lang: string = "en"): string {
-  if (lang === "pl") {
-    if (validity.includes("Current Relief Period")) return "Bieżący okres pomocowy";
-    if (validity.includes("Cancelled")) return "Anulowano";
+  if (!validity) return "";
+  const maps: Record<string, { relief: string; cancelled: string }> = {
+    pl: { relief: "Bieżący okres pomocowy", cancelled: "Anulowano" },
+    hi: { relief: "वर्तमान राहत अवधि", cancelled: "रद्द" },
+    gu: { relief: "વર્તમાન રાહત સમયગાળો", cancelled: "રદ" },
+    pa: { relief: "ਮੌਜੂਦਾ ਰਾਹਤ ਸਮਾਂ", cancelled: "ਰੱਦ" },
+    ur: { relief: "موجودہ ریلیف کی مدت", cancelled: "منسوخ" },
+    so: { relief: "Xilliga Gargaarka ee Hadda", cancelled: "La baabi'iyay" },
+    ar: { relief: "فترة الإغاثة الحالية", cancelled: "ملغى" },
+    bn: { relief: "বর্তমান ত্রাণ সময়কাল", cancelled: "বাতিল" },
+    ml: { relief: "നിലവിലെ റിലീഫ് കാലയളവ്", cancelled: "റദ്ദാക്കി" },
+    ta: { relief: "தற்போதைய நிவாரண காலம்", cancelled: "ரத்து செய்யப்பட்டது" }
+  };
+  const lMap = maps[lang];
+  if (lMap) {
+    if (validity.includes("Current Relief Period") || validity.includes("Current Welfare Period")) return lMap.relief;
+    if (validity.includes("Cancelled")) return lMap.cancelled;
   }
   return validity;
 }
 
-/**
- * Translates housing tenure options.
- */
 export function translateHousingTenure(tenure: string, lang: string = "en"): string {
   if (lang === "pl") {
     if (tenure.includes("Private Rented")) return "Wynajem prywatny (Assured Shorthold)";
