@@ -598,15 +598,24 @@ export function BeneficiaryAuthPage({ initialMode = "login" }: { initialMode?: B
             BENEFICIARY PORTAL
           </span>
           <Link
-            to="/admin/login"
+            to="/"
             style={{
               fontSize: "12px",
               fontWeight: 700,
               color: "#64748B",
               textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 14px",
+              borderRadius: "999px",
+              backgroundColor: "rgba(255, 255, 255, 0.8)",
+              border: "1px solid rgba(100, 116, 139, 0.2)",
+              transition: "all 0.2s ease",
             }}
           >
-            Admin Gateway →
+            <ArrowLeft size={13} />
+            Back to Website
           </Link>
         </div>
       </header>
