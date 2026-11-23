@@ -8,6 +8,17 @@ import {
   translateAssistanceType,
   translateStatus,
   translateAdvocateName,
+  translateAssistanceTitle,
+  translateMilestoneStep,
+  translateDisbursementMethod,
+  translateTrusteeAuthority,
+  translatePermittedUse,
+  translateDefaultPurpose,
+  translateValidity,
+  translateHousingTenure,
+  translateContactMethod,
+  translateContactHours,
+  translateUrgencyLevel,
   SupportedLanguage
 } from "../lib/beneficiaryTranslations";
 import {
@@ -3145,7 +3156,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         Personal Information
                       </h3>
                       <p style={{ fontSize: "12px", color: "#8E7287", margin: "2px 0 0 0" }}>
-                        View official records and update permitted client identification details.
+                        {t("profile_personal_sub", "View official records and update permitted client identification details.")}
                       </p>
                     </div>
                   </div>
@@ -3162,10 +3173,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       <div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                           <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569" }}>
-                            Full Legal Name (Official Record)
+                            {t("lbl_full_legal_name", "Full Legal Name (Official Record)")}
                           </label>
                           <span style={{ fontSize: "10px", color: "#94A3B8", display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                            <Lock size={10} /> Verified Record
+                            <Lock size={10} /> {t("lbl_verified_record", "Verified Record")}
                           </span>
                         </div>
                         <input
@@ -3183,14 +3194,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           }}
                         />
                         <p style={{ fontSize: "10px", color: "#94A3B8", margin: "3px 0 0 0" }}>
-                          To update your official legal name, caseworker identity verification is required.
+                          {t("lbl_legal_name_hint", "To update your official legal name, caseworker identity verification is required.")}
                         </p>
                       </div>
 
                       {/* Preferred Display Name (Permitted to edit) */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Preferred Name / Salutation *
+                          {t("lbl_preferred_salutation", "Preferred Name / Salutation *")}
                         </label>
                         <input
                           type="text"
@@ -3208,14 +3219,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           }}
                         />
                         <p style={{ fontSize: "10px", color: "#8E7287", margin: "3px 0 0 0" }}>
-                          How you prefer caseworkers and support staff to address you.
+                          {t("lbl_preferred_name_hint", "How you prefer caseworkers and support staff to address you.")}
                         </p>
                       </div>
 
                       {/* Client Reference ID (Protected) */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Client Case Reference Number
+                          {t("lbl_case_reference_num", "Client Case Reference Number")}
                         </label>
                         <input
                           type="text"
@@ -3238,7 +3249,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Date of Birth (Protected) */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Date of Birth (Verified)
+                          {t("lbl_dob_verified", "Date of Birth (Verified)")}
                         </label>
                         <input
                           type="text"
@@ -3259,7 +3270,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Primary Language Preference */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Preferred Spoken & Written Language
+                          {t("lbl_pref_spoken_written", "Preferred Spoken & Written Language")}
                         </label>
                         <select
                           value={beneficiaryUser.primaryLanguage}
@@ -3289,7 +3300,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Interpreter Request Toggle */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Accredited Interpreter for In-Person Sessions
+                          {t("lbl_interpreter_session", "Accredited Interpreter for In-Person Sessions")}
                         </label>
                         <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
                           <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer" }}>
@@ -3300,7 +3311,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               onChange={() => setBeneficiaryUser({ ...beneficiaryUser, interpreterNeeded: false })}
                               style={{ accentColor: "#E6127E" }}
                             />
-                            <span>Not required</span>
+                            <span>{t("opt_not_required", "Not required")}</span>
                           </label>
                           <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", cursor: "pointer" }}>
                             <input
@@ -3310,7 +3321,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               onChange={() => setBeneficiaryUser({ ...beneficiaryUser, interpreterNeeded: true })}
                               style={{ accentColor: "#E6127E" }}
                             />
-                            <span>Require Interpreter</span>
+                            <span>{t("opt_require_interpreter", "Require Interpreter")}</span>
                           </label>
                         </div>
                       </div>
@@ -3318,7 +3329,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                     <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
                       <button type="submit" className="btn-gradient-magenta" style={{ padding: "8px 20px", fontSize: "13px" }}>
-                        <span>Save Personal Information</span>
+                        <span>{t("btn_save_personal_info", "Save Personal Information")}</span>
                       </button>
                     </div>
                   </form>
@@ -3331,10 +3342,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                     <div>
                       <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221", margin: 0 }}>
-                        Contact Details & Communication Preferences
+                        {t("contact_details", "Contact Details & Communication Preferences")}
                       </h3>
                       <p style={{ fontSize: "12px", color: "#8E7287", margin: "2px 0 0 0" }}>
-                        Update your primary telephone, email, and emergency next-of-kin contacts.
+                        {t("profile_contact_sub", "Update your primary telephone, email, and emergency next-of-kin contacts.")}
                       </p>
                     </div>
                   </div>
@@ -3350,7 +3361,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Primary Mobile */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Primary Mobile Number (Receives SMS Vouchers & Codes) *
+                          {t("lbl_primary_phone", "Primary Mobile Number (Receives SMS Vouchers & Codes) *")}
                         </label>
                         <div style={{ position: "relative" }}>
                           <PhoneCall size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
@@ -3374,7 +3385,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Secondary Phone */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Alternative Telephone / Landline (Optional)
+                          {t("lbl_secondary_phone", "Alternative Telephone / Landline (Optional)")}
                         </label>
                         <div style={{ position: "relative" }}>
                           <PhoneCall size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
@@ -3398,7 +3409,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Registered Email */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Registered Email Address *
+                          {t("lbl_email_address", "Registered Email Address *")}
                         </label>
                         <div style={{ position: "relative" }}>
                           <Mail size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
@@ -3419,7 +3430,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         </div>
                       </div>
 
-                      {/* Preferred Contact Method */}
+                      {/* {t("lbl_preferred_contact_method", "Preferred Contact Method")} */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
                           Preferred Contact Method
@@ -3437,18 +3448,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             backgroundColor: "#ffffff"
                           }}
                         >
-                          <option>SMS & Email</option>
-                          <option>SMS Text Only</option>
-                          <option>Telephone Voice Call</option>
-                          <option>Email Only</option>
-                          <option>Encrypted Portal Message</option>
+                          <option value="SMS & Email">{translateContactMethod("SMS & Email", selectedLanguage)}</option>
+                          <option value="SMS Text Only">{translateContactMethod("SMS Text Only", selectedLanguage)}</option>
+                          <option value="Telephone Voice Call">{translateContactMethod("Telephone Voice Call", selectedLanguage)}</option>
+                          <option value="Email Only">{translateContactMethod("Email Only", selectedLanguage)}</option>
+                          <option value="Encrypted Portal Message">{translateContactMethod("Encrypted Portal Message", selectedLanguage)}</option>
                         </select>
                       </div>
 
                       {/* Best Contact Time */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Best Time to Call
+                          {t("lbl_best_time_to_call", "Best Time to Call")}
                         </label>
                         <select
                           value={beneficiaryUser.contactHours}
@@ -3463,16 +3474,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             backgroundColor: "#ffffff"
                           }}
                         >
-                          <option>Weekdays 09:00 - 16:30 (Anytime)</option>
-                          <option>Morning (09:00 - 12:00)</option>
-                          <option>Afternoon (12:00 - 16:30)</option>
+                          <option value="Weekdays 09:00 - 16:30 (Anytime)">{translateContactHours("Weekdays 09:00 - 16:30 (Anytime)", selectedLanguage)}</option>
+                          <option value="Morning (09:00 - 12:00)">{translateContactHours("Morning (09:00 - 12:00)", selectedLanguage)}</option>
+                          <option value="Afternoon (12:00 - 16:30)">{translateContactHours("Afternoon (12:00 - 16:30)", selectedLanguage)}</option>
                         </select>
                       </div>
 
                       {/* Emergency Contact Name */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Emergency Next of Kin Name
+                          {t("lbl_emergency_name", "Emergency Next of Kin Name")}
                         </label>
                         <input
                           type="text"
@@ -3492,7 +3503,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Emergency Contact Phone */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Emergency Contact Number
+                          {t("lbl_emergency_phone", "Emergency Contact Number")}
                         </label>
                         <input
                           type="tel"
@@ -3512,7 +3523,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Emergency Relationship */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Emergency Contact Relationship
+                          {t("lbl_emergency_rel", "Emergency Contact Relationship")}
                         </label>
                         <input
                           type="text"
@@ -3532,7 +3543,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                     <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
                       <button type="submit" className="btn-gradient-magenta" style={{ padding: "8px 20px", fontSize: "13px" }}>
-                        <span>Save Contact Details</span>
+                        <span>{t("btn_save_contact_details", "Save Contact Details")}</span>
                       </button>
                     </div>
                   </form>
@@ -3545,10 +3556,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                     <div>
                       <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221", margin: 0 }}>
-                        Address & Housing Details
+                        {t("residential_address", "Address & Housing Details")}
                       </h3>
                       <p style={{ fontSize: "12px", color: "#8E7287", margin: "2px 0 0 0" }}>
-                        Ensure your registered residence is accurate for utility vouchers, deliveries, and council benefits.
+                        {t("profile_housing_sub", "Ensure your registered residence is accurate for utility vouchers, deliveries, and council benefits.")}
                       </p>
                     </div>
                     <span
@@ -3561,7 +3572,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         color: "#065F46"
                       }}
                     >
-                      PROOF VERIFIED
+                      {t("lbl_proof_verified", "PROOF VERIFIED")}
                     </span>
                   </div>
 
@@ -3578,7 +3589,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Address Line 1 */}
                       <div style={{ gridColumn: "span 2" }}>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Address Line 1 (Street & House Number) *
+                          {t("lbl_address_line1", "Address Line 1 (Street & House Number) *")}
                         </label>
                         <input
                           type="text"
@@ -3599,7 +3610,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Address Line 2 */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Address Line 2 (Flat / Apartment - Optional)
+                          {t("lbl_address_line2", "Address Line 2 (Flat / Apartment - Optional)")}
                         </label>
                         <input
                           type="text"
@@ -3616,7 +3627,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         />
                       </div>
 
-                      {/* Town / City */}
+                      {/* {t("lbl_city", "Town / City *")}/}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
                           Town / City *
@@ -3637,7 +3648,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         />
                       </div>
 
-                      {/* Postcode */}
+                      {/* {t("lbl_postcode", "Postcode *")}/}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
                           Postcode *
@@ -3662,7 +3673,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Local Authority / Council (Read-only) */}
                       <div>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Local Authority / Council Area
+                          {t("council_area", "Local Authority / Council Area")}
                         </label>
                         <input
                           type="text"
@@ -3683,7 +3694,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       {/* Tenancy Type */}
                       <div style={{ gridColumn: "span 2" }}>
                         <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                          Housing / Tenancy Status
+                          {t("lbl_housing_tenure", "Housing / Tenancy Status")}
                         </label>
                         <select
                           value={beneficiaryUser.tenancy}
@@ -3698,12 +3709,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             backgroundColor: "#ffffff"
                           }}
                         >
-                          <option>Private Rented (Assured Shorthold)</option>
-                          <option>Council Housing (Local Authority)</option>
-                          <option>Housing Association</option>
-                          <option>Temporary / Emergency Shelter</option>
-                          <option>Owner Occupier (Mortgage / Outright)</option>
-                          <option>Supported / Refuge Accommodation</option>
+                          <option value="Private Rented (Assured Shorthold)">{translateHousingTenure("Private Rented (Assured Shorthold)", selectedLanguage)}</option>
+                          <option value="Council Housing (Local Authority)">{translateHousingTenure("Council Housing (Local Authority)", selectedLanguage)}</option>
+                          <option value="Housing Association">{translateHousingTenure("Housing Association", selectedLanguage)}</option>
+                          <option value="Temporary / Emergency Shelter">{translateHousingTenure("Temporary / Emergency Shelter", selectedLanguage)}</option>
+                          <option value="Owner Occupier (Mortgage / Outright)">{translateHousingTenure("Owner Occupier (Mortgage / Outright)", selectedLanguage)}</option>
+                          <option value="Supported / Refuge Accommodation">{translateHousingTenure("Supported / Refuge Accommodation", selectedLanguage)}</option>
                         </select>
                       </div>
                     </div>
@@ -3719,12 +3730,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         lineHeight: "1.5"
                       }}
                     >
-                      <strong style={{ color: "#B80C64" }}>Note for Relocating:</strong> If you move to a new property, updating your address above ensures food hampers and utility vouchers are dispatched to your current home. Your caseworker may request a photo of your new tenancy agreement or Council Tax bill.
+                      <strong style={{ color: "#B80C64" }}>{t("lbl_note_relocating", "Note for Relocating:")}</strong> If you move to a new property, updating your address above ensures food hampers and utility vouchers are dispatched to your current home. Your caseworker may request a photo of your new tenancy agreement or Council Tax bill.
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
                       <button type="submit" className="btn-gradient-magenta" style={{ padding: "8px 20px", fontSize: "13px" }}>
-                        <span>Save Address Information</span>
+                        <span>{t("btn_save_address", "Save Address Information")}</span>
                       </button>
                     </div>
                   </form>
@@ -3747,7 +3758,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   {passwordChangeSuccess && (
                     <div style={{ padding: "10px 14px", borderRadius: "10px", backgroundColor: "#ECFDF5", border: "1px solid #A7F3D0", color: "#065F46", fontSize: "12px", fontWeight: 700, marginBottom: "16px", display: "flex", alignItems: "center", gap: "6px" }}>
                       <Check size={16} />
-                      <span>Your password has been changed successfully.</span>
+                      <span>{t("msg_pw_changed_success", "Your password has been changed successfully.")}</span>
                     </div>
                   )}
 
@@ -3761,7 +3772,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   <form onSubmit={handlePasswordSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     <div>
                       <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                        Current Password *
+                        {t("lbl_current_pw", "Current Password *")}
                       </label>
                       <div style={{ position: "relative" }}>
                         <input
@@ -3791,7 +3802,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                     <div>
                       <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                        New Password (8+ characters) *
+                        {t("lbl_new_pw", "New Password (8+ characters) *")}
                       </label>
                       <div style={{ position: "relative" }}>
                         <input
@@ -3821,7 +3832,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                     <div>
                       <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
-                        Confirm New Password *
+                        {t("lbl_confirm_new_pw", "Confirm New Password *")}
                       </label>
                       <div style={{ position: "relative" }}>
                         <input
@@ -3854,7 +3865,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       className="btn-gradient-magenta"
                       style={{ padding: "8px 20px", fontSize: "13px", alignSelf: "flex-start", marginTop: "6px" }}
                     >
-                      <span>Update Password</span>
+                      <span>{t("btn_update_password", "Update Password")}</span>
                     </button>
                   </form>
                 </div>
@@ -3875,16 +3886,16 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 <ShieldCheck size={22} style={{ color: "#E6127E", flexShrink: 0, marginTop: "2px" }} />
                 <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
                   <strong style={{ color: "#241221", display: "block", marginBottom: "2px" }}>
-                    UK GDPR Data Protection & Permitted Changes
+                    {t("gdpr_notice_title", "UK GDPR Data Protection & Permitted Changes")}
                   </strong>
-                  You can update your preferred name, primary/secondary phone numbers, email address, living address, communication methods, and password self-service at any time. Changes to legal names, dates of birth, or registered dependents require caseworker identity verification to maintain compliance with charitable grant awards.
+                  {t("gdpr_notice_desc", "You can update your preferred name, primary/secondary phone numbers, email address, living address, communication methods, and password self-service at any time. Changes to legal names, dates of birth, or registered dependents require caseworker identity verification to maintain compliance with charitable grant awards.")}
                 </div>
               </div>
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 3: ALLOCATED SUPPORT (DEDICATED SEPARATE PAGE)                         */}
+          {/* TAB 3: {t("kpi_allocated_support", "ALLOCATED SUPPORT")} (DEDICATED SEPARATE PAGE)                         */}
           {/* Requirements:                                                             */}
           {/* - Allocated support amount                                                */}
           {/* - Purpose of the allocation                                               */}
@@ -3909,10 +3920,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         color: "#B80C64"
                       }}
                     >
-                      APPROVED BY TRUSTEES
+                      {t("approved_by_trustees", "APPROVED BY TRUSTEES")}
                     </span>
                     <span style={{ fontSize: "12px", color: "#8E7287" }}>
-                      Case Ref: {beneficiaryUser.referenceId}
+                      {t("case_ref", "Case Ref:")} {beneficiaryUser.referenceId}
                     </span>
                   </div>
                   <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#241221", margin: "4px 0 0 0" }}>
@@ -3995,7 +4006,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     }}
                   >
                     <Download size={14} />
-                    <span>Download Award Summary (PDF)</span>
+                    <span>{t("download_award_summary", "Download Award Summary (PDF)")}</span>
                   </button>
                 </div>
               </div>
@@ -4015,24 +4026,24 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {formatAmount(liveStats.totalAllocated)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#2563EB", fontWeight: 700, marginTop: "2px" }}>
-                    {allocatedSupportRecords.filter(r => r.statusTag !== "cancelled" && r.statusTag !== "rejected").length} Active Allocation(s)
+                    {allocatedSupportRecords.filter(r => r.statusTag !== "cancelled" && r.statusTag !== "rejected").length} {t("active_allocations_count", "Active Allocation(s)")}
                   </div>
                 </div>
 
                 <div className="beneficiary-card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                      Active Approved Grants
+                      {t("active_approved_grants", "Active Approved Grants")}
                     </span>
                     <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <ShieldCheck size={14} />
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#059669" }}>
-                    {allocatedSupportRecords.filter(r => r.statusTag !== "cancelled" && r.statusTag !== "rejected").length} Allocations
+                    {allocatedSupportRecords.filter(r => r.statusTag !== "cancelled" && r.statusTag !== "rejected").length} {t("allocations_badge", "Allocations")}
                   </div>
                   <div style={{ fontSize: "11px", color: "#059669", fontWeight: 700, marginTop: "2px" }}>
-                    100% Trustee Verified &amp; Authorized
+                    {t("trustee_verified_auth", "100% Trustee Verified & Authorized")}
                   </div>
                 </div>
 
@@ -4077,10 +4088,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   {/* Status Filters */}
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     {[
-                      { id: "all" as const, label: `All (${allocatedSupportRecords.length})` },
-                      { id: "pending" as const, label: `Pending Payout (${allocatedSupportRecords.filter(r => r.statusTag === "pending").length})` },
-                      { id: "disbursed" as const, label: `Disbursed & Active (${allocatedSupportRecords.filter(r => r.statusTag === "disbursed").length})` },
-                      { id: "cancelled" as const, label: `Cancelled (${allocatedSupportRecords.filter(r => r.statusTag === "cancelled" || r.statusTag === "rejected").length})` }
+                      { id: "all" as const, label: `${t("filter_all_records", "All")} (${allocatedSupportRecords.length})` },
+                      { id: "pending" as const, label: `${t("filter_pending", "Pending Payout")} (${allocatedSupportRecords.filter(r => r.statusTag === "pending").length})` },
+                      { id: "disbursed" as const, label: `${t("filter_disbursed_active", "Disbursed & Active")} (${allocatedSupportRecords.filter(r => r.statusTag === "disbursed").length})` },
+                      { id: "cancelled" as const, label: `${t("filter_cancelled", "Cancelled")} (${allocatedSupportRecords.filter(r => r.statusTag === "cancelled" || r.statusTag === "rejected").length})` }
                     ].map((tab) => {
                       const isTabActive = allocationFilter === tab.id;
                       return (
@@ -4114,7 +4125,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         type="text"
                         value={allocationSearch}
                         onChange={(e) => setAllocationSearch(e.target.value)}
-                        placeholder="Search purpose, grant, ref..."
+                        placeholder={t("search_assistance_placeholder", "Search purpose, grant, ref...")}
                         style={{
                           width: "100%",
                           padding: "6px 12px 6px 30px",
@@ -4143,7 +4154,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           boxShadow: allocationViewMode === "cards" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
                         }}
                       >
-                        Grant Cards
+                        {t("btn_grant_cards", "Grant Cards")}
                       </button>
                       <button
                         type="button"
@@ -4160,7 +4171,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           boxShadow: allocationViewMode === "table" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
                         }}
                       >
-                        Table View
+                        {t("btn_table_view", "Table View")}
                       </button>
                     </div>
                   </div>
@@ -4197,14 +4208,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <span style={{ fontSize: "11px", fontWeight: 800, padding: "2px 8px", borderRadius: "6px", backgroundColor: "#FCE8F3", color: "#B80C64" }}>
-                                {item.category}
+                                {translateAssistanceType(item.category, selectedLanguage)}
                               </span>
                               <span style={{ fontSize: "12px", fontFamily: "monospace", color: "#64748B" }}>
                                 Ref: {item.reference}
                               </span>
                             </div>
                             <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: "6px 0 0 0" }}>
-                              {item.title}
+                              {translateAssistanceTitle(item.category, selectedLanguage)}
                             </h3>
                           </div>
 
@@ -4220,7 +4231,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 border: `1px solid ${item.statusColor}33`
                               }}
                             >
-                              {item.status}
+                              {translateStatus(item.status, selectedLanguage)}
                             </span>
                           </div>
                         </div>
@@ -4243,7 +4254,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             {/* 1. Allocated Support Amount */}
                             <div>
                               <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                                Allocated Support Amount
+                                {t("alloc_amount", "Allocated Support Amount")}
                               </div>
                               <div style={{ fontSize: "26px", fontWeight: 900, color: "#E6127E", marginTop: "2px" }}>
                                 {dashboardCurrency === "INR" ? item.amountINR : item.amountGBP}
@@ -4253,13 +4264,13 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             {/* 2. Allocation Date */}
                             <div>
                               <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                                Allocation Date
+                                {t("alloc_date", "Allocation Date")}
                               </div>
                               <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
                                 <Calendar size={14} style={{ color: "#E6127E" }} />
                                 <span>{item.allocationDate}</span>
                                 <span style={{ fontSize: "11px", color: "#8E7287", fontWeight: 500 }}>
-                                  ({item.effectiveDate})
+                                  ({translateMilestoneStep(item.effectiveDate, selectedLanguage)})
                                 </span>
                               </div>
                             </div>
@@ -4275,10 +4286,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             >
                               <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#B80C64" }}>
                                 <Info size={13} />
-                                <span>Purpose of Allocation</span>
+                                <span>{t("alloc_purpose", "Purpose of Allocation")}</span>
                               </div>
                               <p style={{ fontSize: "12.5px", color: "#334155", margin: "4px 0 0 0", lineHeight: "1.55", fontWeight: 500 }}>
-                                {item.purpose}
+                                {translateDefaultPurpose(item.purpose, selectedLanguage)}
                               </p>
                             </div>
                           </div>
@@ -4286,24 +4297,24 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           {/* Column 2: Assistance Details */}
                           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                             <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                              Assistance Details & Governance
+                              {t("alloc_details_governance", "Assistance Details & Governance")}
                             </div>
 
                             <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6" }}>
                               <div>
-                                <strong style={{ color: "#241221" }}>Funding Partner:</strong> {item.funder}
+                                <strong style={{ color: "#241221" }}>{t("lbl_funding_partner", "Funding Partner:")}</strong> {item.funder}
                               </div>
                               <div style={{ marginTop: "4px" }}>
-                                <strong style={{ color: "#241221" }}>Supervising Caseworker:</strong> {item.caseworker}
+                                <strong style={{ color: "#241221" }}>{t("lbl_supervising_caseworker", "Supervising Caseworker:")}</strong> {translateAdvocateName(item.caseworker, selectedLanguage)}
                               </div>
                               <div style={{ marginTop: "4px" }}>
-                                <strong style={{ color: "#241221" }}>Disbursement Method:</strong> {item.disbursementMethod}
+                                <strong style={{ color: "#241221" }}>{t("lbl_disbursement_method", "Disbursement Method:")}</strong> {translateDisbursementMethod(item.disbursementMethod, selectedLanguage)}
                               </div>
                               <div style={{ marginTop: "4px" }}>
-                                <strong style={{ color: "#241221" }}>Trustee Authority:</strong> {item.authorizationBody}
+                                <strong style={{ color: "#241221" }}>{t("lbl_trustee_authority", "Trustee Authority:")}</strong> {translateTrusteeAuthority(item.authorizationBody, selectedLanguage)}
                               </div>
                               <div style={{ marginTop: "4px" }}>
-                                <strong style={{ color: "#241221" }}>Permitted Use:</strong> {item.usageGuidelines}
+                                <strong style={{ color: "#241221" }}>{t("lbl_permitted_use", "Permitted Use:")}</strong> {translatePermittedUse(item.usageGuidelines, selectedLanguage)}
                               </div>
                             </div>
                           </div>
@@ -4312,7 +4323,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         {/* 4. Visual 4-Step Status Stepper */}
                         <div style={{ marginBottom: "16px" }}>
                           <div style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287", marginBottom: "8px" }}>
-                            Current Status & Milestone Tracker
+                            {t("milestone_tracker_title", "Current Status & Milestone Tracker")}
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
                             {item.steps.map((step, idx) => (
@@ -4346,7 +4357,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     {step.done ? "✓" : idx + 1}
                                   </div>
                                   <span style={{ fontSize: "11px", fontWeight: 700, color: step.done ? "#065F46" : "#64748B" }}>
-                                    {step.label}
+                                    {translateMilestoneStep(step.label, selectedLanguage)}
                                   </span>
                                 </div>
                                 <div style={{ fontSize: "10px", color: step.done ? "#059669" : "#94A3B8", paddingLeft: "18px" }}>
@@ -4360,7 +4371,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         {/* Bottom Actions Bar */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", paddingTop: "12px", borderTop: "1px solid rgba(230, 18, 126, 0.1)" }}>
                           <span style={{ fontSize: "11px", color: "#8E7287" }}>
-                            Valid Through: <strong>{item.validUntil}</strong> • Certified Under The Zinthiya Trust Care Charter
+                            {t("valid_through", "Valid Through:")} <strong>{translateValidity(item.validUntil, selectedLanguage)}</strong> • {t("certified_care_charter", "Certified Under The Zinthiya Trust Care Charter")}
                           </span>
 
                           <div style={{ display: "flex", gap: "8px" }}>
@@ -4382,7 +4393,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               }}
                             >
                               <Download size={13} />
-                              <span>Award Letter (PDF)</span>
+                              <span>{t("btn_award_letter_pdf", "Award Letter (PDF)")}</span>
                             </button>
                             <button
                               type="button"
@@ -4398,7 +4409,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 cursor: "pointer"
                               }}
                             >
-                              View Full Details →
+                              {t("btn_view_full_details", "View Full Details →")}
                             </button>
                           </div>
                         </div>
@@ -4412,11 +4423,11 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
                       <thead>
                         <tr style={{ backgroundColor: "#FBF7F9", borderBottom: "1.5px solid rgba(230, 18, 126, 0.12)" }}>
-                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Allocated Amount</th>
-                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Purpose of Allocation</th>
-                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Allocation Date</th>
-                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>Current Status</th>
-                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221", textAlign: "right" }}>Details & Action</th>
+                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("tbl_col_allocated_amount", "Allocated Amount")}</th>
+                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("tbl_col_purpose_ref", "Purpose of Allocation")}</th>
+                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("tbl_col_alloc_date", "Allocation Date")}</th>
+                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221" }}>{t("tbl_col_current_status", "Current Status")}</th>
+                          <th style={{ padding: "12px 16px", fontWeight: 800, color: "#241221", textAlign: "right" }}>{t("tbl_col_details_action", "Details & Action")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -4447,10 +4458,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               {/* 2. Purpose of the Allocation */}
                               <td style={{ padding: "14px 16px", maxWidth: "320px" }}>
                                 <div style={{ fontWeight: 700, color: "#241221", fontSize: "13px" }}>
-                                  {item.title}
+                                  {translateAssistanceTitle(item.category, selectedLanguage)}
                                 </div>
                                 <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px", lineHeight: "1.4" }}>
-                                  {item.purpose}
+                                  {translateDefaultPurpose(item.purpose, selectedLanguage)}
                                 </div>
                               </td>
 
@@ -4460,7 +4471,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                   {item.allocationDate}
                                 </div>
                                 <div style={{ fontSize: "11px", color: "#8E7287" }}>
-                                  Effective: {item.effectiveDate}
+                                  Effective: {translateMilestoneStep(item.effectiveDate, selectedLanguage)}
                                 </div>
                               </td>
 
@@ -4477,7 +4488,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     color: item.statusColor
                                   }}
                                 >
-                                  {item.status}
+                                  {translateStatus(item.status, selectedLanguage)}
                                 </span>
                               </td>
 
@@ -4497,7 +4508,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     cursor: "pointer"
                                   }}
                                 >
-                                  View Details
+                                  {t("view_details", "View Details")}
                                 </button>
                               </td>
                             </tr>
@@ -4551,14 +4562,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               color: selectedAllocationDetail.statusColor
                             }}
                           >
-                            {selectedAllocationDetail.status.toUpperCase()}
+                            {translateStatus(selectedAllocationDetail.status, selectedLanguage).toUpperCase()}
                           </span>
                           <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#8E7287" }}>
                             {selectedAllocationDetail.reference}
                           </span>
                         </div>
                         <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#241221", margin: "4px 0 0 0" }}>
-                          {selectedAllocationDetail.title}
+                          {translateAssistanceTitle(selectedAllocationDetail.category, selectedLanguage)}
                         </h3>
                       </div>
 
@@ -4586,7 +4597,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     >
                       <ShieldCheck size={20} style={{ color: "#E6127E", flexShrink: 0 }} />
                       <div style={{ fontSize: "11.5px", color: "#6A5364", lineHeight: "1.4" }}>
-                        This assistance package was formally reviewed and authorized by The Zinthiya Trust for beneficiary <strong>{beneficiaryUser.fullName}</strong> ({beneficiaryUser.referenceId}).
+                        {t("modal_allocation_cert_notice", "This assistance package was formally reviewed and authorized by The Zinthiya Trust for beneficiary")} <strong>{beneficiaryUser.fullName}</strong> ({beneficiaryUser.referenceId}).
                       </div>
                     </div>
 
@@ -4606,7 +4617,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     >
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Allocated Support Amount
+                          {t("alloc_amount", "Allocated Support Amount")}
                         </span>
                         <div style={{ fontSize: "18px", fontWeight: 900, color: "#E6127E", marginTop: "2px" }}>
                           {dashboardCurrency === "INR" ? selectedAllocationDetail.amountINR : selectedAllocationDetail.amountGBP}
@@ -4615,7 +4626,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Allocation Date
+                          {t("alloc_date", "Allocation Date")}
                         </span>
                         <div style={{ fontSize: "13px", fontWeight: 800, color: "#241221", marginTop: "3px" }}>
                           {selectedAllocationDetail.allocationDate}
@@ -4624,55 +4635,55 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Current Status
+                          {t("tbl_col_current_status", "Current Status")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 800, color: selectedAllocationDetail.statusColor, marginTop: "2px" }}>
-                          {selectedAllocationDetail.status}
+                          {translateStatus(selectedAllocationDetail.status, selectedLanguage)}
                         </div>
                       </div>
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Effective / Payout Date
+                          {t("effective_date_label", "Effective / Payout Date")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
-                          {selectedAllocationDetail.effectiveDate}
+                          {translateMilestoneStep(selectedAllocationDetail.effectiveDate, selectedLanguage)}
                         </div>
                       </div>
 
                       <div style={{ gridColumn: "span 2" }}>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Purpose of the Allocation
+                          {t("alloc_purpose", "Purpose of the Allocation")}
                         </span>
                         <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#241221", marginTop: "3px", lineHeight: "1.5" }}>
-                          {selectedAllocationDetail.purpose}
+                          {translateDefaultPurpose(selectedAllocationDetail.purpose, selectedLanguage)}
                         </div>
                       </div>
 
                       <div style={{ gridColumn: "span 2" }}>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Disbursement Method
+                          {t("lbl_disbursement_method", "Disbursement Method")}
                         </span>
                         <div style={{ fontSize: "12px", color: "#475569", marginTop: "2px" }}>
-                          {selectedAllocationDetail.disbursementMethod}
+                          {translateDisbursementMethod(selectedAllocationDetail.disbursementMethod, selectedLanguage)}
                         </div>
                       </div>
 
                       <div style={{ gridColumn: "span 2" }}>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Funding Partner & Authorization
+                          {t("funding_auth_label", "Funding Partner & Authorization")}
                         </span>
                         <div style={{ fontSize: "12px", color: "#475569", marginTop: "2px" }}>
-                          {selectedAllocationDetail.funder} • {selectedAllocationDetail.authorizationBody}
+                          {selectedAllocationDetail.funder} • {translateTrusteeAuthority(selectedAllocationDetail.authorizationBody, selectedLanguage)}
                         </div>
                       </div>
 
                       <div style={{ gridColumn: "span 2" }}>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Supervising Caseworker
+                          {t("lbl_supervising_caseworker", "Supervising Caseworker")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
-                          {selectedAllocationDetail.caseworker} (Direct: 0116 254 5168)
+                          {translateAdvocateName(selectedAllocationDetail.caseworker, selectedLanguage)} (Direct: 0116 254 5168)
                         </div>
                       </div>
                     </div>
@@ -4680,10 +4691,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {/* Permitted Use Guidelines */}
                     <div style={{ marginBottom: "20px" }}>
                       <span style={{ color: "#8E7287", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-                        Permitted Use & Terms
+                        {t("permitted_terms_label", "Permitted Use & Terms")}
                       </span>
                       <p style={{ fontSize: "12px", color: "#475569", lineHeight: "1.5", margin: "4px 0 0 0" }}>
-                        {selectedAllocationDetail.usageGuidelines}
+                        {translatePermittedUse(selectedAllocationDetail.usageGuidelines, selectedLanguage)}
                       </p>
                     </div>
 
@@ -4704,7 +4715,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           cursor: "pointer"
                         }}
                       >
-                        Close
+                        {t("btn_close", "Close")}
                       </button>
                       <button
                         type="button"
@@ -4713,7 +4724,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         style={{ flex: 1, padding: "10px", fontSize: "12px" }}
                       >
                         <Download size={14} />
-                        <span>Print Allocation Notice</span>
+                        <span>{t("btn_print_notice", "Print Allocation Notice")}</span>
                       </button>
                     </div>
                   </div>
@@ -4741,10 +4752,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         color: "#B80C64"
                       }}
                     >
-                      SUPPORT ARCHIVE
+                      {t("badge_support_archive", "SUPPORT ARCHIVE")}
                     </span>
                     <span style={{ fontSize: "12px", color: "#8E7287" }}>
-                      Case Ref: {beneficiaryUser.referenceId}
+                      {t("lbl_case_ref", "Case Ref:")} {beneficiaryUser.referenceId}
                     </span>
                   </div>
                   <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#241221", margin: "4px 0 0 0" }}>
@@ -4819,7 +4830,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     }}
                   >
                     <Download size={14} />
-                    <span>Download Summary (PDF)</span>
+                    <span>{t("download_award_summary", "Download Summary (PDF)")}</span>
                   </button>
                 </div>
               </div>
@@ -4829,7 +4840,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 <div className="beneficiary-card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                      Support Received
+                      {t("kpi_support_received", "Support Received")}
                     </span>
                     <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Check size={14} />
@@ -4839,14 +4850,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {formatAmount(liveStats.totalDistributed)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#059669", fontWeight: 700, marginTop: "2px" }}>
-                    {liveAllocations.filter((a: any) => a.status === 'DISTRIBUTED').length} Grants Disbursed &amp; Received
+                    {liveAllocations.filter((a: any) => a.status === 'DISTRIBUTED').length} {t("kpi_disbursed_received", "Grants Disbursed & Received")}
                   </div>
                 </div>
 
                 <div className="beneficiary-card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                      Allocated Support
+                      {t("kpi_allocated_support", "Allocated Support")}
                     </span>
                     <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: "#EFF6FF", color: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Wallet size={14} />
@@ -4856,24 +4867,24 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {formatAmount(liveStats.totalAllocated)}
                   </div>
                   <div style={{ fontSize: "11px", color: "#2563EB", fontWeight: 700, marginTop: "2px" }}>
-                    {liveAllocations.filter((a: any) => a.status === 'ALLOCATED').length} Grant(s) Pending Payout
+                    {liveAllocations.filter((a: any) => a.status === 'ALLOCATED').length} {t("kpi_pending_payout", "Grant(s) Pending Payout")}
                   </div>
                 </div>
 
                 <div className="beneficiary-card">
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", color: "#8E7287" }}>
-                      Total Assistance Tracked
+                      {t("kpi_total_tracked", "Total Assistance Tracked")}
                     </span>
                     <div style={{ width: "28px", height: "28px", borderRadius: "8px", backgroundColor: "#F1F5F9", color: "#475569", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <History size={14} />
                     </div>
                   </div>
                   <div style={{ fontSize: "24px", fontWeight: 900, color: "#475569" }}>
-                    {assistanceRecords.length} Record(s)
+                    {assistanceRecords.length} {t("kpi_records", "Record(s)")}
                   </div>
                   <div style={{ fontSize: "11px", color: "#64748B", fontWeight: 700, marginTop: "2px" }}>
-                    {assistanceRecords.length > 0 ? "Official Casework Ledger Active" : "No Prior Assistance History"}
+                    {assistanceRecords.length > 0 ? t("kpi_casework_ledger_active", "Official Casework Ledger Active") : t("no_history_records", "No Prior Assistance History")}
                   </div>
                 </div>
               </div>
@@ -4921,7 +4932,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       type="text"
                       value={historySearch}
                       onChange={(e) => setHistorySearch(e.target.value)}
-                      placeholder="Search assistance..."
+                      placeholder={t("search_assistance_placeholder", "Search assistance...")}
                       style={{
                         width: "100%",
                         padding: "6px 12px 6px 30px",
@@ -5030,7 +5041,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               <td style={{ padding: "14px 16px", color: "#64748B", fontSize: "12px" }}>
                                 <div>{record.dateReceived}</div>
                                 <div style={{ fontSize: "10px", color: "#94A3B8" }}>
-                                  {record.isAppliedRequest ? "Submitted by client" : `Allocated: ${record.dateAllocated}`}
+                                  {record.isAppliedRequest ? t("lbl_submitted_by_client", "Submitted by client") : `${t("lbl_allocated_prefix", "Allocated: ")}${record.dateAllocated}`}
                                 </div>
                               </td>
 
@@ -5049,7 +5060,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     cursor: "pointer"
                                   }}
                                 >
-                                  View Details
+                                  {t("btn_view_details", "View Details")}
                                 </button>
                               </td>
                             </tr>
@@ -5060,17 +5071,17 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 </div>
 
                 <div style={{ marginTop: "12px", fontSize: "11px", color: "#94A3B8" }}>
-                  Certified official assistance ledger for {beneficiaryUser.fullName} • UK Charity No. 1137350.
+                  {t("footer_certified_ledger", "Certified official assistance ledger for {name} • UK Charity No. 1137350.").replace("{name}", beneficiaryUser.fullName)}
                 </div>
               </div>
 
               {/* Chronological Milestone Timeline */}
               <div className="beneficiary-card">
                 <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#241221", margin: "0 0 4px 0" }}>
-                  Casework Milestones &amp; Timeline
+                  {t("milestones_title", "Casework Milestones & Timeline")}
                 </h3>
                 <p style={{ fontSize: "12px", color: "#8E7287", margin: "0 0 20px 0" }}>
-                  Step-by-step history of consultations, grant distributions, and completed assessments.
+                  {t("milestones_sub", "Step-by-step history of consultations, grant distributions, and completed assessments.")}
                 </p>
 
                 <div style={{ position: "relative", paddingLeft: "24px", borderLeft: "2px solid rgba(230, 18, 126, 0.2)", display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -5091,7 +5102,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                   <div>
                     <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#94A3B8" }} />
-                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748B" }}>CASE INTAKE &amp; ADVOCATE ASSIGNED</div>
+                    <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748B" }}>{t("step_intake_assigned", "CASE INTAKE & ADVOCATE ASSIGNED")}</div>
                     <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
                       Beneficiary Account Active &amp; Verified
                     </h4>
@@ -5142,7 +5153,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               color: selectedAssistanceDetail.statusColor
                             }}
                           >
-                            {selectedAssistanceDetail.status.toUpperCase()}
+                            {translateStatus(selectedAssistanceDetail.status, selectedLanguage).toUpperCase()}
                           </span>
                           {selectedAssistanceDetail.urgency && (
                             <span
@@ -5155,12 +5166,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 color: selectedAssistanceDetail.urgency === "CRITICAL" ? "#991B1B" : "#92400E"
                               }}
                             >
-                              {selectedAssistanceDetail.urgency} URGENCY
+                              {translateStatus(selectedAssistanceDetail.urgency, selectedLanguage)} {t("col_urgency", "URGENCY").toUpperCase()}
                             </span>
                           )}
                         </div>
                         <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: "4px 0 0 0" }}>
-                          {selectedAssistanceDetail.type}
+                          {translateAssistanceType(selectedAssistanceDetail.type, selectedLanguage)}
                         </h3>
                       </div>
                       <button
@@ -5187,7 +5198,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     >
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          {selectedAssistanceDetail.isAppliedRequest ? "Application Stage" : "Award Amount"}
+                          {selectedAssistanceDetail.isAppliedRequest ? t("lbl_app_stage", "Application Stage") : t("lbl_award_amount", "Award Amount")}
                         </span>
                         <div style={{ fontSize: "14px", fontWeight: 900, color: "#E6127E", marginTop: "2px" }}>
                           {selectedAssistanceDetail.isAppliedRequest ? selectedAssistanceDetail.status : (dashboardCurrency === "INR" ? selectedAssistanceDetail.amountINR : selectedAssistanceDetail.amountGBP)}
@@ -5196,7 +5207,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Reference ID
+                          {t("lbl_reference_id", "Reference ID")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", fontFamily: "monospace", marginTop: "4px" }}>
                           {selectedAssistanceDetail.reference}
@@ -5205,7 +5216,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Date Submitted
+                          {t("col_date", "Date Submitted")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
                           {selectedAssistanceDetail.dateAllocated}
@@ -5214,26 +5225,26 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
 
                       <div>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Assistance Category
+                          {t("col_category", "Assistance Category")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
-                          {selectedAssistanceDetail.category}
+                          {translateAssistanceType(selectedAssistanceDetail.category, selectedLanguage)}
                         </div>
                       </div>
 
                       <div style={{ gridColumn: "span 2" }}>
                         <span style={{ color: "#8E7287", fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>
-                          Supervising Caseworker / Reviewer
+                          {t("lbl_supervising_caseworker", "Supervising Caseworker / Reviewer")}
                         </span>
                         <div style={{ fontSize: "12px", fontWeight: 700, color: "#241221", marginTop: "2px" }}>
-                          {selectedAssistanceDetail.caseworker} (The Zinthiya Trust)
+                          {translateAdvocateName(selectedAssistanceDetail.caseworker, selectedLanguage)} (The Zinthiya Trust)
                         </div>
                       </div>
                     </div>
 
                     <div style={{ marginBottom: "16px" }}>
                       <span style={{ color: "#8E7287", fontSize: "11px", fontWeight: 800, textTransform: "uppercase" }}>
-                        {selectedAssistanceDetail.isAppliedRequest ? "What You Submitted for Admin Approval:" : "Assistance Scope & Notes:"}
+                        {selectedAssistanceDetail.isAppliedRequest ? t("lbl_submitted_for_approval", "What You Submitted for Admin Approval:") : t("lbl_assistance_notes", "Assistance Scope & Notes:")}
                       </span>
                       <p style={{ fontSize: "12px", color: "#475569", lineHeight: "1.6", margin: "4px 0 0 0", padding: "10px 12px", backgroundColor: "#F8FAFC", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
                         {selectedAssistanceDetail.description}
@@ -5245,7 +5256,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       <div style={{ marginBottom: "16px" }}>
                         <span style={{ color: "#8E7287", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
                           <Paperclip size={13} style={{ color: "#E6127E" }} />
-                          Supporting Documents Given for Approval ({selectedAssistanceDetail.documents.length}):
+                          {t("lbl_supporting_docs_approval", "Supporting Documents Given for Approval")} ({selectedAssistanceDetail.documents.length}):
                         </span>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", maxHeight: "160px", overflowY: "auto" }}>
                           {selectedAssistanceDetail.documents.map((doc: any, i: number) => (
@@ -5289,7 +5300,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                 }}
                               >
                                 <Eye size={12} />
-                                <span>View File</span>
+                                <span>{t("btn_view_file", "View File")}</span>
                               </button>
                             </div>
                           ))}
@@ -5303,10 +5314,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                           <span style={{ color: "#B80C64", fontSize: "11px", fontWeight: 800, textTransform: "uppercase", display: "flex", alignItems: "center", gap: "5px" }}>
                             <Wallet size={13} style={{ color: "#E6127E" }} />
-                            <span>Linked Assistance Allocations ({selectedAssistanceDetail.linkedAllocations.length}):</span>
+                            <span>{t("lbl_linked_allocations", "Linked Assistance Allocations")} ({selectedAssistanceDetail.linkedAllocations.length}):</span>
                           </span>
                           <span style={{ fontSize: "12px", fontWeight: 900, color: "#9D174D" }}>
-                            Total: {dashboardCurrency === "INR" ? selectedAssistanceDetail.amountINR : selectedAssistanceDetail.amountGBP}
+                            {t("lbl_total_colon", "Total:")} {dashboardCurrency === "INR" ? selectedAssistanceDetail.amountINR : selectedAssistanceDetail.amountGBP}
                           </span>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -5346,7 +5357,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     {selectedAssistanceDetail.reviewNotes && (
                       <div style={{ marginBottom: "16px", padding: "12px", borderRadius: "10px", backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE" }}>
                         <span style={{ color: "#1E40AF", fontSize: "11px", fontWeight: 800, textTransform: "uppercase" }}>
-                          Admin Review Notes & Feedback:
+                          {t("lbl_admin_feedback", "Admin Review Notes & Feedback:")}
                         </span>
                         <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#1E3A8A", lineHeight: "1.5" }}>
                           {selectedAssistanceDetail.reviewNotes}
@@ -5370,7 +5381,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           cursor: "pointer"
                         }}
                       >
-                        Close
+                        {t("btn_close", "Close")}
                       </button>
                       {!selectedAssistanceDetail.isAppliedRequest && (
                         <button
@@ -5380,7 +5391,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                           style={{ flex: 1, padding: "9px", fontSize: "12px" }}
                         >
                           <Download size={14} />
-                          <span>Download Statement</span>
+                          <span>{t("btn_download_statement", "Download Statement")}</span>
                         </button>
                       )}
                     </div>
@@ -5522,7 +5533,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       }}
                     >
                       <PhoneCall size={13} />
-                      <span>{t("call_advocate", "Call Advocate")}</span>
+                      <span>{t("btn_call_advocate", "Call Advocate")}</span>
                     </a>
 
                     <button
@@ -5532,7 +5543,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       style={{ padding: "7px 12px", fontSize: "12px" }}
                     >
                       <User size={13} />
-                      <span>{t("view_advocate_profile", "View Full Advocate Profile")}</span>
+                      <span>{t("btn_view_advocate_profile", "View Full Advocate Profile")}</span>
                     </button>
                   </div>
                 </div>
@@ -5862,8 +5873,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         const displayText = isShowingTranslation ? effectiveTranslation : msg.text;
                         const showToggleOption = !!(msg.text || msg.voiceTranscript);
                         const toggleBtnLabel = isShowingTranslation
-                          ? (isUser ? "Show Original Message" : "Show Original (English)")
-                          : (targetLang !== "en" ? `Translate into ${targetLangLabel}` : "Translate Message");
+                          ? (isUser ? t("lbl_show_original", "Show Original Message") : t("lbl_show_orig_en", "Show Original (English)"))
+                          : (targetLang !== "en" ? `${t("btn_translate_into", "Translate into")} ${targetLangLabel}` : t("btn_translate_msg", "Translate Message"));
 
                         return (
                           <div
@@ -5946,7 +5957,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                   </div>
 
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2px", fontSize: "10px", color: isUser ? "rgba(255,255,255,0.85)" : "#8E7287" }}>
-                                    <span>{voicePlayingId === msg.id ? "Playing audio..." : "Voice Message"}</span>
+                                    <span>{voicePlayingId === msg.id ? t("lbl_playing_audio", "Playing audio...") : t("lbl_voice_message", "Voice Message")}</span>
                                     <span>{msg.voiceDuration || "Audio"}</span>
                                   </div>
                                 </div>
@@ -5982,12 +5993,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     {isTranslatingThis ? (
                                       <>
                                         <RefreshCw size={11} className="animate-spin" />
-                                        <span>Translating...</span>
+                                        <span>{t("lbl_translating", "Translating...")}</span>
                                       </>
                                     ) : (
                                       <>
                                         <Languages size={11} />
-                                        <span>{isShowingTranslation ? "Show Original Audio Transcript" : (targetLang !== "en" ? `Translate Audio Transcript into ${targetLangLabel}` : "Translate Audio Transcript")}</span>
+                                        <span>{isShowingTranslation ? t("lbl_show_orig_transcript", "Show Original Audio Transcript") : (targetLang !== "en" ? `${t("lbl_translate_transcript", "Translate Audio Transcript")} into ${targetLangLabel}` : t("lbl_translate_transcript", "Translate Audio Transcript"))}</span>
                                       </>
                                     )}
                                   </button>
@@ -6070,7 +6081,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                         }}
                                       >
                                         <Download size={12} />
-                                        <span>Save</span>
+                                        <span>{t("btn_save", "Save")}</span>
                                       </a>
                                     </div>
                                   )}
@@ -6100,7 +6111,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                                     {isTranslatingThis ? (
                                       <>
                                         <RefreshCw size={11} className="animate-spin" />
-                                        <span>Translating...</span>
+                                        <span>{t("lbl_translating", "Translating...")}</span>
                                       </>
                                     ) : (
                                       <>
@@ -6216,7 +6227,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             style={{ padding: "6px 16px", fontSize: "12px" }}
                           >
                             <Send size={13} />
-                            <span>Stop & Send Voice Note</span>
+                            <span>{t("btn_stop_send_voice", "Stop & Send Voice Note")}</span>
                           </button>
                         </div>
                       </div>
@@ -6352,10 +6363,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         </div>
                         <div>
                           <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#241221", margin: 0 }}>
-                            {assignedAdvocate.name}
+                            {translateAdvocateName(assignedAdvocate.name, selectedLanguage)}
                           </h3>
                           <div style={{ fontSize: "12px", color: "#6A5364" }}>
-                            {assignedAdvocate.title}
+                            {translateAdvocateName(assignedAdvocate.title, selectedLanguage)}
                           </div>
                           <div style={{ fontSize: "11px", color: "#10B981", fontWeight: 700, marginTop: "2px" }}>
                             ● {assignedAdvocate.status}
@@ -6386,34 +6397,34 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       }}
                     >
                       <div>
-                        <strong style={{ color: "#241221" }}>Professional Credentials:</strong>
+                        <strong style={{ color: "#241221" }}>{t("lbl_credentials", "Professional Credentials:")}</strong>
                         <div style={{ color: "#475569", marginTop: "2px" }}>{assignedAdvocate.credentials}</div>
                       </div>
                       <div>
-                        <strong style={{ color: "#241221" }}>Advocate Badge ID:</strong>
+                        <strong style={{ color: "#241221" }}>{t("lbl_badge_id", "Advocate Badge ID:")}</strong>
                         <div style={{ color: "#475569", marginTop: "2px", fontFamily: "monospace" }}>{assignedAdvocate.badgeNumber}</div>
                       </div>
                       <div>
-                        <strong style={{ color: "#241221" }}>Direct Helpline:</strong>
+                        <strong style={{ color: "#241221" }}>{t("direct_helpline_label", "Direct Helpline:")}</strong>
                         <div style={{ color: "#E6127E", fontWeight: 700, marginTop: "2px" }}>{assignedAdvocate.phone} ext. {assignedAdvocate.ext}</div>
                       </div>
                       <div>
-                        <strong style={{ color: "#241221" }}>Office Hours:</strong>
+                        <strong style={{ color: "#241221" }}>{t("lbl_office_hours", "Office Hours:")}</strong>
                         <div style={{ color: "#475569", marginTop: "2px" }}>{assignedAdvocate.hours}</div>
                       </div>
                       <div>
-                        <strong style={{ color: "#241221" }}>Physical Office Location:</strong>
+                        <strong style={{ color: "#241221" }}>{t("lbl_office_loc", "Physical Office Location:")}</strong>
                         <div style={{ color: "#475569", marginTop: "2px" }}>{assignedAdvocate.officeLocation}</div>
                       </div>
                       <div>
-                        <strong style={{ color: "#241221" }}>Casework Languages:</strong>
+                        <strong style={{ color: "#241221" }}>{t("lbl_casework_languages", "Casework Languages:")}</strong>
                         <div style={{ color: "#475569", marginTop: "2px" }}>{assignedAdvocate.languages.join(", ")}</div>
                       </div>
                     </div>
 
                     <div style={{ marginBottom: "16px" }}>
                       <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#8E7287" }}>
-                        Advocate Background
+                        {t("lbl_advocate_bio", "Advocate Background")}
                       </span>
                       <p style={{ fontSize: "12px", color: "#475569", lineHeight: "1.5", margin: "4px 0 0 0" }}>
                         {assignedAdvocate.bio}
@@ -6447,7 +6458,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         className="btn-gradient-magenta"
                         style={{ flex: 1, padding: "10px", fontSize: "12px" }}
                       >
-                        <span>Book Appointment</span>
+                        <span>{t("btn_book_appointment", "Book Appointment")}</span>
                       </button>
                     </div>
                   </div>
@@ -6817,9 +6828,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     backgroundColor: "#ffffff"
                   }}
                 >
-                  <option value="HIGH">High Priority (Urgent Needs within 24-48 hrs)</option>
-                  <option value="CRITICAL">Critical Emergency (Immediate Crisis)</option>
-                  <option value="MEDIUM">Standard Support (Next 3-5 Working Days)</option>
+                  <option value="HIGH">{t("urgency_high", "High Priority (Urgent Needs within 24-48 hrs)")}</option>
+                  <option value="CRITICAL">{t("urgency_critical", "Critical Emergency (Immediate Crisis)")}</option>
+                  <option value="MEDIUM">{t("urgency_medium", "Standard Support (Next 3-5 Working Days)")}</option>
                 </select>
               </div>
 
@@ -6849,10 +6860,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
               <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                   <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569" }}>
-                    Supporting Documents ({requestDocuments.length})
+                    {t("lbl_supporting_docs", "Supporting Documents")} ({requestDocuments.length})
                   </label>
                   <span style={{ fontSize: "10px", color: "#8E7287" }}>
-                    Attach bills, letters, notices, IDs
+                    {t("lbl_attach_docs_hint", "Attach bills, letters, notices, IDs")}
                   </span>
                 </div>
 
@@ -6887,7 +6898,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                   }}
                 >
                   <Paperclip size={14} />
-                  <span>{isUploadingDoc ? "Processing Files..." : "+ Add Supporting Documents (Multiple Allowed)"}</span>
+                  <span>{isUploadingDoc ? "Processing Files..." : t("btn_add_supporting_docs", "+ Add Supporting Documents (Multiple Allowed)")}</span>
                 </button>
 
                 {/* Uploaded Documents List */}
