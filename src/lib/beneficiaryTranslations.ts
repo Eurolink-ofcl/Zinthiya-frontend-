@@ -41,6 +41,15 @@ export const BENEFICIARY_LANGUAGES: LanguageOption[] = [
 
 export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
   en: {
+    lbl_email_address: "Registered Email Address *",
+    modal_allocation_cert_notice: "This assistance package was formally reviewed and authorized by The Zinthiya Trust for beneficiary",
+    effective_date_label: "Effective / Payout Date",
+    funding_auth_label: "Funding Partner & Authorization",
+    permitted_terms_label: "Permitted Use & Terms",
+    conversations_sub: "Switch between active casework discussions and previous resolved assistance records.",
+    advocate_info_btn: "Advocate Info & Direct Line →",
+    no_notifications_sub: "You have no active alerts. Verified updates regarding your emergency grants, applications, and caseworker messages will appear here in real-time.",
+
     // Nav
     portal_badge: "BENEFICIARY PORTAL",
     nav_dashboard: "Dashboard",
@@ -366,6 +375,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   gu: {
+    lbl_email_address: "નોંધાયેલ ઇમેઇલ સરનામું *",
+    modal_allocation_cert_notice: "આ સહાય પેકેજની ધ ઝિન્થિયા ટ્રસ્ટ દ્વારા લાભાર્થી માટે સત્તાવાર સમીક્ષા અને અધિકૃતતા કરવામાં આવી છે",
+    effective_date_label: "અસરકારક / ચુકવણી તારીખ",
+    funding_auth_label: "ભંડોળ ભાગીદાર અને અધિકૃતતા",
+    permitted_terms_label: "મંજૂર ઉપયોગ અને શરતો",
+    conversations_sub: "સક્રિય કેસવર્ક ચર્ચાઓ અને અગાઉના ઉકેલાયેલા સહાય રેકોર્ડ્સ વચ્ચે સ્વિચ કરો.",
+    advocate_info_btn: "સલાહકાર વિગતો અને ડાયરેક્ટ હેલ્પલાઇન →",
+    no_notifications_sub: "કોઈ સક્રિય ચેતવણીઓ નથી. તમારી કટોકટી અનુદાન, અરજીઓ અને કેસવર્કર સંદેશાઓના અપડેટ્સ અહીં વાસ્તવિક સમયમાં દેખાશે.",
+
     // Nav
     portal_badge: "લાભાર્થી પોર્ટલ",
     nav_dashboard: "ડેશબોર્ડ",
@@ -691,6 +709,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   hi: {
+    lbl_email_address: "पंजीकृत ईमेल पता *",
+    modal_allocation_cert_notice: "यह सहायता पैकेज आधिकारिक रूप से लाभार्थी के लिए द ज़िंथिया ट्रस्ट द्वारा समीक्षा और अधिकृत किया गया है",
+    effective_date_label: "प्रभावी / भुगतान तिथि",
+    funding_auth_label: "फंडिंग पार्टनर और प्राधिकरण",
+    permitted_terms_label: "अनुमत उपयोग और शर्तें",
+    conversations_sub: "सक्रिय केसवर्क चर्चाओं और पिछली सहायता अभिलेखों के बीच स्विच करें।",
+    advocate_info_btn: "सलाहकार विवरण और डायरेक्ट हेल्पलाइन →",
+    no_notifications_sub: "कोई सक्रिय अलर्ट नहीं है। आपके आपातकालीन अनुदान, आवेदनों और केसवर्कर संदेशों के सत्यापित अपडेट वास्तविक समय में यहां प्रदर्शित होंगे।",
+
     // Nav
     portal_badge: "लाभार्थी पोर्टल",
     nav_dashboard: "डैशबोर्ड",
@@ -1016,6 +1043,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   pa: {
+    lbl_email_address: "ਰਜਿਸਟਰਡ ਈਮੇਲ ਪਤਾ *",
+    modal_allocation_cert_notice: "ਇਹ ਸਹਾਇਤਾ ਪੈਕੇਜ ਦ ਜ਼ਿੰਥੀਆ ਟਰੱਸਟ ਦੁਆਰਾ ਲਾਭਪਾਤਰੀ ਲਈ ਰਸਮੀ ਤੌਰ 'ਤੇ ਸਮੀਖਿਆ ਅਤੇ ਪ੍ਰਮਾਣਿਤ ਕੀਤਾ ਗਿਆ ਹੈ",
+    effective_date_label: "ਪ੍ਰਭਾਵੀ / ਭੁਗਤਾਨ ਮਿਤੀ",
+    funding_auth_label: "ਫੰਡਿੰਗ ਪਾਰਟਨਰ ਅਤੇ ਪ੍ਰਮਾਣੀਕਰਨ",
+    permitted_terms_label: "ਮਨਜ਼ੂਰ ਵਰਤੋਂ ਅਤੇ ਸ਼ਰਤਾਂ",
+    conversations_sub: "ਸਰਗਰਮ ਕੇਸਵਰਕ ਚਰਚਾਵਾਂ ਅਤੇ ਪਿਛਲੇ ਹੱਲ ਕੀਤੇ ਸਹਾਇਤਾ ਰਿਕਾਰਡਾਂ ਵਿਚਕਾਰ ਬਦਲੋ।",
+    advocate_info_btn: "ਸਲਾਹਕਾਰ ਜਾਣਕਾਰੀ ਅਤੇ ਸਿੱਧੀ ਲਾਈਨ →",
+    no_notifications_sub: "ਕੋਈ ਸਰਗਰਮ ਚਿਤਾਵਨੀ ਨਹੀਂ ਹੈ। ਤੁਹਾਡੀਆਂ ਐਮਰਜੈਂਸੀ ਗ੍ਰਾਂਟਾਂ, ਅਰਜ਼ੀਆਂ ਅਤੇ ਕੇਸਵਰਕਰ ਸੰਦੇਸ਼ਾਂ ਦੇ ਅਪਡੇਟ ਇੱਥੇ ਰੀਅਲ-ਟਾਈਮ ਵਿੱਚ ਦਿਖਾਈ ਦੇਣਗੇ।",
+
     // Nav
     portal_badge: "ਲਾਭਪਾਤਰੀ ਪੋਰਟਲ",
     nav_dashboard: "ਡੈਸ਼ਬੋਰਡ",
@@ -1341,6 +1377,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ur: {
+    lbl_email_address: "رجسٹرڈ ای میل پتہ *",
+    modal_allocation_cert_notice: "اس امدادی پیکیج کا باضابطہ جائزہ اور اجازت دی زنتھیا ٹرسٹ کی جانب سے دی گئی ہے",
+    effective_date_label: "مؤثر / ادائیگی کی تاریخ",
+    funding_auth_label: "فنڈنگ پارٹنر اور توثیق",
+    permitted_terms_label: "مجاز استعمال اور شرائط",
+    conversations_sub: "فعال کیس ورک بات چیت اور سابقہ حل شدہ امدادی ریکارڈ کے درمیان سوئچ کریں۔",
+    advocate_info_btn: "معاون کی معلومات اور براہ راست لائن ←",
+    no_notifications_sub: "کوئی فعال الرٹ نہیں ہے۔ آپ کی ہنگامی گرانٹس، درخواستوں اور کیس ورکر کے پیغامات کے تصدیق شدہ اپ ڈیٹس یہاں ریئل ٹائم میں ظاہر ہوں گے۔",
+
     // Nav
     portal_badge: "مستفید پورٹل",
     nav_dashboard: "ڈیش بورڈ",
@@ -1666,6 +1711,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   pl: {
+    lbl_email_address: "Zarejestrowany adres e-mail *",
+    modal_allocation_cert_notice: "Ten pakiet pomocy został oficjalnie sprawdzony i zatwierdzony przez The Zinthiya Trust dla beneficjenta",
+    effective_date_label: "Data wejścia w życie / wypłaty",
+    funding_auth_label: "Partner finansujący i autoryzacja",
+    permitted_terms_label: "Dozwolone użycie i warunki",
+    conversations_sub: "Przełączaj między aktywnymi dyskusjami a archiwalnymi zapisami pomocy.",
+    advocate_info_btn: "Informacje o opiekunie i linia bezpośrednia →",
+    no_notifications_sub: "Brak aktywnych alertów. Zweryfikowane aktualizacje dotyczące Twoich wniosków, dotacji i wiadomości od opiekuna pojawią się tutaj w czasie rzeczywistym.",
+
     // Nav
     portal_badge: "PORTAL BENEFICJENTA",
     nav_dashboard: "Panel główny",
@@ -1991,6 +2045,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   so: {
+    lbl_email_address: "Cinwaanka Iimaylka ee Diiwaangashan *",
+    modal_allocation_cert_notice: "Xirmadan gargaarka waxaa si rasmi ah u dib-u-eegay una oggolaaday The Zinthiya Trust qofka ka faa'iideysanaya",
+    effective_date_label: "Taariikhda Dhaqangalka / Bixinta",
+    funding_auth_label: "Wada-hawlgalayaasha Maalgelinta & Oggolaanshaha",
+    permitted_terms_label: "Isticmaalka La Oggol yahay & Shuruudaha",
+    conversations_sub: "U kala beddel doodaha kiisaska firfircoon iyo diiwaannada gargaarka ee hore loo xalliyey.",
+    advocate_info_btn: "Macluumaadka U-doodaha & Khadka Tooska ah →",
+    no_notifications_sub: "Ma jiraan digniino firfircoon. Wararka la xaqiijiyay ee ku saabsan deeqahaaga degdegga ah, codsiyada, iyo farriimaha shaqaalaha kiiska waxay halkan kaga soo muuqan doonaan waqtiga dhabta ah.",
+
     // Nav
     portal_badge: "BOGGA KAALMADA",
     nav_dashboard: "Bogga Hore",
@@ -2316,6 +2379,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ar: {
+    lbl_email_address: "عنوان البريد الإلكتروني المسجل *",
+    modal_allocation_cert_notice: "تمت مراجعة حزمة المساعدة هذه واعتمادها رسميًا من قبل صندوق زنثيا للمستفيد",
+    effective_date_label: "تاريخ السريان / الصرف",
+    funding_auth_label: "شريك التمويل والتفويض",
+    permitted_terms_label: "الاستخدام المسموح به والشروط",
+    conversations_sub: "التبديل بين مناقشات العمل الاجتماعي النشطة وسجلات المساعدة السابقة.",
+    advocate_info_btn: "معلومات المستشار والخط المباشر ←",
+    no_notifications_sub: "لا توجد تنبيهات نشطة. ستظهر التحديثات المعتمدة بشأن منح الطوارئ والطلبات ورسائل الأخصائي الاجتماعي هنا في الوقت الفعلي.",
+
     // Nav
     portal_badge: "بوابة المستفيدين",
     nav_dashboard: "لوحة التحكم",
@@ -2641,6 +2713,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   bn: {
+    lbl_email_address: "নিবন্ধিত ইমেল ঠিকানা *",
+    modal_allocation_cert_notice: "এই সহায়তা প্যাকেজটি সুবিধাভোগীর জন্য দ্য জিনথিয়া ট্রাস্ট দ্বারা আনুষ্ঠানিকভাবে পর্যালোচনা এবং অনুমোদিত হয়েছে",
+    effective_date_label: "কার্যকরী / অর্থপ্রদানের তারিখ",
+    funding_auth_label: "তহবিল অংশীদার এবং অনুমোদন",
+    permitted_terms_label: "অনুমোদিত ব্যবহার ও শর্তাবলী",
+    conversations_sub: "সক্রিয় কেসওয়ার্ক আলোচনা এবং পূর্ববর্তী সমাধান করা সহায়তা রেকর্ডের মধ্যে স্যুইচ করুন।",
+    advocate_info_btn: "পরামর্শদাতার বিবরণ ও সরাসরি লাইন →",
+    no_notifications_sub: "কোনো সক্রিয় সতর্কতা নেই। আপনার জরুরি অনুদান, আবেদন এবং কেসওয়ার্কারের বার্তার যাচাইকৃত আপডেট এখানে রিয়েল-টাইমে প্রদর্শিত হবে।",
+
     // Nav
     portal_badge: "উপকারভোগী পোর্টাল",
     nav_dashboard: "ড্যাশবোর্ড",
@@ -2966,6 +3047,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ml: {
+    lbl_email_address: "രജിസ്റ്റർ ചെയ്ത ഇമെയിൽ വിലാസം *",
+    modal_allocation_cert_notice: "ഈ സഹായ പാക്കേജ് ഗുണഭോക്താവിനായി ദി സിന്ധിയ ട്രസ്റ്റ് ഔദ്യോഗികമായി പരിശോധിച്ച് അംഗീകരിച്ചതാണ്",
+    effective_date_label: "പ്രാബല്യത്തിൽ വരുന്ന / വിതരണ തീയതി",
+    funding_auth_label: "ഫണ്ടിംഗ് പങ്കാളിയും അംഗീകാരവും",
+    permitted_terms_label: "അനുവദനീയമായ ഉപയോഗവും നിബന്ധനകളും",
+    conversations_sub: "സജീവമായ കേസ് വർക്ക് ചർച്ചകൾക്കും മുൻകാല സഹായ രേഖകൾക്കും ഇടയിൽ മാറുക.",
+    advocate_info_btn: "ഉപദേശക വിവരങ്ങളും നേരിട്ടുള്ള ഹെൽപ്പ് ലൈനും →",
+    no_notifications_sub: "സജീവ മുന്നറിയിപ്പുകളൊന്നുമില്ല. നിങ്ങളുടെ അടിയന്തര ഗ്രാന്റുകൾ, അപേക്ഷകൾ, കേസ് വർക്കർ സന്ദേശങ്ങൾ എന്നിവയെക്കുറിച്ചുള്ള അപ്‌ഡേറ്റുകൾ ഇവിടെ തത്സമയം ദൃശ്യമാകും.",
+
     // Nav
     portal_badge: "ഗുണഭോക്തൃ പോർട്ടൽ",
     nav_dashboard: "ഡാഷ്‌ബോർഡ്",
@@ -3291,6 +3381,15 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
   },
 
   ta: {
+    lbl_email_address: "பதிவுசெய்யப்பட்ட மின்னஞ்சல் முகவரி *",
+    modal_allocation_cert_notice: "இந்த உதவித் தொகுப்பு பயனாளருக்காக தி சிந்தியா அறக்கட்டளையால் முறைப்படி மதிப்பாய்வு செய்யப்பட்டு அங்கீகரிக்கப்பட்டது",
+    effective_date_label: "நடைமுறைக்கு வரும் / பட்டுவாடா தேதி",
+    funding_auth_label: "நிதி பங்குதாரர் மற்றும் அங்கீகாரம்",
+    permitted_terms_label: "அனுமதிக்கப்பட்ட பயன்பாடு மற்றும் விதிமுறைகள்",
+    conversations_sub: "செயலில் உள்ள வழக்கு விவாதங்கள் மற்றும் முந்தைய உதவிப் பதிவுகளுக்கு இடையில் மாறவும்.",
+    advocate_info_btn: "ஆலோசகர் விவரங்கள் & நேரடி உதவி எண் →",
+    no_notifications_sub: "செயலில் உள்ள எச்சரிக்கைகள் எதுவும் இல்லை. உங்கள் அவசர மானியங்கள், விண்ணப்பங்கள் மற்றும் சமூகப் பணியாளர் செய்திகள் குறித்த புதுப்பிப்புகள் இங்கே நிகழ்நேரத்தில் தோன்றும்.",
+
     // Nav
     portal_badge: "பயனாளர் போர்ட்டல்",
     nav_dashboard: "டாஷ்போர்டு",
@@ -3866,7 +3965,12 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "CRITICAL": "CRITICAL",
     "HIGH": "HIGH",
     "MEDIUM": "MEDIUM",
-    "LOW": "LOW"
+    "LOW": "LOW",
+    "Application": "Application",
+    "Message": "Message",
+    "Disbursement": "Disbursement",
+    "Recent": "Recent",
+    "STANDARD": "Standard",
   },
   pl: {
     "Approved": "Zatwierdzony",
@@ -3914,7 +4018,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "તપાસ બાકી",
     "Pending Dispatch": "ડિસ્પેચ બાકી",
     "Completed": "પૂર્ણ",
-    "Pending": "બાકી"
+    "Pending": "બાકી",
+    "Application": "અરજી",
+    "Message": "સંદેશ",
+    "Disbursement": "ચૂકવણી",
+    "Recent": "તાજેતરનું",
+    "CRITICAL": "ગંભીર કટોકટી",
+    "HIGH": "ઉચ્ચ",
+    "MEDIUM": "મધ્યમ",
+    "LOW": "ઓછું",
+    "STANDARD": "પ્રમાણભૂત",
   },
   hi: {
     "Approved": "स्वीकृत",
@@ -3930,7 +4043,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "प्रारंभिक जांच लंबित",
     "Pending Dispatch": "प्रेषण लंबित",
     "Completed": "पूर्ण",
-    "Pending": "लंबित"
+    "Pending": "लंबित",
+    "Application": "आवेदन",
+    "Message": "संदेश",
+    "Disbursement": "संवितरण",
+    "Recent": "हाल ही में",
+    "CRITICAL": "गंभीर संकट",
+    "HIGH": "उच्च",
+    "MEDIUM": "मध्यम",
+    "LOW": "निम्न",
+    "STANDARD": "मानक",
   },
   pa: {
     "Approved": "ਪ੍ਰਵਾਨਿਤ",
@@ -3946,7 +4068,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "ਜਾਂਚ ਦੀ ਉਡੀਕ",
     "Pending Dispatch": "ਭੇਜਣ ਦੀ ਉਡੀਕ",
     "Completed": "ਮੁਕੰਮਲ",
-    "Pending": "ਬਕਾਇਆ"
+    "Pending": "ਬਕਾਇਆ",
+    "Application": "ਅਰਜ਼ੀ",
+    "Message": "ਸੁਨੇਹਾ",
+    "Disbursement": "ਵੰਡ",
+    "Recent": "ਹਾਲ ਹੀ ਵਿੱਚ",
+    "CRITICAL": "ਗੰਭੀਰ ਐਮਰਜੈਂਸੀ",
+    "HIGH": "ਉੱਚ",
+    "MEDIUM": "ਦਰਮਿਆਨਾ",
+    "LOW": "ਘੱਟ",
+    "STANDARD": "ਮਿਆਰੀ",
   },
   ur: {
     "Approved": "منظور شدہ",
@@ -3962,7 +4093,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "ترجیحی جانچ کے منتظر",
     "Pending Dispatch": "ترسیل کے منتظر",
     "Completed": "مکمل",
-    "Pending": "زیر التواء"
+    "Pending": "زیر التواء",
+    "Application": "درخواست",
+    "Message": "پیغام",
+    "Disbursement": "ادائیگی",
+    "Recent": "حالیہ",
+    "CRITICAL": "انتہائی ہنگامی",
+    "HIGH": "اعلی",
+    "MEDIUM": "درمیانہ",
+    "LOW": "کم",
+    "STANDARD": "معیاری",
   },
   so: {
     "Approved": "La ansixiyay",
@@ -3978,7 +4118,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "Sugaya Qiimayn",
     "Pending Dispatch": "Sugaya Diris",
     "Completed": "Dhameystiran",
-    "Pending": "Laga sugayo"
+    "Pending": "Laga sugayo",
+    "Application": "Codsiga",
+    "Message": "Farriin",
+    "Disbursement": "Bixinta",
+    "Recent": "Dhowaan",
+    "CRITICAL": "Halis ah",
+    "HIGH": "Sare",
+    "MEDIUM": "Dhexdhexaad",
+    "LOW": "Hoose",
+    "STANDARD": "Caadiga ah",
   },
   ar: {
     "Approved": "معتمد",
@@ -3994,7 +4143,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "بانتظار الفرز",
     "Pending Dispatch": "بانتظار الإرسال",
     "Completed": "مكتمل",
-    "Pending": "معلق"
+    "Pending": "معلق",
+    "Application": "طلب",
+    "Message": "رسالة",
+    "Disbursement": "صرف",
+    "Recent": "حديثاً",
+    "CRITICAL": "حرج",
+    "HIGH": "عالي",
+    "MEDIUM": "متوسط",
+    "LOW": "منخفض",
+    "STANDARD": "قياسي",
   },
   bn: {
     "Approved": "অনুমোদিত",
@@ -4010,7 +4168,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "বাছাইকরণের অপেক্ষায়",
     "Pending Dispatch": "প্রেরণের অপেক্ষায়",
     "Completed": "সম্পন্ন",
-    "Pending": "অপেক্ষমাণ"
+    "Pending": "অপেক্ষমাণ",
+    "Application": "আবেদন",
+    "Message": "বার্তা",
+    "Disbursement": "বিতরণ",
+    "Recent": "সাম্প্রতিক",
+    "CRITICAL": "সংকটজনক",
+    "HIGH": "উচ্চ",
+    "MEDIUM": "মাঝারি",
+    "LOW": "নিম্ন",
+    "STANDARD": "সাধারণ",
   },
   ml: {
     "Approved": "അംഗീകരിച്ചു",
@@ -4026,7 +4193,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "പ്രാഥമിക പരിശോധന കാത്തിരിക്കുന്നു",
     "Pending Dispatch": "അയയ്ക്കാൻ കാത്തിരിക്കുന്നു",
     "Completed": "പൂർത്തിയായി",
-    "Pending": "തീർപ്പുകൽപ്പിച്ചിട്ടില്ല"
+    "Pending": "തീർപ്പുകൽപ്പിച്ചിട്ടില്ല",
+    "Application": "അപേക്ഷ",
+    "Message": "സന്ദേശം",
+    "Disbursement": "വിതരണം",
+    "Recent": "സമീപകാല",
+    "CRITICAL": "അടിയന്തിരം",
+    "HIGH": "ഉയർന്ന",
+    "MEDIUM": "ഇടത്തരം",
+    "LOW": "കുറഞ്ഞ",
+    "STANDARD": "സാധാരണ",
   },
   ta: {
     "Approved": "அங்கீகரிக்கப்பட்டது",
@@ -4042,7 +4218,16 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Awaiting Triage": "ஆய்வுக்காக காத்திருக்கிறது",
     "Pending Dispatch": "அனுப்புதலுக்கு காத்திருக்கிறது",
     "Completed": "நிறைவுற்றது",
-    "Pending": "நிலுவையில் உள்ளது"
+    "Pending": "நிலுவையில் உள்ளது",
+    "Application": "விண்ணப்பம்",
+    "Message": "செய்தி",
+    "Disbursement": "வழங்குதல்",
+    "Recent": "சமீபத்திய",
+    "CRITICAL": "மிக அவசரம்",
+    "HIGH": "அதிக",
+    "MEDIUM": "நடுத்தர",
+    "LOW": "குறைந்த",
+    "STANDARD": "நிலையான",
   }
 };
 
@@ -4312,6 +4497,10 @@ export function translateUrgencyLevel(urgency: string, lang: string = "en"): str
  * Translates date strings and uppercase timeline status labels.
  * E.g. "18 NOV 2026" -> "18 LIS 2026", "PENDING DISPATCH" -> "OCZEKUJE NA WYSYŁKĘ".
  */
+/**
+ * Translates date strings and uppercase timeline status labels across all 11 languages.
+ * E.g. "18 NOV 2026", "23 Nov 2026", "19 Nov", "PENDING DISPATCH", "Recent".
+ */
 export function translateDate(dateStr: string | undefined | null, lang: string = "en"): string {
   if (!dateStr) return "";
   const clean = dateStr.trim();
@@ -4319,20 +4508,105 @@ export function translateDate(dateStr: string | undefined | null, lang: string =
   if (statusMatch && statusMatch.toLowerCase() !== clean.toLowerCase()) {
     return statusMatch.toUpperCase();
   }
-  if (lang === "pl") {
-    const monthMap: Record<string, string> = {
+
+  const MONTH_MAPS: Record<string, Record<string, string>> = {
+    pl: {
       "JAN": "STY", "FEB": "LUT", "MAR": "MAR", "APR": "KWI",
       "MAY": "MAJ", "JUN": "CZE", "JUL": "LIP", "AUG": "SIE",
       "SEP": "WRZ", "OCT": "PAŹ", "NOV": "LIS", "DEC": "GRU",
       "Jan": "sty", "Feb": "lut", "Mar": "mar", "Apr": "kwi",
       "May": "maj", "Jun": "cze", "Jul": "lip", "Aug": "sie",
       "Sep": "wrz", "Oct": "paź", "Nov": "lis", "Dec": "gru",
-      "RECORDED": "ZAREJESTROWANO",
-      "Recorded": "Zarejestrowano"
-    };
+      "Recent": "Niedawno", "recent": "niedawno"
+    },
+    hi: {
+      "JAN": "जनवरी", "FEB": "फरवरी", "MAR": "मार्च", "APR": "अप्रैल",
+      "MAY": "मई", "JUN": "जून", "JUL": "जुलाई", "AUG": "अगस्त",
+      "SEP": "सितंबर", "OCT": "अक्टूबर", "NOV": "नवंबर", "DEC": "दिसंबर",
+      "Jan": "जनवरी", "Feb": "फरवरी", "Mar": "मार्च", "Apr": "अप्रैल",
+      "May": "मई", "Jun": "जून", "Jul": "जुलाई", "Aug": "अगस्त",
+      "Sep": "सितंबर", "Oct": "अक्टूबर", "Nov": "नवंबर", "Dec": "दिसंबर",
+      "Recent": "हाल ही में", "recent": "हाल ही में"
+    },
+    gu: {
+      "JAN": "જાન્યુ", "FEB": "ફેબ્રુ", "MAR": "માર્ચ", "APR": "એપ્રિલ",
+      "MAY": "મે", "JUN": "જૂન", "JUL": "જુલાઈ", "AUG": "ઓગસ્ટ",
+      "SEP": "સપ્ટે", "OCT": "ઓક્ટો", "NOV": "નવે", "DEC": "ડિસે",
+      "Jan": "જાન્યુ", "Feb": "ફેબ્રુ", "Mar": "માર્ચ", "Apr": "એપ્રિલ",
+      "May": "મે", "Jun": "જૂન", "Jul": "જુલાઈ", "Aug": "ઓગસ્ટ",
+      "Sep": "સપ્ટે", "Oct": "ઓક્ટો", "Nov": "નવે", "Dec": "ડિસે",
+      "Recent": "તાજેતરનું", "recent": "તાજેતરનું"
+    },
+    pa: {
+      "JAN": "ਜਨ", "FEB": "ਫ਼ਰ", "MAR": "ਮਾਰਚ", "APR": "ਅਪ੍ਰੈਲ",
+      "MAY": "ਮਈ", "JUN": "ਜੂਨ", "JUL": "ਜੁਲਾਈ", "AUG": "ਅਗਸਤ",
+      "SEP": "ਸਤੰ", "OCT": "ਅਕਤੂ", "NOV": "ਨਵੰ", "DEC": "ਦਸੰ",
+      "Jan": "ਜਨ", "Feb": "ਫ਼ਰ", "Mar": "ਮਾਰਚ", "Apr": "ਅਪ੍ਰੈਲ",
+      "May": "ਮਈ", "Jun": "ਜੂਨ", "Jul": "ਜੁਲਾਈ", "Aug": "ਅਗਸਤ",
+      "Sep": "ਸਤੰ", "Oct": "ਅਕਤੂ", "Nov": "ਨਵੰ", "Dec": "ਦਸੰ",
+      "Recent": "ਹਾਲ ਹੀ ਵਿੱਚ", "recent": "ਹਾਲ ਹੀ ਵਿੱਚ"
+    },
+    ur: {
+      "JAN": "جنوری", "FEB": "فروری", "MAR": "مارچ", "APR": "اپریل",
+      "MAY": "مئی", "JUN": "جون", "JUL": "جولائی", "AUG": "اگست",
+      "SEP": "ستمبر", "OCT": "اکتوبر", "NOV": "نومبر", "DEC": "دسمبر",
+      "Jan": "جنوری", "Feb": "فروری", "Mar": "مار्च", "Apr": "اپریل",
+      "May": "مئی", "Jun": "جون", "Jul": "جولائی", "Aug": "اگست",
+      "Sep": "ستمبر", "Oct": "اکتوبر", "Nov": "نومبر", "Dec": "دسمبر",
+      "Recent": "حالیہ", "recent": "حالیہ"
+    },
+    so: {
+      "JAN": "Jan", "FEB": "Feb", "MAR": "Mar", "APR": "Abr",
+      "MAY": "May", "JUN": "Jun", "JUL": "Lul", "AUG": "Ogs",
+      "SEP": "Seb", "OCT": "Okt", "NOV": "Nof", "DEC": "Dis",
+      "Jan": "Jan", "Feb": "Feb", "Mar": "Mar", "Apr": "Abr",
+      "May": "May", "Jun": "Jun", "Jul": "Lul", "Aug": "Ogs",
+      "Sep": "Seb", "Oct": "Okt", "Nov": "Nof", "Dec": "Dis",
+      "Recent": "Dhowaan", "recent": "dhowaan"
+    },
+    ar: {
+      "JAN": "يناير", "FEB": "فبراير", "MAR": "مارس", "APR": "أبريل",
+      "MAY": "مايو", "JUN": "يونيو", "JUL": "يوليو", "AUG": "أغسطس",
+      "SEP": "سبتمبر", "OCT": "أكتوبر", "NOV": "نوفمبر", "DEC": "ديسمبر",
+      "Jan": "يناير", "Feb": "فبراير", "Mar": "مارس", "Apr": "أبريل",
+      "May": "مايو", "Jun": "يونيو", "Jul": "يوليو", "Aug": "أغسطس",
+      "Sep": "سبتمبر", "Oct": "أكتوبر", "Nov": "نوفمبر", "Dec": "ديسمبر",
+      "Recent": "حديثاً", "recent": "حديثاً"
+    },
+    bn: {
+      "JAN": "জানু", "FEB": "ফেব্রু", "MAR": "মার্চ", "APR": "এপ্রিল",
+      "MAY": "মে", "JUN": "জুন", "JUL": "জুলাই", "AUG": "আগস্ট",
+      "SEP": "সেপ্টে", "OCT": "অক্টো", "NOV": "নভে", "DEC": "ডিসে",
+      "Jan": "জানু", "Feb": "ফেব্রু", "Mar": "মার্চ", "Apr": "এপ্রিল",
+      "May": "মে", "Jun": "জুন", "Jul": "জুলাই", "Aug": "আগস্ট",
+      "Sep": "সেপ্টে", "Oct": "অক্টো", "Nov": "নভে", "Dec": "ডিসে",
+      "Recent": "সাম্প্রতিক", "recent": "সাম্প্রতিক"
+    },
+    ml: {
+      "JAN": "ജനു", "FEB": "ഫെബ്രു", "MAR": "മാർച്ച്", "APR": "ഏപ്രിൽ",
+      "MAY": "മേയ്", "JUN": "ജൂൺ", "JUL": "ജൂലൈ", "AUG": "ഓഗസ്റ്റ്",
+      "SEP": "സെപ്റ്റം", "OCT": "ഒക്ടോ", "NOV": "നവം", "DEC": "ഡിസം",
+      "Jan": "ജനു", "Feb": "ഫെബ്രു", "Mar": "മാർച്ച്", "Apr": "ഏപ്രിൽ",
+      "May": "മേയ്", "Jun": "ജൂൺ", "Jul": "ജൂലൈ", "Aug": "ഓഗസ്റ്റ്",
+      "Sep": "സെപ്റ്റം", "Oct": "ഒക്ടോ", "Nov": "നവം", "Dec": "ഡിസം",
+      "Recent": "സമീപകാല", "recent": "സമീപകാല"
+    },
+    ta: {
+      "JAN": "ஜன", "FEB": "பிப்", "MAR": "மார்ச்", "APR": "ஏப்",
+      "MAY": "மே", "JUN": "ஜூன்", "JUL": "ஜூலை", "AUG": "ஆக",
+      "SEP": "செப்", "OCT": "அக்", "NOV": "நவ", "DEC": "டிச",
+      "Jan": "ஜன", "Feb": "பிப்", "Mar": "மார்ச்", "Apr": "ஏப்",
+      "May": "மே", "Jun": "ஜூன்", "Jul": "ஜூலை", "Aug": "ஆக",
+      "Sep": "செப்", "Oct": "அக்", "Nov": "நவ", "Dec": "டிச",
+      "Recent": "சமீபத்திய", "recent": "சமீபத்திய"
+    }
+  };
+
+  const map = MONTH_MAPS[lang];
+  if (map) {
     let res = clean;
-    for (const [enM, plM] of Object.entries(monthMap)) {
-      res = res.replace(new RegExp(`\\b${enM}\\b`, 'g'), plM);
+    for (const [enM, targetM] of Object.entries(map)) {
+      res = res.replace(new RegExp(`\\b${enM}\\b`, 'g'), targetM);
     }
     return res;
   }
@@ -4340,95 +4614,306 @@ export function translateDate(dateStr: string | undefined | null, lang: string =
 }
 
 /**
- * Translates notification titles into the user's selected language.
+ * Translates notification titles into the user's selected language across all 11 languages.
  */
 export function translateNotificationTitle(title: string | undefined | null, lang: string = "en"): string {
   if (!title) return "";
-  if (lang === "pl") {
-    // 1. Grant Approved: e.g. 'OTHERS Grant Approved (£10,000.00)'
-    const mGrantAppr = title.match(/^(.*?)\s+Grant Approved\s+(\(.*?\))$/i);
-    if (mGrantAppr) {
-      return `Przyznano dotację: ${translateAssistanceType(mGrantAppr[1], lang)} ${mGrantAppr[2]}`;
-    }
-    // 2. Support Application Approved: e.g. 'Support Application Approved: OTHERS'
-    const mAppAppr = title.match(/^Support Application Approved:\s*(.*)$/i);
-    if (mAppAppr) {
-      return `Wniosek o pomoc zatwierdzony: ${translateAssistanceType(mAppAppr[1], lang)}`;
-    }
-    // 3. Support Application Declined
-    const mAppDec = title.match(/^Support Application Declined:\s*(.*)$/i);
-    if (mAppDec) {
-      return `Wniosek o pomoc odrzucony: ${translateAssistanceType(mAppDec[1], lang)}`;
-    }
-    // 4. Support Application: X – Under Assessment
-    const mAppAssess = title.match(/^Support Application:\s*(.*?)\s*[–-]\s*Under Assessment$/i);
-    if (mAppAssess) {
-      return `Wniosek o pomoc: ${translateAssistanceType(mAppAssess[1], lang)} – W trakcie oceny`;
-    }
-    // 5. Caseworker Message from X
-    const mMsg = title.match(/^Caseworker Message from\s*(.*)$/i);
-    if (mMsg) {
-      return `Wiadomość od opiekuna: ${translateAdvocateName(mMsg[1], lang)}`;
-    }
-    // 6. Allocation Cancelled
-    const mAllocCancel = title.match(/^(.*?)\s+Allocation Cancelled\s+(\(.*?\))$/i);
-    if (mAllocCancel) {
-      return `Przydział anulowany: ${translateAssistanceType(mAllocCancel[1], lang)} ${mAllocCancel[2]}`;
-    }
-    // 7. Allocation Declined
-    const mAllocDec = title.match(/^(.*?)\s+Allocation Declined\s+(\(.*?\))$/i);
-    if (mAllocDec) {
-      return `Przydział odrzucony: ${translateAssistanceType(mAllocDec[1], lang)} ${mAllocDec[2]}`;
-    }
-    // 8. Assistance Distributed
-    const mDist = title.match(/^(.*?)\s+Assistance Distributed\s+(\(.*?\))$/i);
-    if (mDist) {
-      return `Wypłacono pomoc: ${translateAssistanceType(mDist[1], lang)} ${mDist[2]}`;
+  if (lang === "en") return title;
+
+  // 1. Grant Approved: e.g. 'OTHERS Grant Approved (£10,000.00)'
+  const mGrantAppr = title.match(/^(.*?)\s+Grant Approved\s+(\(.*?\))$/i);
+  if (mGrantAppr) {
+    const cat = translateAssistanceType(mGrantAppr[1], lang);
+    const amt = mGrantAppr[2];
+    switch (lang) {
+      case "pl": return `Przyznano dotację: ${cat} ${amt}`;
+      case "hi": return `अनुदान स्वीकृत: ${cat} ${amt}`;
+      case "gu": return `અનુદાન મંજૂર: ${cat} ${amt}`;
+      case "pa": return `ਗ੍ਰਾਂਟ ਮਨਜ਼ੂਰ: ${cat} ${amt}`;
+      case "ur": return `گرانٹ منظور شدہ: ${cat} ${amt}`;
+      case "so": return `Deeqda La Anxiyay: ${cat} ${amt}`;
+      case "ar": return `تمت الموافقة على المنحة: ${cat} ${amt}`;
+      case "bn": return `অনুদান অনুমোদিত: ${cat} ${amt}`;
+      case "ml": return `ഗ്രാന്റ് അനുവദിച്ചു: ${cat} ${amt}`;
+      case "ta": return `மானிய ஒப்புதல்: ${cat} ${amt}`;
+      default: return `${cat} Grant Approved ${amt}`;
     }
   }
+
+  // 2. Support Application Approved: e.g. 'Support Application Approved: OTHERS'
+  const mAppAppr = title.match(/^Support Application Approved:\s*(.*)$/i);
+  if (mAppAppr) {
+    const cat = translateAssistanceType(mAppAppr[1], lang);
+    switch (lang) {
+      case "pl": return `Wniosek o pomoc zatwierdzony: ${cat}`;
+      case "hi": return `सहायता आवेदन स्वीकृत: ${cat}`;
+      case "gu": return `સહાય અરજી મંજૂર: ${cat}`;
+      case "pa": return `ਸਹਾਇਤਾ ਅਰਜ਼ੀ ਮਨਜ਼ੂਰ: ${cat}`;
+      case "ur": return `امداد کی درخواست منظور: ${cat}`;
+      case "so": return `Codsiga Taageerada Waa La Anxiyay: ${cat}`;
+      case "ar": return `تمت الموافقة على طلب الدعم: ${cat}`;
+      case "bn": return `সহায়তার আবেদন অনুমোদিত: ${cat}`;
+      case "ml": return `സഹായ അപേക്ഷ അംഗീകരിച്ചു: ${cat}`;
+      case "ta": return `ஆதரவு விண்ணப்பம் அங்கீகரிக்கப்பட்டது: ${cat}`;
+      default: return `Support Application Approved: ${cat}`;
+    }
+  }
+
+  // 3. Support Application Declined
+  const mAppDec = title.match(/^Support Application Declined:\s*(.*)$/i);
+  if (mAppDec) {
+    const cat = translateAssistanceType(mAppDec[1], lang);
+    switch (lang) {
+      case "pl": return `Wniosek o pomoc odrzucony: ${cat}`;
+      case "hi": return `सहायता आवेदन अस्वीकृत: ${cat}`;
+      case "gu": return `સહાય અરજી નકારવામાં આવી: ${cat}`;
+      case "pa": return `ਸਹਾਇਤਾ ਅਰਜ਼ੀ ਰੱਦ ਕੀਤੀ: ${cat}`;
+      case "ur": return `امداد کی درخواست مسترد: ${cat}`;
+      case "so": return `Codsiga Taageerada Waa La Diiday: ${cat}`;
+      case "ar": return `تم رفض طلب الدعم: ${cat}`;
+      case "bn": return `সহায়তার আবেদন প্রত্যাখ্যান: ${cat}`;
+      case "ml": return `സഹായ അപേക്ഷ നിരസിച്ചു: ${cat}`;
+      case "ta": return `ஆதரவு விண்ணப்பம் நிராகரிக்கப்பட்டது: ${cat}`;
+      default: return `Support Application Declined: ${cat}`;
+    }
+  }
+
+  // 4. Support Application: X – Under Assessment
+  const mAppAssess = title.match(/^Support Application:\s*(.*?)\s*[–-]\s*Under Assessment$/i);
+  if (mAppAssess) {
+    const cat = translateAssistanceType(mAppAssess[1], lang);
+    switch (lang) {
+      case "pl": return `Wniosek o pomoc: ${cat} – W trakcie oceny`;
+      case "hi": return `सहायता आवेदन: ${cat} – मूल्यांकन के अधीन`;
+      case "gu": return `સહાય અરજી: ${cat} – મૂલ્યાંકન હેઠળ`;
+      case "pa": return `ਸਹਾਇਤਾ ਅਰਜ਼ੀ: ${cat} – ਮੁਲਾਂਕਣ ਅਧੀਨ`;
+      case "ur": return `امداد کی درخواست: ${cat} – زیر جائزہ`;
+      case "so": return `Codsiga Taageerada: ${cat} – Qiimayn ku socoto`;
+      case "ar": return `طلب دعم: ${cat} – قيد التقييم`;
+      case "bn": return `সহায়তার আবেদন: ${cat} – মূল্যায়নাধীন`;
+      case "ml": return `സഹായ അപേക്ഷ: ${cat} – പരിശോധനയിൽ`;
+      case "ta": return `ஆதரவு விண்ணப்பம்: ${cat} – மதிப்பீட்டில் உள்ளது`;
+      default: return `Support Application: ${cat} – Under Assessment`;
+    }
+  }
+
+  // 5. Caseworker Message from X
+  const mMsg = title.match(/^Caseworker Message from\s*(.*)$/i);
+  if (mMsg) {
+    const adv = translateAdvocateName(mMsg[1], lang);
+    switch (lang) {
+      case "pl": return `Wiadomość od opiekuna: ${adv}`;
+      case "hi": return `केसवर्कर का संदेश: ${adv}`;
+      case "gu": return `કેસવર્કર તરફથી સંદેશ: ${adv}`;
+      case "pa": return `ਕੇਸਵਰਕਰ ਵੱਲੋਂ ਸੁਨੇਹਾ: ${adv}`;
+      case "ur": return `کیس ورکر کا پیغام: ${adv}`;
+      case "so": return `Farriinta Shaqaalaha Daryeelka: ${adv}`;
+      case "ar": return `رسالة من أخصائي الرعاية: ${adv}`;
+      case "bn": return `কেসওয়ার্কারের বার্তা: ${adv}`;
+      case "ml": return `കേസ് വർക്കറുടെ സന്ദേശം: ${adv}`;
+      case "ta": return `வழக்கு பணியாளரின் செய்தி: ${adv}`;
+      default: return `Caseworker Message from ${adv}`;
+    }
+  }
+
+  // 6. Allocation Cancelled
+  const mAllocCancel = title.match(/^(.*?)\s+Allocation Cancelled\s+(\(.*?\))$/i);
+  if (mAllocCancel) {
+    const cat = translateAssistanceType(mAllocCancel[1], lang);
+    const amt = mAllocCancel[2];
+    switch (lang) {
+      case "pl": return `Przydział anulowany: ${cat} ${amt}`;
+      case "hi": return `आवंटन रद्द: ${cat} ${amt}`;
+      case "gu": return `ફાળવણી રદ: ${cat} ${amt}`;
+      case "pa": return `ਅਲਾਟਮੈਂਟ ਰੱਦ: ${cat} ${amt}`;
+      case "ur": return `مختص رقم منسوخ: ${cat} ${amt}`;
+      case "so": return `Qoondada La Joojiyay: ${cat} ${amt}`;
+      case "ar": return `تم إلغاء التخصيص: ${cat} ${amt}`;
+      case "bn": return `বরাদ্দ বাতিল: ${cat} ${amt}`;
+      case "ml": return `വിഹിതം റദ്ദാക്കി: ${cat} ${amt}`;
+      case "ta": return `ஒதுக்கீடு ரத்து: ${cat} ${amt}`;
+      default: return `${cat} Allocation Cancelled ${amt}`;
+    }
+  }
+
+  // 7. Allocation Declined
+  const mAllocDec = title.match(/^(.*?)\s+Allocation Declined\s+(\(.*?\))$/i);
+  if (mAllocDec) {
+    const cat = translateAssistanceType(mAllocDec[1], lang);
+    const amt = mAllocDec[2];
+    switch (lang) {
+      case "pl": return `Przydział odrzucony: ${cat} ${amt}`;
+      case "hi": return `आवंटन अस्वीकृत: ${cat} ${amt}`;
+      case "gu": return `ફાળવણી નકારવામાં આવી: ${cat} ${amt}`;
+      case "pa": return `ਅਲਾਟਮੈਂਟ ਅਸਵੀਕਾਰ: ${cat} ${amt}`;
+      case "ur": return `مختص رقم مسترد: ${cat} ${amt}`;
+      case "so": return `Qoondada La Diiday: ${cat} ${amt}`;
+      case "ar": return `تم رفض التخصيص: ${cat} ${amt}`;
+      case "bn": return `বরাদ্দ প্রত্যাখ্যান: ${cat} ${amt}`;
+      case "ml": return `വിഹിതം നിരസിച്ചു: ${cat} ${amt}`;
+      case "ta": return `ஒதுக்கீடு நிராகரிக்கப்பட்டது: ${cat} ${amt}`;
+      default: return `${cat} Allocation Declined ${amt}`;
+    }
+  }
+
+  // 8. Assistance Distributed
+  const mDist = title.match(/^(.*?)\s+Assistance Distributed\s+(\(.*?\))$/i);
+  if (mDist) {
+    const cat = translateAssistanceType(mDist[1], lang);
+    const amt = mDist[2];
+    switch (lang) {
+      case "pl": return `Wypłacono pomoc: ${cat} ${amt}`;
+      case "hi": return `सहायता वितरित: ${cat} ${amt}`;
+      case "gu": return `સહાય વિતરિત: ${cat} ${amt}`;
+      case "pa": return `ਸਹਾਇਤਾ ਵੰਡੀ ਗਈ: ${cat} ${amt}`;
+      case "ur": return `امداد تقسیم کر دی گئی: ${cat} ${amt}`;
+      case "so": return `Taageerada La Qaybiyay: ${cat} ${amt}`;
+      case "ar": return `تم صرف المساعدة: ${cat} ${amt}`;
+      case "bn": return `সহায়তা বিতরণ করা হয়েছে: ${cat} ${amt}`;
+      case "ml": return `സഹായം വിതരണം ചെയ്തു: ${cat} ${amt}`;
+      case "ta": return `உதவி வழங்கப்பட்டது: ${cat} ${amt}`;
+      default: return `${cat} Assistance Distributed ${amt}`;
+    }
+  }
+
   return title;
 }
 
 /**
- * Translates notification bodies into the user's selected language.
+ * Translates notification bodies into the user's selected language across all 11 languages.
  */
 export function translateNotificationBody(body: string | undefined | null, lang: string = "en"): string {
   if (!body) return "";
-  if (lang === "pl") {
-    // 1. Trustee relief grant (Ref: ...) of £... has been approved by the Trustees Relief Committee.
-    const mGrant = body.match(/^Trustee relief grant \(Ref:\s*(.*?)\)\s+of\s+(.*?)\s+has been approved by the Trustees Relief Committee\.$/i);
-    if (mGrant) {
-      return `Dotacja pomocowa powierników (Nr ref: ${mGrant[1]}) na kwotę ${mGrant[2]} została zatwierdzona przez Komitet Pomocowy Powierników.`;
-    }
-    // 2. Your emergency support application for ... has been approved by the casework team.
-    const mApp = body.match(/^Your emergency support application for\s+(.*?)\s+has been approved by the casework team\.$/i);
-    if (mApp) {
-      return `Twój awaryjny wniosek o pomoc (${translateAssistanceType(mApp[1], lang)}) został zatwierdzony przez zespół doradców.`;
-    }
-    // 3. Your application for ... (Urgency: ...) is under active assessment by your assigned advocate.
-    const mAssess = body.match(/^Your application for\s+(.*?)\s+\(Urgency:\s*(.*?)\)\s+is under active assessment by your assigned advocate\.$/i);
-    if (mAssess) {
-      return `Twój wniosek o ${translateAssistanceType(mAssess[1], lang)} (Pilność: ${translateStatus(mAssess[2], lang)}) jest w trakcie aktywnej oceny przez przydzielonego doradcę.`;
-    }
-    // 4. Your assistance request has been approved.
-    if (body.trim().toLowerCase() === "your assistance request has been approved." || body.trim().toLowerCase() === "your assistance request has been approved") {
-      return "Twój wniosek o pomoc został zatwierdzony.";
-    }
-    // 5. Your support application for X was reviewed and declined at this time.
-    const mDec = body.match(/^Your support application for\s+(.*?)\s+was reviewed and declined at this time\.$/i);
-    if (mDec) {
-      return `Twój wniosek o pomoc (${translateAssistanceType(mDec[1], lang)}) został rozpatrzony i odrzucony.`;
-    }
-    // 6. Trustee relief allocation (Ref: X) of Y has been cancelled by administration.
-    const mCancel = body.match(/^Trustee relief allocation \(Ref:\s*(.*?)\)\s+of\s+(.*?)\s+has been cancelled by administration\.$/i);
-    if (mCancel) {
-      return `Przydział pomocy powierników (Nr ref: ${mCancel[1]}) na kwotę ${mCancel[2]} został anulowany przez administrację.`;
-    }
-    // 7. Official disbursement of X for Y via Z has been completed.
-    const mDist = body.match(/^Official disbursement of\s+(.*?)\s+for\s+(.*?)\s+via\s+(.*?)\s+has been completed\.$/i);
-    if (mDist) {
-      return `Oficjalna wypłata kwoty ${mDist[1]} na ${translateDefaultPurpose(mDist[2], lang)} za pośrednictwem ${translateDisbursementMethod(mDist[3], lang)} została zrealizowana.`;
+  if (lang === "en") return body;
+
+  // 1. Trustee relief grant (Ref: ...) of £... has been approved by the Trustees Relief Committee.
+  const mGrant = body.match(/^Trustee relief grant \(Ref:\s*(.*?)\)\s+of\s+(.*?)\s+has been approved by the Trustees Relief Committee\.$/i);
+  if (mGrant) {
+    const ref = mGrant[1];
+    const amt = mGrant[2];
+    switch (lang) {
+      case "pl": return `Dotacja pomocowa powierników (Nr ref: ${ref}) na kwotę ${amt} została zatwierdzona przez Komitet Pomocowy Powierników.`;
+      case "hi": return `ट्रस्टी राहत अनुदान (संदर्भ: ${ref}) राशि ${amt} को ट्रस्टी राहत समिति द्वारा अनुमोदित किया गया है।`;
+      case "gu": return `ટ્રસ્ટી રાહત અનુદાન (સંદર્ભ: ${ref}) ${amt} ની રકમ ટ્રસ્ટી રાહત સમિતિ દ્વારા મંજૂર કરવામાં આવી છે.`;
+      case "pa": return `ਟਰੱਸਟੀ ਰਾਹਤ ਗ੍ਰਾਂਟ (ਹਵਾਲਾ: ${ref}) ਦੀ ਰਕਮ ${amt} ਟਰੱਸਟੀ ਰਾਹਤ ਕਮੇਟੀ ਦੁਆਰਾ ਮਨਜ਼ੂਰ ਕੀਤੀ ਗਈ ਹੈ।`;
+      case "ur": return `ٹرسٹی ریلیف گرانٹ (حوالہ: ${ref}) رقم ${amt} کی ٹرسٹی ریلیف کمیٹی نے منظوری دے دی ہے۔`;
+      case "so": return `Deeqda gargaarka ee wakiilada (Tixraac: ${ref}) ee ${amt} waxaa ansixiyay Guddiga Gargaarka Wakiilada.`;
+      case "ar": return `تمت الموافقة على منحة إغاثة مجلس الأمناء (مرجع: ${ref}) بمبلغ ${amt} من قبل لجنة إغاثة الأمناء.`;
+      case "bn": return `ট্রাস্টি রিলিফ অনুদান (রেফারেন্স: ${ref}) ${amt} ট্রাস্টি রিলিফ কমিটি দ্বারা অনুমোদিত হয়েছে।`;
+      case "ml": return `ട്രസ്റ്റി റിലീഫ് ഗ്രാന്റ് (റഫറൻസ്: ${ref}) തുക ${amt} ട്രസ്റ്റി റിലീഫ് കമ്മിറ്റി അംഗീകരിച്ചു.`;
+      case "ta": return `அறங்காவலர் நிவாரண மானியம் (குறிப்பு: ${ref}) ${amt} அறங்காவலர் நிவாரணக் குழுவால் அங்கீகரிக்கப்பட்டது.`;
     }
   }
+
+  // 2. Your emergency support application for ... has been approved by the casework team.
+  const mApp = body.match(/^Your emergency support application for\s+(.*?)\s+has been approved by the casework team\.$/i);
+  if (mApp) {
+    const cat = translateAssistanceType(mApp[1], lang);
+    switch (lang) {
+      case "pl": return `Twój awaryjny wniosek o pomoc (${cat}) został zatwierdzony przez zespół doradców.`;
+      case "hi": return `${cat} के लिए आपका आपातकालीन सहायता आवेदन केसवर्क टीम द्वारा अनुमोदित कर दिया गया है।`;
+      case "gu": return `${cat} માટેની તમારી કટોકટી સહાય અરજી કેસવર્ક ટીમ દ્વારા મંજૂર કરવામાં આવી છે.`;
+      case "pa": return `${cat} ਲਈ ਤੁਹਾਡੀ ਐਮਰਜੈਂਸੀ ਸਹਾਇਤਾ ਅਰਜ਼ੀ ਕੇਸਵਰਕ ਟੀਮ ਦੁਆਰਾ ਮਨਜ਼ੂਰ ਕਰ ਲਈ ਗਈ ਹੈ।`;
+      case "ur": return `${cat} کے لیے آپ کی ہنگامی امداد کی درخواست کیس ورک ٹیم نے منظور کر لی ہے۔`;
+      case "so": return `Codsigaaga gargaarka degdegga ah ee ${cat} waxaa ansixiyay kooxda daryeelka.`;
+      case "ar": return `تمت الموافقة على طلب الدعم الطارئ الخاص بك لـ ${cat} من قبل فريق الرعاية.`;
+      case "bn": return `${cat}-এর জন্য আপনার জরুরি সহায়তার আবেদন কেসওয়ার্ক দল দ্বারা অনুমোদিত হয়েছে।`;
+      case "ml": return `${cat}-നുള്ള നിങ്ങളുടെ അടിയന്തര സഹായ അപേക്ഷ കേസ് വർക്ക് ടീം അംഗീകരിച്ചു.`;
+      case "ta": return `${cat}-க்கான உங்கள் அவசர ஆதரவு விண்ணப்பம் வழக்கு குழுவால் அங்கீகரிக்கப்பட்டது.`;
+    }
+  }
+
+  // 3. Your application for ... (Urgency: ...) is under active assessment by your assigned advocate.
+  const mAssess = body.match(/^Your application for\s+(.*?)\s+\(Urgency:\s*(.*?)\)\s+is under active assessment by your assigned advocate\.$/i);
+  if (mAssess) {
+    const cat = translateAssistanceType(mAssess[1], lang);
+    const urg = translateStatus(mAssess[2], lang);
+    switch (lang) {
+      case "pl": return `Twój wniosek o ${cat} (Pilność: ${urg}) jest w trakcie aktywnej oceny przez przydzielonego doradcę.`;
+      case "hi": return `${cat} (प्राथमिकता: ${urg}) के लिए आपका आवेदन आपके नियुक्त सलाहकार द्वारा समीक्षाधीन है।`;
+      case "gu": return `${cat} (તાકીદ: ${urg}) માટેની તમારી અરજી તમારા સોંપેલ એડવોકેટ દ્વારા સક્રિય મૂલ્યાંકન હેઠળ છે.`;
+      case "pa": return `${cat} (ਜ਼ਰੂਰੀਤਾ: ${urg}) ਲਈ ਤੁਹਾਡੀ ਅਰਜ਼ੀ ਤੁਹਾਡੇ ਨਿਯੁਕਤ ਵਕੀਲ ਦੁਆਰਾ ਸਮੀਖਿਆ ਅਧੀਨ ਹੈ।`;
+      case "ur": return `${cat} (فوری ضرورت: ${urg}) کے لیے آپ کی درخواست آپ کے مقرر کردہ ایڈوکیٹ کے زیر جائزہ ہے۔`;
+      case "so": return `Codsigaaga ku saabsan ${cat} (Degdegga: ${urg}) waxaa si firfircoon u qiimeynaya qareenkaaga.`;
+      case "ar": return `طلبك لـ ${cat} (درجة الإلحاح: ${urg}) قيد التقييم النشط من قبل المستشار المعين لك.`;
+      case "bn": return `${cat} (জরুরিতা: ${urg})-এর জন্য আপনার আবেদনটি আপনার নিযুক্ত পরামর্শকের সক্রিয় মূল্যায়নাধীন।`;
+      case "ml": return `${cat} (പ്രാധാന്യം: ${urg})-നായുള്ള നിങ്ങളുടെ അപേക്ഷ അഡ്വക്കേറ്റിന്റെ പരിശോധനയിലാണ്.`;
+      case "ta": return `${cat} (அவசரம்: ${urg})-க்கான உங்கள் விண்ணப்பம் உங்கள் ஆலோசகரின் நேரடி மதிப்பீட்டில் உள்ளது.`;
+    }
+  }
+
+  // 4. Your assistance request has been approved.
+  if (body.trim().toLowerCase() === "your assistance request has been approved." || body.trim().toLowerCase() === "your assistance request has been approved") {
+    switch (lang) {
+      case "pl": return "Twój wniosek o pomoc został zatwierdzony.";
+      case "hi": return "आपके सहायता अनुरोध को स्वीकृति मिल गई है।";
+      case "gu": return "તમારી સહાય વિનંતી મંજૂર કરવામાં આવી છે.";
+      case "pa": return "ਤੁਹਾਡੀ ਸਹਾਇਤਾ ਬੇਨਤੀ ਮਨਜ਼ੂਰ ਕਰ ਲਈ ਗਈ ਹੈ।";
+      case "ur": return "آپ کی امداد کی درخواست منظور کر لی گئی ہے۔";
+      case "so": return "Codsigaaga gargaarka waa la ansixiyay.";
+      case "ar": return "تمت الموافقة على طلب المساعدة الخاص بك.";
+      case "bn": return "আপনার সহায়তার অনুরোধ অনুমোদিত হয়েছে।";
+      case "ml": return "നിങ്ങളുടെ സഹായ അഭ്യർത്ഥന അംഗീകരിച്ചു.";
+      case "ta": return "உங்கள் உதவி கோரிக்கை அங்கீகரிக்கப்பட்டது.";
+    }
+  }
+
+  // 5. Your support application for X was reviewed and declined at this time.
+  const mDec = body.match(/^Your support application for\s+(.*?)\s+was reviewed and declined at this time\.$/i);
+  if (mDec) {
+    const cat = translateAssistanceType(mDec[1], lang);
+    switch (lang) {
+      case "pl": return `Twój wniosek o pomoc (${cat}) został rozpatrzony i odrzucony.`;
+      case "hi": return `${cat} के लिए आपके सहायता आवेदन की समीक्षा की गई और अस्वीकार कर दिया गया।`;
+      case "gu": return `${cat} માટેની તમારી સહાય અરજીની સમીક્ષા કરવામાં આવી અને નકારવામાં આવી.`;
+      case "pa": return `${cat} ਲਈ ਤੁਹਾਡੀ ਸਹਾਇਤਾ ਅਰਜ਼ੀ ਦੀ ਸਮੀਖਿਆ ਕੀਤੀ ਗਈ ਅਤੇ ਰੱਦ ਕਰ ਦਿੱਤੀ ਗਈ।`;
+      case "ur": return `${cat} کے لیے آپ کی امدادی درخواست کا جائزہ لیا گیا اور مسترد کر دیا گیا۔`;
+      case "so": return `Codsigaaga taageerada ee ${cat} dib ayaa loo eegay waana la diiday waqtigan.`;
+      case "ar": return `تمت مراجعة طلب الدعم الخاص بك لـ ${cat} وتم رفضه في هذا الوقت.`;
+      case "bn": return `${cat}-এর জন্য আপনার সহায়তার আবেদন পর্যালোচনা করে প্রত্যাখ্যান করা হয়েছে।`;
+      case "ml": return `${cat}-നായുള്ള നിങ്ങളുടെ സഹായ അപേക്ഷ പരിശോധിക്കുകയും നിരസിക്കുകയും ചെയ്തു.`;
+      case "ta": return `${cat}-க்கான உங்கள் ஆதரவு விண்ணப்பம் பரிசீலிக்கப்பட்டு நிராகரிக்கப்பட்டது.`;
+    }
+  }
+
+  // 6. Trustee relief allocation (Ref: X) of Y has been cancelled by administration.
+  const mCancel = body.match(/^Trustee relief allocation \(Ref:\s*(.*?)\)\s+of\s+(.*?)\s+has been cancelled by administration\.$/i);
+  if (mCancel) {
+    const ref = mCancel[1];
+    const amt = mCancel[2];
+    switch (lang) {
+      case "pl": return `Przydział pomocy powierników (Nr ref: ${ref}) na kwotę ${amt} został anulowany przez administrację.`;
+      case "hi": return `प्रशासन द्वारा ट्रस्टी राहत आवंटन (संदर्भ: ${ref}) राशि ${amt} को रद्द कर दिया गया है।`;
+      case "gu": return `વહીવટીતંત્ર દ્વારા ટ્રસ્ટી રાહત ફાળવણી (સંદર્ભ: ${ref}) ${amt} રદ કરવામાં આવી છે.`;
+      case "pa": return `ਪ੍ਰਸ਼ਾਸਨ ਦੁਆਰਾ ਟਰੱਸਟੀ ਰਾਹਤ ਅਲਾਟਮੈਂਟ (ਹਵਾਲਾ: ${ref}) ਦੀ ਰਕਮ ${amt} ਰੱਦ ਕਰ ਦਿੱਤੀ ਗਈ ਹੈ।`;
+      case "ur": return `انتظامیہ کی طرف سے ٹرسٹی ریلیف مختص (حوالہ: ${ref}) رقم ${amt} کو منسوخ کر دیا گیا ہے۔`;
+      case "so": return `Qoondada gargaarka wakiilada (Tixraac: ${ref}) ee ${amt} waxaa baabi'iyay maamulka.`;
+      case "ar": return `تم إلغاء مخصصات إغاثة الأمناء (مرجع: ${ref}) بمبلغ ${amt} من قبل الإدارة.`;
+      case "bn": return `প্রশাসন কর্তৃক ট্রাস্টি রিলিফ বরাদ্দ (রেফারেন্স: ${ref}) ${amt} বাতিল করা হয়েছে।`;
+      case "ml": return `അഡ്മിനിസ്ട്രേഷൻ ട്രസ്റ്റി റിലീഫ് വിഹിതം (റഫറൻസ്: ${ref}) തുക ${amt} റദ്ദാക്കി.`;
+      case "ta": return `நிர்வாகத்தால் அறங்காவலர் நிவாரண ஒதுக்கீடு (குறிப்பு: ${ref}) ${amt} ரத்து செய்யப்பட்டது.`;
+    }
+  }
+
+  // 7. Official disbursement of X for Y via Z has been completed.
+  const mDist = body.match(/^Official disbursement of\s+(.*?)\s+for\s+(.*?)\s+via\s+(.*?)\s+has been completed\.$/i);
+  if (mDist) {
+    const amt = mDist[1];
+    const purp = translateDefaultPurpose(mDist[2], lang);
+    const meth = translateDisbursementMethod(mDist[3], lang);
+    switch (lang) {
+      case "pl": return `Oficjalna wypłata kwoty ${amt} na ${purp} za pośrednictwem ${meth} została zrealizowana.`;
+      case "hi": return `${meth} के माध्यम से ${purp} के लिए ${amt} का आधिकारिक संवितरण पूरा हो गया है।`;
+      case "gu": return `${meth} દ્વારા ${purp} માટે ${amt} નું સત્તાવાર વિતરણ પૂર્ણ થયું છે.`;
+      case "pa": return `${meth} ਰਾਹੀਂ ${purp} ਲਈ ${amt} ਦੀ ਅਧਿਕਾਰਤ ਵੰਡ ਪੂਰੀ ਹੋ ਗਈ ਹੈ।`;
+      case "ur": return `${meth} کے ذریعے ${purp} کے لیے ${amt} کی سرکاری ادائیگی مکمل ہو گئی ہے۔`;
+      case "so": return `Bixinta rasmiga ah ee ${amt} oo loogu talagalay ${purp} iyada oo loo marayo ${meth} waa la dhamaystiray.`;
+      case "ar": return `اكتمل الصرف الرسمي لمبلغ ${amt} لـ ${purp} عبر ${meth}.`;
+      case "bn": return `${meth}-এর মাধ্যমে ${purp}-এর জন্য ${amt}-এর আনুষ্ঠানিক বিতরণ সম্পন্ন হয়েছে।`;
+      case "ml": return `${meth} വഴി ${purp}-നായുള്ള ${amt} ഔദ്യോഗിക വിതരണം പൂർത്തിയായി.`;
+      case "ta": return `${meth} வழியாக ${purp}-க்கான ${amt} அதிகாரப்பூர்வ விநியோகம் நிறைவடைந்தது.`;
+    }
+  }
+
   return body;
 }
