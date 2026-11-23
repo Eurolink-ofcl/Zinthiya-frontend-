@@ -1114,7 +1114,49 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
   const [requestCategory, setRequestCategory] = useState<string>("");
   const [requestUrgency, setRequestUrgency] = useState<string>("HIGH");
   const [requestNotes, setRequestNotes] = useState<string>("");
+  const [requestDocuments, setRequestDocuments] = useState<Array<{ id: string; name: string; type: string; size: string; dataUrl: string; uploadedAt: string }>>([]);
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
+  const requestFileInputRef = useRef<HTMLInputElement | null>(null);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState<boolean>(false);
+
+  const handleRequestFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingDoc(true);
+
+    const fileList = Array.from(files);
+    const readPromises = fileList.map((file) => {
+      return new Promise<{ id: string; name: string; type: string; size: string; dataUrl: string; uploadedAt: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const formattedSize = file.size > 1024 * 1024
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+            : `${Math.round(file.size / 1024)} KB`;
+          resolve({
+            id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            name: file.name,
+            type: file.type || "Supporting Document",
+            size: formattedSize,
+            dataUrl: reader.result as string,
+            uploadedAt: new Date().toISOString()
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readPromises).then((newDocs) => {
+      setRequestDocuments((prev) => [...prev, ...newDocs]);
+      setIsUploadingDoc(false);
+      if (requestFileInputRef.current) {
+        requestFileInputRef.current.value = "";
+      }
+    });
+  };
+
+  const handleRemoveRequestDocument = (id: string) => {
+    setRequestDocuments((prev) => prev.filter((d) => d.id !== id));
+  };
 
   const handleSupportRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1129,10 +1171,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
         serviceType: chosenCat,
         notes: requestNotes,
         urgency: requestUrgency,
+        documents: requestDocuments,
       });
       setShowRequestModal(false);
       setRequestNotes("");
-      alert("Your support request has been submitted to your caseworker.");
+      setRequestDocuments([]);
+      alert("Your support request and supporting documents have been submitted to your caseworker.");
       
       const refreshed = await api.getBeneficiaryPortalData();
       if (refreshed) {
@@ -1144,6 +1188,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
     } catch (err: any) {
       alert("Support request submitted. Caseworker has been alerted.");
       setShowRequestModal(false);
+      setRequestDocuments([]);
     } finally {
       setIsSubmittingRequest(false);
     }
@@ -1297,7 +1342,8 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
           reference: ref,
           funder: "The Zinthiya Trust",
           caseworker: req.assignedWorker || beneficiaryUser.caseWorker,
-          description: req.notes || "Beneficiary support application undergoing caseworker assessment."
+          description: req.notes || "Beneficiary support application undergoing caseworker assessment.",
+          documents: req.documents || []
         };
       });
 
@@ -6472,7 +6518,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
               backgroundColor: "#ffffff",
               borderRadius: "20px",
               padding: "24px",
-              maxWidth: "460px",
+              maxWidth: "480px",
+              maxHeight: "92vh",
+              overflowY: "auto",
               width: "100%",
               boxShadow: "0 20px 40px rgba(36, 18, 33, 0.2)"
             }}
@@ -6484,7 +6532,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
               </h3>
               <button
                 type="button"
-                onClick={() => setShowRequestModal(false)}
+                onClick={() => { setShowRequestModal(false); setRequestDocuments([]); }}
                 style={{ background: "none", border: "none", color: "#8E7287", cursor: "pointer" }}
               >
                 <X size={18} />
@@ -6576,10 +6624,103 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                 />
               </div>
 
+              {/* Supporting Documents (N number of documents) */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569" }}>
+                    Supporting Documents ({requestDocuments.length})
+                  </label>
+                  <span style={{ fontSize: "10px", color: "#8E7287" }}>
+                    Attach bills, letters, notices, IDs
+                  </span>
+                </div>
+
+                <input
+                  type="file"
+                  ref={requestFileInputRef}
+                  onChange={handleRequestFileSelect}
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt"
+                  style={{ display: "none" }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => requestFileInputRef.current?.click()}
+                  disabled={isUploadingDoc}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    border: "1.5px dashed rgba(230, 18, 126, 0.3)",
+                    backgroundColor: "#FFF5F9",
+                    color: "#E6127E",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: isUploadingDoc ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <Paperclip size={14} />
+                  <span>{isUploadingDoc ? "Processing Files..." : "+ Add Supporting Documents (Multiple Allowed)"}</span>
+                </button>
+
+                {/* Uploaded Documents List */}
+                {requestDocuments.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px", maxHeight: "140px", overflowY: "auto", paddingRight: "2px" }}>
+                    {requestDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          backgroundColor: "#F8FAFC",
+                          border: "1px solid #E2E8F0",
+                          fontSize: "11.5px"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+                          <FileText size={14} style={{ color: "#E6127E", flexShrink: 0 }} />
+                          <span style={{ fontWeight: 700, color: "#1E293B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "230px" }} title={doc.name}>
+                            {doc.name}
+                          </span>
+                          <span style={{ fontSize: "10px", color: "#64748B", flexShrink: 0 }}>
+                            ({doc.size})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveRequestDocument(doc.id)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#EF4444",
+                            cursor: "pointer",
+                            padding: "2px 4px",
+                            display: "flex",
+                            alignItems: "center"
+                          }}
+                          title="Remove document"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
                 <button
                   type="button"
-                  onClick={() => setShowRequestModal(false)}
+                  onClick={() => { setShowRequestModal(false); setRequestDocuments([]); }}
                   disabled={isSubmittingRequest}
                   style={{
                     flex: 1,

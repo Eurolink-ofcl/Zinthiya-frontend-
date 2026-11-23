@@ -6557,6 +6557,29 @@ export function AdminDashboardPage() {
                               </p>
                             )}
 
+                            {/* Attached documents in dashboard pending requests card */}
+                            {(req as any).documents && Array.isArray((req as any).documents) && (req as any).documents.length > 0 && (
+                              <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                                  <Paperclip size={11} className="text-magenta" />
+                                  Attached ({(req as any).documents.length}):
+                                </span>
+                                {(req as any).documents.map((doc: any, i: number) => (
+                                  <button
+                                    key={doc.id || i}
+                                    type="button"
+                                    onClick={() => handleViewDocument(doc)}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white border border-gray-200 text-gray-700 hover:text-magenta hover:border-pink-300 cursor-pointer shadow-2xs"
+                                    title={`View ${doc.name}`}
+                                  >
+                                    <FileText size={11} className="text-magenta" />
+                                    <span className="truncate max-w-[120px]">{doc.name}</span>
+                                    <Eye size={10} className="text-gray-400" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between pt-2 border-t border-gray-200/50 text-xs">
                               <span className="text-[10px] text-gray-400">
                                 Received: {new Date(req.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -19959,6 +19982,29 @@ export function AdminDashboardPage() {
                           </div>
                         )}
 
+                        {/* Attached Documents in Request Card */}
+                        {(req as any).documents && Array.isArray((req as any).documents) && (req as any).documents.length > 0 && (
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+                              <Paperclip size={12} className="text-magenta" />
+                              {(req as any).documents.length} File{((req as any).documents.length > 1 ? "s" : "")}:
+                            </span>
+                            {(req as any).documents.map((doc: any, idx: number) => (
+                              <button
+                                key={doc.id || idx}
+                                type="button"
+                                onClick={() => handleViewDocument(doc)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-700 hover:text-magenta hover:border-pink-300 hover:bg-pink-50 transition-colors cursor-pointer"
+                                title={`View ${doc.name}`}
+                              >
+                                <FileText size={12} className="text-magenta" />
+                                <span className="truncate max-w-[150px]">{doc.name}</span>
+                                <Eye size={11} className="text-slate-400" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="text-[10px] text-slate-400 mt-2 flex items-center justify-between">
                           <span>Caseworker: {req.assignedWorker || "Unassigned"}</span>
                           <span>Filed: {new Date(req.createdAt).toLocaleDateString("en-GB")}</span>
@@ -20572,6 +20618,46 @@ export function AdminDashboardPage() {
               <div className="text-xs text-slate-600 leading-relaxed">
                 <strong>Intake Circumstances:</strong> {reviewingRequestItem.request.notes || "None provided."}
               </div>
+
+              {/* Attached Supporting Documents */}
+              {((reviewingRequestItem.request as any).documents && Array.isArray((reviewingRequestItem.request as any).documents) && (reviewingRequestItem.request as any).documents.length > 0) && (
+                <div className="pt-2.5 border-t border-pink-200/80 mt-2">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
+                    <Paperclip size={13} className="text-magenta" />
+                    <span>Attached Supporting Documents ({(reviewingRequestItem.request as any).documents.length})</span>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {(reviewingRequestItem.request as any).documents.map((doc: any, i: number) => (
+                      <div
+                        key={doc.id || i}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-pink-200/80 shadow-xs text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <div className="w-8 h-8 rounded-lg bg-pink-50 border border-pink-100 flex items-center justify-center text-magenta shrink-0">
+                            <FileText size={15} />
+                          </div>
+                          <div className="overflow-hidden">
+                            <div className="font-bold text-slate-900 truncate max-w-[220px]" title={doc.name}>
+                              {doc.name}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {doc.size || "Document"} • {doc.type || "Attached File"}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleViewDocument(doc)}
+                          className="px-3 py-1.5 rounded-lg bg-pink-50 hover:bg-magenta hover:text-white text-magenta font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all border border-pink-200"
+                        >
+                          <Eye size={12} />
+                          <span>View</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleReviewRequestSubmit} className="space-y-4">

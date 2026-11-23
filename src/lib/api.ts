@@ -210,6 +210,7 @@ export interface AdminBeneficiaryRequest {
   contactPhone?: string;
   assignedWorker?: string;
   resolutionDate?: string;
+  documents?: any[];
   createdAt: string;
 }
 
@@ -871,6 +872,7 @@ class ApiService {
     serviceType: string;
     notes?: string;
     urgency?: string;
+    documents?: any[];
   }): Promise<any> {
     const token = typeof window !== "undefined" ? localStorage.getItem("beneficiary_token") : null;
     return this.request<any>("/auth/beneficiary/request", {
