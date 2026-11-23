@@ -361,6 +361,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "View File",
     "lbl_linked_allocations": "Linked Assistance Allocations",
     "lbl_total_colon": "Total:",
+    "lbl_intake_case_ref": "Intake registered under Case Ref:",
+    "badge_recorded": "RECORDED",
   },
 
   gu: {
@@ -684,6 +686,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "ફાઇલ જુઓ",
     "lbl_linked_allocations": "લિંક કરેલ સહાય ફાળવણી",
     "lbl_total_colon": "કુલ:",
+    "lbl_intake_case_ref": "કેસ સંદર્ભ હેઠળ નોંધાયેલ ઇન્ટેક:",
+    "badge_recorded": "નોંધાયેલ",
   },
 
   hi: {
@@ -1007,6 +1011,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "फ़ाइल देखें",
     "lbl_linked_allocations": "लिंक किए गए सहायता आवंटन",
     "lbl_total_colon": "कुल:",
+    "lbl_intake_case_ref": "केस संदर्भ के तहत पंजीकृत प्रवेश:",
+    "badge_recorded": "दर्ज किया गया",
   },
 
   pa: {
@@ -1330,6 +1336,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "ਫਾਈਲ ਦੇਖੋ",
     "lbl_linked_allocations": "ਲਿੰਕ ਕੀਤੇ ਸਹਾਇਤਾ ਅਲਾਟਮੈਂਟ",
     "lbl_total_colon": "ਕੁੱਲ:",
+    "lbl_intake_case_ref": "ਕੇਸ ਹਵਾਲੇ ਅਧੀਨ ਰਜਿਸਟਰਡ ਦਾਖਲਾ:",
+    "badge_recorded": "ਦਰਜ ਕੀਤਾ",
   },
 
   ur: {
@@ -1653,6 +1661,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "فائل دیکھیں",
     "lbl_linked_allocations": "منسلک امدادی مختصات",
     "lbl_total_colon": "کل:",
+    "lbl_intake_case_ref": "کیس ریفرنس کے تحت رجسٹرڈ اندراج:",
+    "badge_recorded": "درج شدہ",
   },
 
   pl: {
@@ -1976,6 +1986,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "Zobacz plik",
     "lbl_linked_allocations": "Powiązane przydziały pomocy",
     "lbl_total_colon": "Łącznie:",
+    "lbl_intake_case_ref": "Rejestracja przyjęcia pod nr sprawy:",
+    "badge_recorded": "ZAREJESTROWANO",
   },
 
   so: {
@@ -2299,6 +2311,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "Fiiri Faylka",
     "lbl_linked_allocations": "Qoondada Taageerada ee ku Xiran",
     "lbl_total_colon": "Wadarta:",
+    "lbl_intake_case_ref": "Qaadashada ku diiwaangashan Tixraaca Kiiska:",
+    "badge_recorded": "LA DIIWAANGELIYAY",
   },
 
   ar: {
@@ -2622,6 +2636,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "عرض الملف",
     "lbl_linked_allocations": "مخصصات المساعدة المرتبطة",
     "lbl_total_colon": "الإجمالي:",
+    "lbl_intake_case_ref": "تم تسجيل الحالة تحت الرقم المرجعي:",
+    "badge_recorded": "مسجل",
   },
 
   bn: {
@@ -2945,6 +2961,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "ফাইল দেখুন",
     "lbl_linked_allocations": "সংযুক্ত সহায়তা বরাদ্দ",
     "lbl_total_colon": "মোট:",
+    "lbl_intake_case_ref": "কেস রেফারেন্সের অধীনে নিবন্ধিত ইনটেক:",
+    "badge_recorded": "রেকর্ড করা",
   },
 
   ml: {
@@ -3268,6 +3286,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "ഫയൽ കാണുക",
     "lbl_linked_allocations": "ബന്ധിപ്പിച്ച സഹായ വിഹിതങ്ങൾ",
     "lbl_total_colon": "ആകെ:",
+    "lbl_intake_case_ref": "കേസ് റഫറൻസിന് കീഴിൽ രജിസ്റ്റർ ചെയ്ത ഇൻടേക്ക്:",
+    "badge_recorded": "രേഖപ്പെടുത്തി",
   },
 
   ta: {
@@ -3591,6 +3611,8 @@ export const BENEFICIARY_TRANSLATIONS: Record<SupportedLanguage, Record<string, 
     "btn_view_file": "கோப்பைப் பார்க்கவும்",
     "lbl_linked_allocations": "இணைக்கப்பட்ட உதவி ஒதுக்கீடுகள்",
     "lbl_total_colon": "மொத்தம்:",
+    "lbl_intake_case_ref": "வழக்கு குறிப்பு எண்ணின் கீழ் பதிவு செய்யப்பட்டது:",
+    "badge_recorded": "பதிவு செய்யப்பட்டது",
   },
 };
 
@@ -4064,6 +4086,13 @@ export function translateStatus(status: string | undefined | null, lang: string 
     return STATUS_TRANSLATIONS[targetLang][upper];
   }
 
+  const lower = clean.toLowerCase();
+  for (const [k, v] of Object.entries(STATUS_TRANSLATIONS[targetLang] || {})) {
+    if (k.toLowerCase() === lower) {
+      return v;
+    }
+  }
+
   return STATUS_TRANSLATIONS.en?.[clean] || clean;
 }
 
@@ -4189,7 +4218,8 @@ export function translatePermittedUse(use: string, lang: string = "en"): string 
 /**
  * Translates default purpose text when notes are empty.
  */
-export function translateDefaultPurpose(purpose: string, lang: string = "en"): string {
+export function translateDefaultPurpose(purpose: string | undefined | null, lang: string = "en"): string {
+  if (!purpose) return "";
   if (lang === "pl") {
     if (purpose.includes("Emergency trustee relief grant allocated directly")) {
       return "Awaryjna dotacja pomocowa przyznana bezpośrednio na zweryfikowane konto beneficjenta.";
@@ -4199,6 +4229,12 @@ export function translateDefaultPurpose(purpose: string, lang: string = "en"): s
     }
     if (purpose.includes("Official trustee allocated assistance record")) {
       return "Oficjalny rejestr przyznanej pomocy przez powierników.";
+    }
+    if (purpose.toLowerCase() === "for food") {
+      return "Na żywność";
+    }
+    if (purpose.toLowerCase().includes("need cash") || purpose.toLowerCase().includes("need 10,000") || purpose.toLowerCase().includes("need 10000")) {
+      return "Potrzebna gotówka na pilne wydatki";
     }
   }
   return purpose;
@@ -4266,4 +4302,35 @@ export function translateUrgencyLevel(urgency: string, lang: string = "en"): str
     if (urgency.includes("Standard Support") || urgency === "MEDIUM") return "Standardowe wsparcie (Najbliższe 3-5 dni roboczych)";
   }
   return urgency;
+}
+
+/**
+ * Translates date strings and uppercase timeline status labels.
+ * E.g. "18 NOV 2026" -> "18 LIS 2026", "PENDING DISPATCH" -> "OCZEKUJE NA WYSYŁKĘ".
+ */
+export function translateDate(dateStr: string | undefined | null, lang: string = "en"): string {
+  if (!dateStr) return "";
+  const clean = dateStr.trim();
+  const statusMatch = translateStatus(clean, lang);
+  if (statusMatch && statusMatch.toLowerCase() !== clean.toLowerCase()) {
+    return statusMatch.toUpperCase();
+  }
+  if (lang === "pl") {
+    const monthMap: Record<string, string> = {
+      "JAN": "STY", "FEB": "LUT", "MAR": "MAR", "APR": "KWI",
+      "MAY": "MAJ", "JUN": "CZE", "JUL": "LIP", "AUG": "SIE",
+      "SEP": "WRZ", "OCT": "PAŹ", "NOV": "LIS", "DEC": "GRU",
+      "Jan": "sty", "Feb": "lut", "Mar": "mar", "Apr": "kwi",
+      "May": "maj", "Jun": "cze", "Jul": "lip", "Aug": "sie",
+      "Sep": "wrz", "Oct": "paź", "Nov": "lis", "Dec": "gru",
+      "RECORDED": "ZAREJESTROWANO",
+      "Recorded": "Zarejestrowano"
+    };
+    let res = clean;
+    for (const [enM, plM] of Object.entries(monthMap)) {
+      res = res.replace(new RegExp(`\\b${enM}\\b`, 'g'), plM);
+    }
+    return res;
+  }
+  return clean;
 }

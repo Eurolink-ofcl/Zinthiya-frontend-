@@ -19,6 +19,7 @@ import {
   translateContactMethod,
   translateContactHours,
   translateUrgencyLevel,
+  translateDate,
   SupportedLanguage
 } from "../lib/beneficiaryTranslations";
 import {
@@ -5039,9 +5040,9 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               </td>
 
                               <td style={{ padding: "14px 16px", color: "#64748B", fontSize: "12px" }}>
-                                <div>{record.dateReceived}</div>
+                                <div>{translateDate(record.dateReceived, selectedLanguage)}</div>
                                 <div style={{ fontSize: "10px", color: "#94A3B8" }}>
-                                  {record.isAppliedRequest ? t("lbl_submitted_by_client", "Submitted by client") : `${t("lbl_allocated_prefix", "Allocated: ")}${record.dateAllocated}`}
+                                  {record.isAppliedRequest ? t("lbl_submitted_by_client", "Submitted by client") : `${t("lbl_allocated_prefix", "Allocated: ")}${translateDate(record.dateAllocated, selectedLanguage)}`}
                                 </div>
                               </td>
 
@@ -5089,12 +5090,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     assistanceRecords.slice(0, 4).map((rec: any, idx: number) => (
                       <div key={rec.id || idx}>
                         <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: rec.statusColor }} />
-                        <div style={{ fontSize: "11px", fontWeight: 800, color: rec.statusColor }}>{rec.dateReceived ? rec.dateReceived.toUpperCase() : "RECORDED"}</div>
+                        <div style={{ fontSize: "11px", fontWeight: 800, color: rec.statusColor }}>
+                          {rec.dateReceived ? translateDate(rec.dateReceived, selectedLanguage).toUpperCase() : t("badge_recorded", "RECORDED")}
+                        </div>
                         <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
-                          {rec.type} – {rec.status}
+                          {translateAssistanceType(rec.type, selectedLanguage)} – {translateStatus(rec.status, selectedLanguage)}
                         </h4>
                         <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
-                          {rec.description}
+                          {translateDefaultPurpose(rec.description, selectedLanguage)}
                         </p>
                       </div>
                     ))
@@ -5104,10 +5107,10 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                     <div style={{ position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#94A3B8" }} />
                     <div style={{ fontSize: "11px", fontWeight: 800, color: "#64748B" }}>{t("step_intake_assigned", "CASE INTAKE & ADVOCATE ASSIGNED")}</div>
                     <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#241221", margin: "2px 0" }}>
-                      Beneficiary Account Active &amp; Verified
+                      {t("step_account_active", "Beneficiary Account Active & Verified")}
                     </h4>
                     <p style={{ fontSize: "12px", color: "#64748B", margin: 0 }}>
-                      Intake registered under Case Ref: <strong style={{ fontFamily: "monospace", color: "#E6127E" }}>{beneficiaryUser.referenceId}</strong> • Caseworker: <strong>{beneficiaryUser.caseWorker}</strong>.
+                      {t("lbl_intake_case_ref", "Intake registered under Case Ref:")} <strong style={{ fontFamily: "monospace", color: "#E6127E" }}>{beneficiaryUser.referenceId}</strong> • {t("caseworker_prefix", "Caseworker:")} <strong>{translateAdvocateName(beneficiaryUser.caseWorker, selectedLanguage)}</strong>.
                     </p>
                   </div>
                 </div>
