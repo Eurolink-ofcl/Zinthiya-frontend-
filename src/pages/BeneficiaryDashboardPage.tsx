@@ -5221,25 +5221,18 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                         >
                           Badge: {assignedAdvocate.badgeNumber}
                         </span>
-                      </div>
-
-                      <div style={{ fontSize: "12px", color: "#6A5364", marginTop: "2px", fontWeight: 600 }}>
-                        {assignedAdvocate.title} • {assignedAdvocate.credentials}
-                      </div>
-
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", marginTop: "4px", fontSize: "11px", color: "#8E7287" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <PhoneCall size={12} style={{ color: "#E6127E" }} />
-                          <span>Direct: <strong>{assignedAdvocate.phone} ext. {assignedAdvocate.ext}</strong></span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Mail size={12} style={{ color: "#E6127E" }} />
-                          <span>{assignedAdvocate.email}</span>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Clock size={12} style={{ color: "#E6127E" }} />
-                          <span>{assignedAdvocate.hours}</span>
-                        </div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "#10B981",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px"
+                          }}
+                        >
+                          ⚡ {assignedAdvocate.responseTime}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -5274,18 +5267,6 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       <User size={13} />
                       <span>{t("view_advocate_profile", "View Full Advocate Profile")}</span>
                     </button>
-                  </div>
-                </div>
-
-                {/* Advocate Spoken Languages Strip */}
-                <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(230, 18, 126, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", fontSize: "11px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <Languages size={14} style={{ color: "#E6127E" }} />
-                    <span style={{ color: "#241221", fontWeight: 700 }}>{t("advocate_spoken_languages", "Advocate Spoken Languages:")}</span>
-                    <span style={{ color: "#64748B" }}>{assignedAdvocate.languages.join(" • ")}</span>
-                  </div>
-                  <div style={{ color: "#10B981", fontWeight: 700 }}>
-                    ⚡ {assignedAdvocate.responseTime}
                   </div>
                 </div>
               </div>
