@@ -20,6 +20,8 @@ import {
   translateContactHours,
   translateUrgencyLevel,
   translateDate,
+  translateNotificationTitle,
+  translateNotificationBody,
   SupportedLanguage
 } from "../lib/beneficiaryTranslations";
 import {
@@ -2983,12 +2985,12 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: notif.unread ? "#E6127E" : "#3B82F6" }} />
-                                <strong style={{ fontSize: "12px", color: "#241221" }}>{notif.title}</strong>
+                                <strong style={{ fontSize: "12px", color: "#241221" }}>{translateNotificationTitle(notif.title, selectedLanguage)}</strong>
                               </div>
-                              <span style={{ fontSize: "10px", color: "#8E7287" }}>{notif.time}</span>
+                              <span style={{ fontSize: "10px", color: "#8E7287" }}>{translateDate(notif.time, selectedLanguage)}</span>
                             </div>
                             <p style={{ fontSize: "11px", color: "#64748B", margin: "4px 0 0 12px", lineHeight: "1.4" }}>
-                              {notif.body}
+                              {translateNotificationBody(notif.body, selectedLanguage)}
                             </p>
                           </div>
                         ))
@@ -6532,7 +6534,7 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <span style={{ fontSize: "13px", fontWeight: 800, color: notif.unread ? "#E6127E" : "#241221" }}>
-                            {notif.title}
+                            {translateNotificationTitle(notif.title, selectedLanguage)}
                           </span>
                           <span
                             style={{
@@ -6544,14 +6546,14 @@ export function BeneficiaryDashboardPage({ initialTab = "dashboard" }: Beneficia
                               color: notif.tag === "Cancelled" || notif.tag === "Declined" ? "#DC2626" : notif.tag === "Approved" ? "#059669" : "#B80C64"
                             }}
                           >
-                            {notif.tag}
+                            {translateStatus(notif.tag, selectedLanguage)}
                           </span>
                         </div>
                         <p style={{ fontSize: "12px", color: "#475569", margin: "4px 0 0 0", lineHeight: "1.5" }}>
-                          {notif.body}
+                          {translateNotificationBody(notif.body, selectedLanguage)}
                         </p>
                         <div style={{ fontSize: "10px", color: "#8E7287", marginTop: "4px" }}>
-                          {notif.time}
+                          {translateDate(notif.time, selectedLanguage)}
                         </div>
                       </div>
 

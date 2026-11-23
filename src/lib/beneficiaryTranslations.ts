@@ -3884,6 +3884,10 @@ export const STATUS_TRANSLATIONS: Record<SupportedLanguage, Record<string, strin
     "Completed": "Zakończono",
     "Pending": "Oczekujące",
     "Pending Triage": "Oczekuje na kwalifikację",
+    "Application": "Wniosek",
+    "Message": "Wiadomość",
+    "Disbursement": "Wypłata",
+    "Recent": "Niedawno",
     "CRITICAL": "KRYTYCZNY",
     "HIGH": "WYSOKI",
     "MEDIUM": "ŚREDNI",
@@ -4333,4 +4337,98 @@ export function translateDate(dateStr: string | undefined | null, lang: string =
     return res;
   }
   return clean;
+}
+
+/**
+ * Translates notification titles into the user's selected language.
+ */
+export function translateNotificationTitle(title: string | undefined | null, lang: string = "en"): string {
+  if (!title) return "";
+  if (lang === "pl") {
+    // 1. Grant Approved: e.g. 'OTHERS Grant Approved (£10,000.00)'
+    const mGrantAppr = title.match(/^(.*?)\s+Grant Approved\s+(\(.*?\))$/i);
+    if (mGrantAppr) {
+      return `Przyznano dotację: ${translateAssistanceType(mGrantAppr[1], lang)} ${mGrantAppr[2]}`;
+    }
+    // 2. Support Application Approved: e.g. 'Support Application Approved: OTHERS'
+    const mAppAppr = title.match(/^Support Application Approved:\s*(.*)$/i);
+    if (mAppAppr) {
+      return `Wniosek o pomoc zatwierdzony: ${translateAssistanceType(mAppAppr[1], lang)}`;
+    }
+    // 3. Support Application Declined
+    const mAppDec = title.match(/^Support Application Declined:\s*(.*)$/i);
+    if (mAppDec) {
+      return `Wniosek o pomoc odrzucony: ${translateAssistanceType(mAppDec[1], lang)}`;
+    }
+    // 4. Support Application: X – Under Assessment
+    const mAppAssess = title.match(/^Support Application:\s*(.*?)\s*[–-]\s*Under Assessment$/i);
+    if (mAppAssess) {
+      return `Wniosek o pomoc: ${translateAssistanceType(mAppAssess[1], lang)} – W trakcie oceny`;
+    }
+    // 5. Caseworker Message from X
+    const mMsg = title.match(/^Caseworker Message from\s*(.*)$/i);
+    if (mMsg) {
+      return `Wiadomość od opiekuna: ${translateAdvocateName(mMsg[1], lang)}`;
+    }
+    // 6. Allocation Cancelled
+    const mAllocCancel = title.match(/^(.*?)\s+Allocation Cancelled\s+(\(.*?\))$/i);
+    if (mAllocCancel) {
+      return `Przydział anulowany: ${translateAssistanceType(mAllocCancel[1], lang)} ${mAllocCancel[2]}`;
+    }
+    // 7. Allocation Declined
+    const mAllocDec = title.match(/^(.*?)\s+Allocation Declined\s+(\(.*?\))$/i);
+    if (mAllocDec) {
+      return `Przydział odrzucony: ${translateAssistanceType(mAllocDec[1], lang)} ${mAllocDec[2]}`;
+    }
+    // 8. Assistance Distributed
+    const mDist = title.match(/^(.*?)\s+Assistance Distributed\s+(\(.*?\))$/i);
+    if (mDist) {
+      return `Wypłacono pomoc: ${translateAssistanceType(mDist[1], lang)} ${mDist[2]}`;
+    }
+  }
+  return title;
+}
+
+/**
+ * Translates notification bodies into the user's selected language.
+ */
+export function translateNotificationBody(body: string | undefined | null, lang: string = "en"): string {
+  if (!body) return "";
+  if (lang === "pl") {
+    // 1. Trustee relief grant (Ref: ...) of £... has been approved by the Trustees Relief Committee.
+    const mGrant = body.match(/^Trustee relief grant \(Ref:\s*(.*?)\)\s+of\s+(.*?)\s+has been approved by the Trustees Relief Committee\.$/i);
+    if (mGrant) {
+      return `Dotacja pomocowa powierników (Nr ref: ${mGrant[1]}) na kwotę ${mGrant[2]} została zatwierdzona przez Komitet Pomocowy Powierników.`;
+    }
+    // 2. Your emergency support application for ... has been approved by the casework team.
+    const mApp = body.match(/^Your emergency support application for\s+(.*?)\s+has been approved by the casework team\.$/i);
+    if (mApp) {
+      return `Twój awaryjny wniosek o pomoc (${translateAssistanceType(mApp[1], lang)}) został zatwierdzony przez zespół doradców.`;
+    }
+    // 3. Your application for ... (Urgency: ...) is under active assessment by your assigned advocate.
+    const mAssess = body.match(/^Your application for\s+(.*?)\s+\(Urgency:\s*(.*?)\)\s+is under active assessment by your assigned advocate\.$/i);
+    if (mAssess) {
+      return `Twój wniosek o ${translateAssistanceType(mAssess[1], lang)} (Pilność: ${translateStatus(mAssess[2], lang)}) jest w trakcie aktywnej oceny przez przydzielonego doradcę.`;
+    }
+    // 4. Your assistance request has been approved.
+    if (body.trim().toLowerCase() === "your assistance request has been approved." || body.trim().toLowerCase() === "your assistance request has been approved") {
+      return "Twój wniosek o pomoc został zatwierdzony.";
+    }
+    // 5. Your support application for X was reviewed and declined at this time.
+    const mDec = body.match(/^Your support application for\s+(.*?)\s+was reviewed and declined at this time\.$/i);
+    if (mDec) {
+      return `Twój wniosek o pomoc (${translateAssistanceType(mDec[1], lang)}) został rozpatrzony i odrzucony.`;
+    }
+    // 6. Trustee relief allocation (Ref: X) of Y has been cancelled by administration.
+    const mCancel = body.match(/^Trustee relief allocation \(Ref:\s*(.*?)\)\s+of\s+(.*?)\s+has been cancelled by administration\.$/i);
+    if (mCancel) {
+      return `Przydział pomocy powierników (Nr ref: ${mCancel[1]}) na kwotę ${mCancel[2]} został anulowany przez administrację.`;
+    }
+    // 7. Official disbursement of X for Y via Z has been completed.
+    const mDist = body.match(/^Official disbursement of\s+(.*?)\s+for\s+(.*?)\s+via\s+(.*?)\s+has been completed\.$/i);
+    if (mDist) {
+      return `Oficjalna wypłata kwoty ${mDist[1]} na ${translateDefaultPurpose(mDist[2], lang)} za pośrednictwem ${translateDisbursementMethod(mDist[3], lang)} została zrealizowana.`;
+    }
+  }
+  return body;
 }
