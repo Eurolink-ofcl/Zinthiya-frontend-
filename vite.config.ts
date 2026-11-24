@@ -24,7 +24,6 @@ export default defineConfig({
       'clsx',
       'tailwind-merge',
       'class-variance-authority',
-      'lucide-react',
       '@radix-ui/react-slot',
       'zod',
       'zustand',
