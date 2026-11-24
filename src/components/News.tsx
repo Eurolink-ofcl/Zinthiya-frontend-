@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Calendar,
-  ExternalLink,
   Target,
   X,
   Heart,
@@ -14,15 +13,13 @@ interface DisplayItem {
   id: string;
   category: string;
   date: string;
-  source?: string;
   title: string;
   description: string;
   link: string;
-  isCampaign: boolean;
   targetAmount?: number | string;
   raisedAmount?: number | string;
   imageUrl?: string | null;
-  rawCampaign?: CampaignRecord;
+  rawCampaign: CampaignRecord;
 }
 
 function formatCampaignDate(dateStr?: string | null): string {
@@ -36,32 +33,9 @@ function formatCampaignDate(dateStr?: string | null): string {
   }
 }
 
-const fallbackNews: DisplayItem[] = [
-  {
-    id: "fallback-community",
-    category: "Community Action",
-    date: "Winter 2025",
-    title: "Reduce Child Poverty in Leicestershire",
-    description:
-      "Our targeted winter grants and essential food/goods support initiatives aiding families impacted by the rising cost of living.",
-    link: "/services#poverty-alleviation",
-    isCampaign: false,
-  },
-  {
-    id: "fallback-media",
-    category: "Press & Media",
-    date: "Recent News",
-    source: "📰 Leicester Mercury",
-    title: "Major Concerns Over Domestic Abuse",
-    description:
-      "The Zinthiya Trust featured in the Leicester Mercury highlighting rising demand for domestic abuse refuge and advice in Leicester.",
-    link: "/about",
-    isCampaign: false,
-  },
-];
-
 export function News() {
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalCampaign, setModalCampaign] = useState<CampaignRecord | null>(null);
 
   useEffect(() => {
@@ -85,6 +59,8 @@ export function News() {
         }
       } catch (err) {
         console.warn("Could not fetch latest campaigns for News section:", err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
 
@@ -94,51 +70,32 @@ export function News() {
     };
   }, []);
 
-  // Assemble the display items: Live admin-created campaigns take top priority
-  const displayItems: DisplayItem[] = [];
+  // ONLY admin-created campaigns (up to 3 latest, sorted newest first)
+  const displayItems: DisplayItem[] = campaigns.slice(0, 3).map((c) => ({
+    id: c.id,
+    category: c.campaignType === "EXTERNAL" ? "Community Campaign" : "Campaign",
+    date: formatCampaignDate(c.createdAt || c.startDate),
+    title: c.title,
+    description: c.description,
+    targetAmount: c.targetAmount,
+    raisedAmount: c.raisedAmount,
+    imageUrl: c.imageUrl,
+    link: `/donor/dashboard?campaign=${c.id}`,
+    rawCampaign: c,
+  }));
 
-  // 1. Add live admin campaigns (up to 3, sorted by newest first)
-  for (let i = 0; i < Math.min(3, campaigns.length); i++) {
-    const c = campaigns[i];
-    displayItems.push({
-      id: c.id,
-      category: c.campaignType === "EXTERNAL" ? "Community Campaign" : "Campaign",
-      date: formatCampaignDate(c.createdAt || c.startDate),
-      title: c.title,
-      description: c.description,
-      targetAmount: c.targetAmount,
-      raisedAmount: c.raisedAmount,
-      imageUrl: c.imageUrl,
-      link: `/donor/dashboard?campaign=${c.id}`,
-      isCampaign: true,
-      rawCampaign: c,
-    });
+  // If no campaigns have been created yet and loading is complete, do not render empty section
+  if (!loading && displayItems.length === 0) {
+    return null;
   }
 
-  // 2. If fewer than 3 admin campaigns exist in the database, fill remaining slots
-  if (displayItems.length < 3) {
-    // If NO campaigns exist at all in database, supply default
-    if (displayItems.length === 0) {
-      displayItems.push({
-        id: "news-default",
-        category: "Campaign",
-        date: "Autumn 2025",
-        title: "16 Days of Activism Campaign",
-        description:
-          "Joining global action to end violence against women and girls. Explore our local events and workshops taking place across Leicestershire.",
-        link: "/donor/dashboard",
-        isCampaign: false,
-      });
-    }
-
-    // Fill remaining slots with community updates & press coverage
-    for (const fb of fallbackNews) {
-      if (displayItems.length >= 3) break;
-      if (!displayItems.some((item) => item.id === fb.id)) {
-        displayItems.push(fb);
-      }
-    }
-  }
+  // Dynamic grid class: 1 campaign = centered max-w-xl; 2 = 2-cols max-w-4xl; 3 = 3-cols
+  const gridClass =
+    displayItems.length === 1
+      ? "max-w-xl mx-auto"
+      : displayItems.length === 2
+      ? "grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-6"
+      : "flex overflow-x-auto snap-x snap-mandatory md:grid md:grid-cols-3 gap-5 sm:gap-6 pb-6 md:pb-0 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0";
 
   return (
     <section
@@ -151,13 +108,13 @@ export function News() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="space-y-3 max-w-2xl">
             <span className="inline-block px-3.5 py-1.5 rounded-full bg-magenta-blush text-magenta-deep text-xs sm:text-sm font-extrabold uppercase tracking-wider shadow-sm">
-              News &amp; Media Coverage
+              Latest Campaign
             </span>
             <h2 className="font-heading font-extrabold text-ink text-2xl sm:text-4xl lg:text-5xl">
               Latest Campaign &amp; Leicestershire Updates
             </h2>
             <p className="text-ink-muted text-sm sm:text-lg leading-relaxed">
-              Follow our advocacy, community campaigns, press releases, and Leicester Mercury feature articles.
+              Support our community advocacy, emergency relief funds, and specialist welfare initiatives.
             </p>
           </div>
 
@@ -172,8 +129,8 @@ export function News() {
           </div>
         </div>
 
-        {/* Responsive Horizontal Scroll on mobile / 3-Column Grid on desktop */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory md:grid md:grid-cols-3 gap-5 sm:gap-6 pb-6 md:pb-0 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
+        {/* Dynamic Card Container */}
+        <div className={gridClass}>
           {displayItems.map((item) => (
             <div
               key={item.id}
@@ -200,9 +157,7 @@ export function News() {
 
                 <div className="flex items-center justify-between gap-2 mb-4">
                   <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-magenta bg-magenta-blush px-3 py-1 rounded-full flex items-center gap-1.5">
-                    {item.isCampaign && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-magenta animate-pulse" />
-                    )}
+                    <span className="w-1.5 h-1.5 rounded-full bg-magenta animate-pulse" />
                     <span>{item.category}</span>
                   </span>
                   <span className="flex items-center gap-1 text-[11px] sm:text-xs text-ink-muted font-medium">
@@ -210,12 +165,6 @@ export function News() {
                     <span>{item.date}</span>
                   </span>
                 </div>
-
-                {item.source && (
-                  <span className="inline-block text-[10px] sm:text-[11px] font-bold text-ink-muted uppercase tracking-wider bg-blush px-2.5 py-0.5 rounded-md mb-2">
-                    {item.source}
-                  </span>
-                )}
 
                 <h3 className="font-heading font-bold text-lg sm:text-xl text-ink mb-3 group-hover:text-magenta transition-colors line-clamp-2">
                   {item.title}
@@ -226,7 +175,7 @@ export function News() {
                 </p>
 
                 {/* Target & Raised Progress for Admin Campaigns */}
-                {item.isCampaign && item.targetAmount && Number(item.targetAmount) > 0 && (
+                {item.targetAmount && Number(item.targetAmount) > 0 && (
                   <div className="mt-3 mb-4 p-3 rounded-2xl bg-blush/60 border border-magenta/15 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-magenta-deep flex items-center gap-1">
@@ -255,33 +204,21 @@ export function News() {
               </div>
 
               {/* Bottom Action CTA */}
-              <div className="pt-4 border-t border-ink/5 mt-auto">
-                {item.isCampaign ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setModalCampaign(item.rawCampaign || null)}
-                      className="font-heading font-bold text-xs sm:text-sm text-ink-muted hover:text-magenta transition-colors cursor-pointer"
-                    >
-                      View Details
-                    </button>
-                    <Link
-                      to={item.link}
-                      className="inline-flex items-center gap-1.5 font-heading font-bold text-xs sm:text-sm text-magenta hover:text-magenta-deep transition-colors group/link"
-                    >
-                      <span>Support Campaign</span>
-                      <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" aria-hidden="true" />
-                    </Link>
-                  </div>
-                ) : (
-                  <Link
-                    to={item.link}
-                    className="inline-flex items-center justify-between font-heading font-bold text-xs sm:text-sm text-magenta hover:text-magenta-deep w-full group/link"
-                  >
-                    <span>Read article</span>
-                    <ExternalLink className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" aria-hidden="true" />
-                  </Link>
-                )}
+              <div className="pt-4 border-t border-ink/5 mt-auto flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalCampaign(item.rawCampaign)}
+                  className="font-heading font-bold text-xs sm:text-sm text-ink-muted hover:text-magenta transition-colors cursor-pointer"
+                >
+                  View Details
+                </button>
+                <Link
+                  to={item.link}
+                  className="inline-flex items-center gap-1.5 font-heading font-bold text-xs sm:text-sm text-magenta hover:text-magenta-deep transition-colors group/link"
+                >
+                  <span>Support Campaign</span>
+                  <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" aria-hidden="true" />
+                </Link>
               </div>
             </div>
           ))}
