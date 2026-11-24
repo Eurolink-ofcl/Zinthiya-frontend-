@@ -42,53 +42,48 @@ export function Footer() {
             
             <ul className="space-y-2 text-xs sm:text-sm text-white/80">
               <li>
-                <Link to="/contact" className="hover:text-gold transition-colors font-bold text-gold">
-                  Contact Us (Enquiries &amp; Support) →
+                <Link to="/" className="hover:text-gold transition-colors">
+                  Home
                 </Link>
               </li>
               <li>
-                <a href="#about" className="hover:text-gold transition-colors">
-                  About The Trust
-                </a>
+                <Link to="/about" className="hover:text-gold transition-colors">
+                  About
+                </Link>
               </li>
               <li>
-                <a href="#domestic-abuse" className="hover:text-gold transition-colors">
-                  Domestic Abuse &amp; Violence Support
-                </a>
+                <Link to="/services" className="hover:text-gold transition-colors">
+                  Our Service
+                </Link>
               </li>
               <li>
-                <a href="#poverty-alleviation" className="hover:text-gold transition-colors">
-                  Poverty Alleviation &amp; Household Grants
-                </a>
+                <Link to="/donor/dashboard" className="hover:text-gold transition-colors">
+                  Donation
+                </Link>
               </li>
               <li>
-                <a href="#money-debt-energy" className="hover:text-gold transition-colors">
-                  Money, Debt &amp; Energy Advice
-                </a>
+                <Link to="/beneficiary" className="hover:text-gold transition-colors">
+                  Beneficiary
+                </Link>
               </li>
               <li>
-                <a href="#booking" className="hover:text-gold transition-colors">
-                  Online Booking Portal
-                </a>
+                <Link to="/login" className="hover:text-gold transition-colors">
+                  Login
+                </Link>
               </li>
               <li>
-                <a href="#truth-travel" className="hover:text-gold transition-colors">
-                  Truth Before Travel
-                </a>
+                <Link to="/contact" className="hover:text-gold transition-colors font-bold text-gold">
+                  Contact
+                </Link>
               </li>
-              <li>
-                <a href="#chapel-cafe" className="hover:text-gold transition-colors">
-                  Chapel Café
-                </a>
-              </li>
-              <li className="pt-1 border-t border-white/10">
-                <a
-                  href="/admin/login"
-                  className="hover:text-gold transition-colors text-white/70 font-semibold flex items-center gap-1"
+              <li className="pt-2 border-t border-white/10">
+                <Link
+                  to="/admin/login"
+                  className="hover:text-gold transition-colors text-white/60 font-semibold flex items-center gap-1 text-xs"
                 >
                   <span>Staff &amp; Administrator Login</span>
                   <span className="text-[10px] text-gold">→</span>
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
