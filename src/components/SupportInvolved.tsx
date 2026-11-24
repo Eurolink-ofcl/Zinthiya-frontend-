@@ -1,15 +1,36 @@
 import { useState, type FormEvent } from "react";
-import { Sparkles, Heart, ArrowUpRight, Check } from "./Icons";
+import { Sparkles, Heart, ArrowUpRight, Check, RefreshCw } from "./Icons";
+import { api } from "../lib/api";
 
 export function SupportInvolved() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!email) return;
-    setSubmitted(true);
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    setSubmitting(true);
+    setErrorMsg("");
+    try {
+      const res = await api.subscribeNewsletter({
+        email: cleanEmail,
+        fullName: name.trim() || undefined,
+        source: "WEBSITE_HERO_BANNER",
+      });
+      setSuccessMsg(res?.message || "Thank you for joining our community newsletter!");
+      setSubmitted(true);
+    } catch (err: any) {
+      console.error("Subscription failed:", err);
+      setErrorMsg(err?.message || "Failed to process subscription. Please check your email and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -177,11 +198,27 @@ export function SupportInvolved() {
             </div>
             <h3 className="font-heading font-bold text-lg text-white">Thank You for Joining Us!</h3>
             <p className="text-xs sm:text-sm text-white/80">
-              We've registered <span className="text-gold font-semibold">{email}</span>. You'll receive our next community update shortly.
+              {successMsg || `We've registered ${email}. You'll receive our next community update shortly.`}
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitted(false);
+                setEmail("");
+                setName("");
+              }}
+              className="mt-3 text-xs text-gold underline hover:text-gold-light"
+            >
+              Subscribe another email
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-3.5 sm:space-y-4 pt-2">
+            {errorMsg && (
+              <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 text-xs text-center">
+                {errorMsg}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
               <div className="text-left">
                 <label
@@ -222,10 +259,20 @@ export function SupportInvolved() {
             <div className="pt-2 sm:pt-3 flex justify-center">
               <button
                 type="submit"
-                className="btn-shutter-gold w-auto min-w-[170px] bg-gold hover:bg-gold-light active:scale-95 text-ink font-heading font-extrabold text-xs sm:text-lg px-7 sm:px-9 py-3 sm:py-4 rounded-full shadow-lg transition-all inline-flex items-center justify-center gap-2 group cursor-pointer"
+                disabled={submitting}
+                className="btn-shutter-gold w-auto min-w-[170px] bg-gold hover:bg-gold-light active:scale-95 text-ink font-heading font-extrabold text-xs sm:text-lg px-7 sm:px-9 py-3 sm:py-4 rounded-full shadow-lg transition-all inline-flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-75 disabled:pointer-events-none"
               >
-                <span>Get Involved</span>
-                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-ink group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform shrink-0" aria-hidden="true" />
+                {submitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-ink animate-spin" />
+                    <span>Joining...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Get Involved</span>
+                    <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-ink group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform shrink-0" aria-hidden="true" />
+                  </>
+                )}
               </button>
             </div>
 

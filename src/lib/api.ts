@@ -1706,6 +1706,22 @@ class ApiService {
     });
   }
 
+  async subscribeNewsletter(payload: { email: string; fullName?: string; source?: string }): Promise<any> {
+    return this.request<any>("/newsletter/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async unsubscribeNewsletter(payload: { email: string }): Promise<any> {
+    return this.request<any>("/newsletter/unsubscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+
   // --- Health Check ---
   async getHealth(): Promise<{ status: string; database: string }> {
     return this.request<{ status: string; database: string }>("/health", {

@@ -13708,7 +13708,9 @@ export function AdminDashboardPage() {
                     onChange={(e) => setNewsletterChannelFilter(e.target.value)}
                     className="px-3 py-2 text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-magenta/20 focus:border-magenta"
                   >
-                    <option value="ALL">All Communication Channels</option>
+                    <option value="ALL">All Subscribers (Website + Donors)</option>
+                    <option value="WEBSITE">Website Leads Only</option>
+                    <option value="DONOR">Registered Donors Only</option>
                     <option value="EMAIL">Email Newsletter Consented</option>
                     <option value="PORTAL">Portal Feed Viewers</option>
                   </select>
@@ -13716,9 +13718,9 @@ export function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const csvHeader = "ID,Full Name,Email,Tier,Email Opt-in,SMS Opt-in,Postal Opt-in,Registered Date\n";
+                      const csvHeader = "ID,Full Name,Email,Type,Source / Tier,Email Opt-in,Status,Registered Date\n";
                       const csvRows = (newsletterData?.subscribers || [])
-                        .map((s: any) => `"${s.id}","${s.fullName}","${s.email}","${s.donationTier}","${s.emailNewsletter}","${s.smsAlerts}","${s.postalUpdates}","${s.createdAt}"`)
+                        .map((s: any) => `"${s.id}","${s.fullName}","${s.email}","${s.type || (s.donationTier ? 'DONOR' : 'WEBSITE')}","${s.source || s.donationTier}","${s.emailNewsletter}","${s.status || (s.emailNewsletter ? 'ACTIVE' : 'OPTED_OUT')}","${s.createdAt}"`)
                         .join("\n");
                       const blob = new Blob([csvHeader + csvRows], { type: "text/csv;charset=utf-8;" });
                       const url = URL.createObjectURL(blob);
@@ -13742,7 +13744,9 @@ export function AdminDashboardPage() {
                     <Users size={16} className="text-magenta" />
                     <span>Consented Newsletter Subscribers ({newsletterData?.subscribers?.length || 0})</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-500">Verified System Records</span>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Website Leads: {newsletterData?.websiteSubscribersCount || newsletterData?.subscribers?.filter((s: any) => s.type === "WEBSITE").length || 0} • Donors: {newsletterData?.donorSubscribersCount || newsletterData?.subscribers?.filter((s: any) => s.type === "DONOR").length || 0}
+                  </span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -13751,7 +13755,7 @@ export function AdminDashboardPage() {
                       <tr className="bg-gray-50/80 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-100">
                         <th className="py-3 px-4 font-bold">Subscriber</th>
                         <th className="py-3 px-4 font-bold">Email Address</th>
-                        <th className="py-3 px-4 font-bold">Donor Tier</th>
+                        <th className="py-3 px-4 font-bold">Audience / Source</th>
                         <th className="py-3 px-4 font-bold">Opt-In Date</th>
                         <th className="py-3 px-4 font-bold">GDPR Status</th>
                         <th className="py-3 px-4 font-bold">Active Channels</th>
@@ -13766,6 +13770,8 @@ export function AdminDashboardPage() {
                             const matchEmail = (sub.email || "").toLowerCase().includes(q);
                             if (!matchName && !matchEmail) return false;
                           }
+                          if (newsletterChannelFilter === "WEBSITE" && sub.type !== "WEBSITE") return false;
+                          if (newsletterChannelFilter === "DONOR" && sub.type !== "DONOR") return false;
                           if (newsletterChannelFilter === "EMAIL" && !sub.emailNewsletter) return false;
                           if (newsletterChannelFilter === "PORTAL" && sub.emailNewsletter) return false;
                           return true;
@@ -13773,8 +13779,8 @@ export function AdminDashboardPage() {
                         .map((sub: any) => (
                           <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
                             <td className="py-3.5 px-4 font-bold text-slate-900 flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-pink-100 text-magenta font-black flex items-center justify-center text-xs">
-                                {sub.fullName?.charAt(0) || "D"}
+                              <div className={`w-7 h-7 rounded-full font-black flex items-center justify-center text-xs ${sub.type === "WEBSITE" ? "bg-blue-100 text-blue-700" : "bg-pink-100 text-magenta"}`}>
+                                {sub.fullName?.charAt(0) || (sub.type === "WEBSITE" ? "W" : "D")}
                               </div>
                               <div>
                                 <div>{sub.fullName}</div>
@@ -13783,9 +13789,15 @@ export function AdminDashboardPage() {
                             </td>
                             <td className="py-3.5 px-4 font-mono text-slate-600">{sub.email}</td>
                             <td className="py-3.5 px-4">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-50 text-magenta border border-pink-100">
-                                {sub.donationTier}
-                              </span>
+                              {sub.type === "WEBSITE" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                                  <span>Website Lead</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-50 text-magenta border border-pink-100">
+                                  Donor ({sub.donationTier})
+                                </span>
+                              )}
                             </td>
                             <td className="py-3.5 px-4 text-slate-500">
                               {new Date(sub.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
@@ -13798,13 +13810,17 @@ export function AdminDashboardPage() {
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                  <span>Portal Only (Opted Out)</span>
+                                  <span>Opted Out</span>
                                 </span>
                               )}
                             </td>
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-1.5">
-                                {sub.emailNewsletter ? (
+                                {sub.type === "WEBSITE" ? (
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+                                    Email Updates
+                                  </span>
+                                ) : sub.emailNewsletter ? (
                                   <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700">
                                     Email &amp; Portal
                                   </span>
