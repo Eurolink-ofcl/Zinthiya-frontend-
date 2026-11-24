@@ -76,15 +76,6 @@ export function Footer() {
                   Contact
                 </Link>
               </li>
-              <li className="pt-2 border-t border-white/10">
-                <Link
-                  to="/admin/login"
-                  className="hover:text-gold transition-colors text-white/60 font-semibold flex items-center gap-1 text-xs"
-                >
-                  <span>Staff &amp; Administrator Login</span>
-                  <span className="text-[10px] text-gold">→</span>
-                </Link>
-              </li>
             </ul>
           </div>
 
