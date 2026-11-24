@@ -124,9 +124,6 @@ export function Footer() {
             <a href="#accessibility" className="hover:text-white transition-colors">
               Accessibility
             </a>
-            <a href="/admin/login" className="hover:text-white transition-colors text-white/50 text-[11px]">
-              Staff &amp; Administrator Login
-            </a>
           </div>
         </div>
 
