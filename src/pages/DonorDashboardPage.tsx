@@ -285,7 +285,12 @@ export function DonorDashboardPage() {
       setDonorPostcodeConfirm(profileRes.postcode || "");
       setCardName(profileRes.fullName || "");
 
-      if (campaignsRes.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const requestedCampId = urlParams.get("campaign");
+      if (requestedCampId && campaignsRes.some(c => c.id === requestedCampId)) {
+        setSelectedCampaignId(requestedCampId);
+        setPageDonateCampaignId(requestedCampId);
+      } else if (campaignsRes.length > 0) {
         if (!selectedCampaignId) setSelectedCampaignId(campaignsRes[0].id);
         if (!pageDonateCampaignId) setPageDonateCampaignId(campaignsRes[0].id);
       }
