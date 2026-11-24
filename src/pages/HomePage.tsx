@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 import { Hero } from "../components/Hero";
 import { SupportBanner } from "../components/SupportBanner";
-import { CommunityProjects } from "../components/CommunityProjects";
+import { Services } from "../components/Services";
 import { News } from "../components/News";
 import { SupportInvolved } from "../components/SupportInvolved";
 import { Footer } from "../components/Footer";
@@ -33,7 +33,7 @@ export function HomePage() {
       <main className="flex-1">
         <Hero />
         <SupportBanner />
-        <CommunityProjects />
+        <Services />
         <News />
         <SupportInvolved />
       </main>
@@ -45,4 +45,3 @@ export function HomePage() {
 }
 
 export default HomePage;
-
