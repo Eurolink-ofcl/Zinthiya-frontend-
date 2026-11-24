@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Sparkles, Mail, ArrowRight, PhoneCall, MapPin } from "./Icons";
 
 export function Hero() {
@@ -45,14 +46,14 @@ export function Hero() {
 
         {/* Action Buttons: Contact Us & Helpline */}
         <div className="pt-1 sm:pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto max-w-xs sm:max-w-none">
-          <a
-            href="#contact"
+          <Link
+            to="/contact"
             className="btn-3d-magenta w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-full font-heading font-bold text-sm sm:text-lg text-white shadow-pill-3d flex items-center justify-center gap-2.5 transition-transform focus:outline-none focus:ring-4 focus:ring-magenta/30"
           >
             <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-white" aria-hidden="true" />
             <span>Contact Us</span>
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 text-white stroke-[2.5]" aria-hidden="true" />
-          </a>
+          </Link>
 
           <a
             href="tel:01162545168"

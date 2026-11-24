@@ -4,7 +4,7 @@ import zinthiyaLogo from "../images/zinthiya-logo-DrNqELQE.svg";
 
 export function Footer() {
   return (
-    <footer id="contact" className="bg-ink text-white pt-16 pb-12 relative border-t border-magenta/20">
+    <footer id="footer" className="bg-ink text-white pt-16 pb-12 relative border-t border-magenta/20">
       {/* Top Gradient Border Line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-magenta via-gold to-magenta" />
 

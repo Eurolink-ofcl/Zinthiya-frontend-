@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   Shield,
   CircleCheck,
@@ -75,13 +76,13 @@ export function Services() {
             </div>
 
             <div>
-              <a
-                href="#contact?service=domestic-abuse"
+              <Link
+                to="/contact?service=domestic-abuse"
                 className="inline-flex items-center gap-2 font-heading font-bold text-xs sm:text-sm text-magenta hover:text-magenta-deep transition-colors pt-4 border-t border-ink/5 w-full"
               >
                 <span>Request Support</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -132,13 +133,13 @@ export function Services() {
             </div>
 
             <div>
-              <a
-                href="#contact?service=poverty-alleviation"
+              <Link
+                to="/contact?service=poverty-alleviation"
                 className="inline-flex items-center gap-2 font-heading font-bold text-xs sm:text-sm text-magenta hover:text-magenta-deep transition-colors pt-4 border-t border-ink/5 w-full"
               >
                 <span>Request Support</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -203,13 +204,13 @@ export function Services() {
                 </a>
               </div>
 
-              <a
-                href="#contact?service=money-debt-energy"
+              <Link
+                to="/contact?service=money-debt-energy"
                 className="inline-flex items-center gap-2 font-heading font-bold text-xs sm:text-sm text-magenta hover:text-magenta-deep transition-colors pt-4 border-t border-ink/5 w-full"
               >
                 <span>Request Support</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
           </div>
 
