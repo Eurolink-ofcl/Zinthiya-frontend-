@@ -1722,6 +1722,19 @@ class ApiService {
     });
   }
 
+  async submitContactMessage(payload: {
+    fullName: string;
+    phoneNumber?: string;
+    email: string;
+    message: string;
+  }): Promise<{ success: boolean; message: string; contactId?: string }> {
+    return this.request<{ success: boolean; message: string; contactId?: string }>("/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+
   // --- Health Check ---
   async getHealth(): Promise<{ status: string; database: string }> {
     return this.request<{ status: string; database: string }>("/health", {

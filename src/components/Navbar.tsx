@@ -156,12 +156,12 @@ export function Navbar() {
             </Link>
 
             {/* Contact CTA Button */}
-            <a
-              href="#contact"
+            <Link
+              to="/contact"
               className="btn-3d-magenta px-6 py-2.5 rounded-full font-bold text-white shadow-pill-3d transition-transform hover:scale-105 shrink-0 inline-block text-sm"
             >
               Contact
-            </a>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -232,13 +232,13 @@ export function Navbar() {
                   <User className="w-4 h-4 text-magenta" />
                   <span>Login</span>
                 </Link>
-                <a
-                  href="#contact"
+                <Link
+                  to="/contact"
                   onClick={() => setMobileMenuOpen(false)}
                   className="btn-3d-magenta flex items-center justify-center px-5 py-2.5 rounded-full font-bold text-white text-sm shadow-pill-3d"
                 >
                   Contact
-                </a>
+                </Link>
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { MapPin, Clock, Phone, Mail } from "./Icons";
 import zinthiyaLogo from "../images/zinthiya-logo-DrNqELQE.svg";
 
@@ -40,6 +41,11 @@ export function Footer() {
             </h3>
             
             <ul className="space-y-2 text-xs sm:text-sm text-white/80">
+              <li>
+                <Link to="/contact" className="hover:text-gold transition-colors font-bold text-gold">
+                  Contact Us (Enquiries &amp; Support) →
+                </Link>
+              </li>
               <li>
                 <a href="#about" className="hover:text-gold transition-colors">
                   About The Trust

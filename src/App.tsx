@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { AboutPage } from "./pages/AboutPage";
 import { ServicesPage } from "./pages/ServicesPage";
+import { ContactPage } from "./pages/ContactPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { DonorDashboardPage } from "./pages/DonorDashboardPage";
@@ -17,6 +18,8 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/services" element={<ServicesPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/contact-us" element={<Navigate to="/contact" replace />} />
       <Route path="/our-service" element={<Navigate to="/services" replace />} />
       <Route path="/our-services" element={<Navigate to="/services" replace />} />
       <Route path="/login" element={<LoginPage />} />
